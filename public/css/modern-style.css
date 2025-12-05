@@ -1,0 +1,449 @@
+/* Diseño Moderno y Minimalista */
+:root {
+    --primary-color: #2563eb;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --light-bg: #f8fafc;
+    --white: #ffffff;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --radius: 0.5rem;
+}
+
+/* Layout General */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text-dark);
+    line-height: 1.6;
+}
+
+/* Navbar Moderno */
+.navbar {
+    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: white !important;
+    font-size: 1.25rem;
+}
+
+.navbar-nav .nav-link {
+    color: white !important;
+    font-weight: 500;
+    padding: 0.5rem 1rem !important;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white !important;
+}
+
+/* Dropdown en navbar */
+.navbar .dropdown-toggle {
+    color: white !important;
+    font-weight: 500;
+}
+
+.navbar .dropdown-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+}
+
+.navbar .dropdown-menu {
+    border: none;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius);
+}
+
+.navbar .dropdown-item {
+    color: var(--text-dark);
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.navbar .dropdown-item:hover {
+    background-color: var(--light-bg);
+    color: var(--primary-color);
+}
+
+/* Cards Modernos */
+.card {
+    border: none;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    background: var(--white);
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.card-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Botones Modernos */
+.btn {
+    border-radius: var(--radius);
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+}
+
+.btn-outline-primary {
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Tablas Modernas */
+.table {
+    background: var(--white);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table thead th {
+    background: var(--light-bg);
+    border: none;
+    font-weight: 600;
+    color: var(--text-dark);
+    padding: 1rem;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table tbody td {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Badges Modernos */
+.badge {
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+}
+
+.bg-primary { background-color: var(--primary-color) !important; }
+.bg-success { background-color: var(--success-color) !important; }
+.bg-warning { background-color: var(--warning-color) !important; }
+.bg-danger { background-color: var(--danger-color) !important; }
+.bg-secondary { background-color: var(--secondary-color) !important; }
+.bg-info { background-color: #06b6d4 !important; }
+
+/* Formularios Modernos */
+.form-control, .form-select {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+    background: var(--white);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+/* Alertas Modernas */
+.alert {
+    border: none;
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    color: #166534;
+    border-left-color: var(--success-color);
+}
+
+.alert-warning {
+    background: #fffbeb;
+    color: #92400e;
+    border-left-color: var(--warning-color);
+}
+
+.alert-danger {
+    background: #fef2f2;
+    color: #991b1b;
+    border-left-color: var(--danger-color);
+}
+
+.alert-info {
+    background: #f0f9ff;
+    color: #1e40af;
+    border-left-color: #06b6d4;
+}
+
+/* Progress Bars Modernos */
+.progress {
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: var(--border-color);
+}
+
+.progress-bar {
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+/* Contenedor Principal */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Títulos */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-dark);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.875rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+
+/* Espaciado */
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mt-4 { margin-top: 1.5rem !important; }
+.py-4 { padding: 1.5rem 0 !important; }
+
+/* Formularios Adaptativos */
+.form-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Pantallas muy grandes (1400px+) */
+@media (min-width: 1400px) {
+    .form-container { max-width: 1200px; }
+    .form-control, .form-select { padding: 1rem; font-size: 1rem; }
+    .card-body { padding: 2.5rem; }
+    .btn { padding: 0.875rem 2rem; font-size: 1rem; }
+}
+
+/* Pantallas grandes (1200px - 1399px) */
+@media (min-width: 1200px) and (max-width: 1399px) {
+    .form-container { max-width: 1000px; }
+    .form-control, .form-select { padding: 0.875rem; font-size: 0.95rem; }
+    .card-body { padding: 2rem; }
+    .btn { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+}
+
+/* Pantallas medianas (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .form-container { max-width: 800px; }
+    .form-control, .form-select { padding: 0.75rem; font-size: 0.9rem; }
+    .card-body { padding: 1.75rem; }
+    .btn { padding: 0.675rem 1.25rem; font-size: 0.9rem; }
+}
+
+/* Tablets (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+    .form-container { max-width: 600px; }
+    .form-control, .form-select { padding: 0.75rem; font-size: 0.875rem; }
+    .card-body { padding: 1.5rem; }
+    .btn { padding: 0.625rem 1rem; font-size: 0.875rem; }
+    
+    /* Formularios en 2 columnas en tablets */
+    .row .col-md-6 { flex: 0 0 50%; max-width: 50%; }
+}
+
+/* Móviles (576px - 767px) */
+@media (min-width: 576px) and (max-width: 767px) {
+    .form-container { max-width: 100%; padding: 0 1rem; }
+    .form-control, .form-select { padding: 0.625rem; font-size: 0.875rem; }
+    .card-body { padding: 1.25rem; }
+    .btn { padding: 0.5rem 1rem; font-size: 0.875rem; }
+    
+    /* Una sola columna en móviles */
+    .row .col-md-6, .row .col-lg-6 { flex: 0 0 100%; max-width: 100%; }
+}
+
+/* Móviles pequeños (menos de 576px) */
+@media (max-width: 575px) {
+    .container { padding: 0.5rem; }
+    .form-container { padding: 0 0.5rem; }
+    .form-control, .form-select { padding: 0.5rem; font-size: 0.8rem; }
+    .card-body { padding: 1rem; }
+    .btn { padding: 0.5rem 0.875rem; font-size: 0.8rem; width: 100%; margin-bottom: 0.5rem; }
+    
+    /* Botones apilados en móviles pequeños */
+    .d-grid.gap-2.d-md-flex { display: block !important; }
+    .d-grid.gap-2.d-md-flex .btn { margin-bottom: 0.5rem; }
+    
+    /* Tablas responsive */
+    .table-responsive { font-size: 0.75rem; }
+    .table td, .table th { padding: 0.5rem 0.25rem; }
+}
+
+/* Clases utilitarias para formularios */
+.form-row-adaptive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.form-col-adaptive {
+    flex: 1;
+    min-width: 250px;
+}
+
+@media (max-width: 768px) {
+    .form-col-adaptive {
+        min-width: 100%;
+    }
+}
+
+/* Sidebar responsive */
+@media (max-width: 991px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+    }
+}
+
+/* Ajustes específicos para diferentes resoluciones */
+@media (min-width: 1920px) {
+    .container { max-width: 1400px; }
+    .form-container { max-width: 1200px; }
+}
+
+@media (min-width: 2560px) {
+    .container { max-width: 1800px; }
+    .form-container { max-width: 1400px; }
+    .form-control, .form-select { padding: 1.25rem; font-size: 1.1rem; }
+}
+
+/* Animaciones suaves */
+* {
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Estados de carga */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Tooltips modernos */
+.tooltip-inner {
+    background: var(--text-dark);
+    color: white;
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Iconos */
+.fas, .far {
+    margin-right: 0.5rem;
+}
+
+/* Sidebar si existe */
+.sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Footer */
+.footer {
+    background: var(--white);
+    border-top: 1px solid var(--border-color);
+    padding: 2rem 0;
+    margin-top: 3rem;
+    color: var(--text-muted);
+}

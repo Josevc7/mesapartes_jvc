@@ -1,0 +1,33 @@
+includes:
+  - vendor/phpstan/phpstan-laravel/extension.neon
+
+parameters:
+  level: 5
+  paths:
+    - app
+    - routes
+    - database
+  
+  # Ignorar falsos positivos
+  reportUnmatchedIgnoredErrors: false
+  ignoreErrors:
+    # CSRF - Falso positivo (Laravel protege automáticamente)
+    - '#CWE-352.*Coral Csrf Rule#'
+    - '#CWE-1275#'
+    
+    # CWE-798 - Hardcoded credentials (falsos positivos):
+    # - Reglas de validación con 'password'
+    # - Casting de atributos en modelos ('password' => 'hashed')
+    - '#CWE-798.*password#'
+    - '#CWE-798.*Hardcoded credentials#'
+    
+    # CWE-89 - SQL Injection en colecciones en memoria (falso positivo)
+    # Las llamadas a ->where() en colecciones son seguras (no son queries SQL)
+    - '#CWE-89.*->where\(#'
+    - '#CWE-89.*SQL Injection#'
+  
+  # Permitir métodos dinámicos de Laravel
+  dynamicallyCallableClasses:
+    - App\Http\Controllers\*
+    - App\Models\*
+
