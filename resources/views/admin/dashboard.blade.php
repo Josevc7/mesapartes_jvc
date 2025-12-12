@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid">
     <!-- Métricas Principales -->
-    <!--<div class="row mb-4">
+    <div class="row mb-4">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
@@ -66,7 +66,7 @@
                 </div>
             </div>
         </div>
-    </div>--> 
+    </div>
 
     <!-- Gráficos y Estadísticas -->
     <div class="row mb-4">
