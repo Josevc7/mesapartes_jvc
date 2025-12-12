@@ -2,31 +2,60 @@
 
 @section('title', 'Registrar Documento')
 
+@push('styles')
+<link href="{{ asset('css/ciudadano-form.css') }}" rel="stylesheet">
+@endpush
+
 @section('content')
-<div class="adaptive-form">
-    <div class="card">
-        <div class="card-header">
-            <h4><i class="fas fa-plus-circle"></i> Registrar Documento Entrante</h4>
-        </div>
-        <div class="card-body">
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-11 col-lg-12">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-plus-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-1 fw-bold">Registrar Documento Entrante</h3>
+                            <p class="mb-0 opacity-90">Mesa de Partes - Registro de Expedientes</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
                     @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle"></i> <strong>{{ session('success') }}</strong>
-                            @if(session('codigo_expediente'))
-                                <br><small>Código de expediente: <strong>{{ session('codigo_expediente') }}</strong></small>
-                            @endif
+                        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success bg-opacity-20 rounded-circle p-2 me-3">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="alert-heading mb-1">¡Documento registrado exitosamente!</h6>
+                                    <p class="mb-0">{{ session('success') }}</p>
+                                    @if(session('codigo_expediente'))
+                                        <small class="d-block mt-1">Código de expediente: <strong class="text-success">{{ session('codigo_expediente') }}</strong></small>
+                                    @endif
+                                </div>
+                            </div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
                     
                     @if($errors->any())
-                        <div class="alert alert-danger">
-                            <h6>Errores en el formulario:</h6>
-                            <ul class="mb-0">
-                                @foreach($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
+                        <div class="alert alert-danger border-0 shadow-sm">
+                            <div class="d-flex align-items-start">
+                                <div class="bg-danger bg-opacity-20 rounded-circle p-2 me-3 mt-1">
+                                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading mb-2">Errores en el formulario:</h6>
+                                    <ul class="mb-0 ps-3">
+                                        @foreach($errors->all() as $error)
+                                            <li class="mb-1">{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     @endif
                     
@@ -35,15 +64,23 @@
                         <input type="hidden" id="persona_existente_id" name="persona_existente_id" value="">
                         
                         <!-- Sección 1: Identificación del Solicitante -->
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2 mb-3">
-                                <i class="fas fa-user"></i> 1. Identificación del Solicitante
-                            </h5>
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-user text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-primary fw-bold">1. Identificación del Solicitante</h5>
+                                    <p class="text-muted mb-0 small">Busque o registre los datos del ciudadano</p>
+                                </div>
+                            </div>
                             
-                            <div class="three-columns">
-                                <div class="adaptive-field">
-                                    <label for="tipo_documento" class="form-label">Tipo de Documento *</label>
-                                    <select class="form-select @error('tipo_documento') is-invalid @enderror" 
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <label for="tipo_documento" class="form-label fw-semibold">
+                                        <i class="fas fa-id-card text-primary me-2"></i>Tipo de Documento *
+                                    </label>
+                                    <select class="form-select form-select-lg @error('tipo_documento') is-invalid @enderror" 
                                             id="tipo_documento" name="tipo_documento" required>
                                         <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
                                         <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carné de Extranjería</option>
@@ -55,13 +92,15 @@
                                     @enderror
                                 </div>
                                 
-                                <div class="adaptive-field">
-                                    <label for="numero_documento" class="form-label">Número de Documento *</label>
-                                    <div class="input-group">
+                                <div class="col-md-5">
+                                    <label for="numero_documento" class="form-label fw-semibold">
+                                        <i class="fas fa-search text-primary me-2"></i>Número de Documento *
+                                    </label>
+                                    <div class="input-group input-group-lg">
                                         <input type="text" class="form-control @error('numero_documento') is-invalid @enderror" 
                                                id="numero_documento" name="numero_documento" value="{{ old('numero_documento') }}" 
                                                placeholder="Ingrese documento y presione Enter" required>
-                                        <button type="button" class="btn btn-outline-secondary" id="btn-buscar" onclick="buscarPersona()">
+                                        <button type="button" class="btn btn-primary" id="btn-buscar" onclick="buscarPersona()">
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
@@ -71,9 +110,11 @@
                                     @enderror
                                 </div>
                                 
-                                <div class="adaptive-field">
-                                    <label for="tipo_persona" class="form-label">Tipo de Persona *</label>
-                                    <select class="form-select @error('tipo_persona') is-invalid @enderror" 
+                                <div class="col-md-3">
+                                    <label for="tipo_persona" class="form-label fw-semibold">
+                                        <i class="fas fa-user-tag text-primary me-2"></i>Tipo de Persona *
+                                    </label>
+                                    <select class="form-select form-select-lg @error('tipo_persona') is-invalid @enderror" 
                                             id="tipo_persona" name="tipo_persona" required>
                                         <option value="NATURAL" {{ old('tipo_persona', 'NATURAL') == 'NATURAL' ? 'selected' : '' }}>Persona Natural</option>
                                         <option value="JURIDICA" {{ old('tipo_persona') == 'JURIDICA' ? 'selected' : '' }}>Persona Jurídica</option>
@@ -93,10 +134,16 @@
                         </div>
 
                         <!-- Sección 2: Datos Personales -->
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2 mb-3">
-                                <i class="fas fa-address-card"></i> 2. Datos Personales
-                            </h5>
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-address-card text-success fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-success fw-bold">2. Datos Personales</h5>
+                                    <p class="text-muted mb-0 small">Complete la información personal del solicitante</p>
+                                </div>
+                            </div>
                             
                             <div id="persona-natural" class="persona-fields">
                                 <div class="three-columns">
@@ -153,10 +200,16 @@
                         </div>
                         
                         <!-- Sección 3: Datos de Contacto -->
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2 mb-3">
-                                <i class="fas fa-phone"></i> 3. Datos de Contacto
-                            </h5>
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-phone text-info fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-info fw-bold">3. Datos de Contacto</h5>
+                                    <p class="text-muted mb-0 small">Información de contacto para notificaciones</p>
+                                </div>
+                            </div>
                             
                             <div class="three-columns">
                                 <div class="adaptive-field">
@@ -187,10 +240,16 @@
                         </div>
 
                         <!-- Sección 4: Verificación de Documentos -->
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2 mb-3">
-                                <i class="fas fa-file-check"></i> 4. Verificación de Documentos
-                            </h5>
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-file-check text-warning fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-warning fw-bold">4. Verificación de Documentos</h5>
+                                    <p class="text-muted mb-0 small">Confirme que el ciudadano presenta todos los documentos requeridos</p>
+                                </div>
+                            </div>
                         
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> <strong>Documentos Obligatorios:</strong>
@@ -260,10 +319,16 @@
                         </div>
                         
                         <!-- Sección 5: Datos del Trámite -->
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2 mb-3">
-                                <i class="fas fa-clipboard-list"></i> 5. Datos del Trámite
-                            </h5>
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-danger bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-clipboard-list text-danger fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-danger fw-bold">5. Datos del Trámite</h5>
+                                    <p class="text-muted mb-0 small">Información del expediente y documentos adjuntos</p>
+                                </div>
+                            </div>
                             
                             <div class="two-columns">
                                 <div class="adaptive-field">
@@ -272,7 +337,7 @@
                                             id="id_tipo_tramite" name="id_tipo_tramite" required>
                                         <option value="">Seleccione un tipo de trámite</option>
                                         @foreach($tipoTramites as $tipoTramite)
-                                            <option value="{{ $tipoTramite->id }}" {{ old('id_tipo_tramite') == $tipoTramite->id ? 'selected' : '' }}>
+                                            <option value="{{ $tipoTramite->id_tipo_tramite }}" {{ old('id_tipo_tramite') == $tipoTramite->id_tipo_tramite ? 'selected' : '' }}>
                                                 {{ $tipoTramite->nombre }}
                                             </option>
                                         @endforeach
@@ -312,17 +377,19 @@
                             </div>
                         </div>
 
-                        <div class="adaptive-buttons">
-                            <a href="{{ route('mesa-partes.index') }}" class="btn btn-secondary adaptive-btn">
-                                <i class="fas fa-times"></i> Cancelar
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-end pt-4 border-top">
+                            <a href="{{ route('mesa-partes.index') }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a Mesa de Partes
                             </a>
-                            <button type="submit" class="btn btn-primary adaptive-btn">
-                                <i class="fas fa-save"></i> Registrar Documento
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-save me-2"></i>Registrar Documento
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
 </div>
 
 @section('scripts')
@@ -448,7 +515,7 @@ function usarPersonaExistente() {
     
     // Marcar como persona existente
     const personaExistenteId = document.getElementById('persona_existente_id');
-    if (personaExistenteId) personaExistenteId.value = p.id;
+    if (personaExistenteId) personaExistenteId.value = p.id_persona;
     
     // Llenar campos básicos
     const tipoDoc = document.getElementById('tipo_documento');

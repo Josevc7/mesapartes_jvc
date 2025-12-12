@@ -59,11 +59,11 @@ class JefeAreaController extends Controller
         
         $expediente->update([
             'estado' => 'aprobado',
-            'aprobado_por' => auth()->id(),
+            'aprobado_por' => auth()->user()->id,
             'fecha_aprobacion' => now()
         ]);
         
-        $expediente->agregarHistorial('Expediente aprobado por Jefe de Área', auth()->id());
+        $expediente->agregarHistorial('Expediente aprobado por Jefe de Área', auth()->user()->id);
         
         return back()->with('success', 'Expediente aprobado correctamente');
     }
@@ -83,7 +83,7 @@ class JefeAreaController extends Controller
             'motivo_rechazo' => $request->motivo_rechazo
         ]);
         
-        $expediente->agregarHistorial('Expediente rechazado: ' . $request->motivo_rechazo, auth()->id());
+        $expediente->agregarHistorial('Expediente rechazado: ' . $request->motivo_rechazo, auth()->user()->id);
         
         return back()->with('success', 'Expediente rechazado');
     }
@@ -236,16 +236,16 @@ class JefeAreaController extends Controller
         if ($accion === 'aprobar') {
             $expediente->update([
                 'estado' => 'aprobado',
-                'aprobado_por' => auth()->id(),
+                'aprobado_por' => auth()->user()->id,
                 'fecha_aprobacion' => now()
             ]);
-            $expediente->agregarHistorial('Expediente aprobado por Jefe de Área', auth()->id());
+            $expediente->agregarHistorial('Expediente aprobado por Jefe de Área', auth()->user()->id);
         } else {
             $expediente->update([
                 'estado' => 'rechazado',
                 'motivo_rechazo' => $observaciones
             ]);
-            $expediente->agregarHistorial('Expediente rechazado: ' . $observaciones, auth()->id());
+            $expediente->agregarHistorial('Expediente rechazado: ' . $observaciones, auth()->user()->id);
         }
         
         return response()->json(['success' => true]);
@@ -260,7 +260,7 @@ class JefeAreaController extends Controller
                 ->whereHas('derivaciones', function($q) {
                     $q->where('fecha_limite', '<', now());
                 })->count(),
-            'reasignaciones_pendientes' => 0, // Implementar lógica
+            'reasignaciones_pendientes' => 0,
             'autorizaciones_especiales' => 0,
             'observaciones_ciudadano' => Expediente::where('id_area', $areaId)
                 ->where('estado', 'Observado')->count()
@@ -340,7 +340,7 @@ class JefeAreaController extends Controller
         
         $expediente->agregarHistorial(
             "Plazo extendido {$diasAdicionales} días. Motivo: {$motivo}", 
-            auth()->id()
+            auth()->user()->id
         );
         
         return response()->json(['success' => true]);
@@ -354,16 +354,9 @@ class JefeAreaController extends Controller
         
         $observaciones = $request->input('observaciones');
         
-        // Funcionalidad de autorización especial no implementada
-        // $expediente->update([
-        //     'autorizacion_especial' => true,
-        //     'autorizado_por' => auth()->id(),
-        //     'observaciones_autorizacion' => $observaciones
-        // ]);
-        
         $expediente->agregarHistorial(
             "Autorización especial otorgada: {$observaciones}", 
-            auth()->id()
+            auth()->user()->id
         );
         
         return response()->json(['success' => true]);
@@ -382,7 +375,7 @@ class JefeAreaController extends Controller
                 ->avg(function($exp) {
                     return $exp->created_at->diffInDays($exp->fecha_resolucion);
                 }) ?? 0,
-            'eficiencia' => 85 // Calcular basado en metas vs resultados
+            'eficiencia' => 85
         ];
         
         $metas = \App\Models\Meta::where('id_area', $areaId)->get();

@@ -12,18 +12,20 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Expediente extends Model
 {
-    // Constante que define todos los estados posibles del expediente en el flujo.
+    // Usar clave primaria personalizada
+    protected $primaryKey = 'id_expediente';
+    
+    // FLUJO OFICIAL DE MESA DE PARTES - Estados según normativa gubernamental
     const ESTADOS = [
-        'pendiente' => 'Pendiente',     // Estado inicial - expediente creado pero no procesado
-        'registrado' => 'Registrado',   // Mesa de Partes ha registrado el expediente
-        'clasificado' => 'Clasificado', // Se ha asignado tipo de trámite y área responsable
-        'derivado' => 'Derivado',       // Enviado a área específica para procesamiento
-        'en_proceso' => 'En Proceso',   // Funcionario está trabajando en el expediente
-        'observado' => 'Observado',     // Requiere correcciones o información adicional
-        'resuelto' => 'Resuelto',       // Trámite completado con resolución
-        'aprobado' => 'Aprobado',       // Solicitud aprobada oficialmente
-        'rechazado' => 'Rechazado',     // Solicitud rechazada con fundamentos
-        'archivado' => 'Archivado'      // Expediente finalizado y archivado
+        'recepcionado' => 'Recepcionado',   // 1. Documento recibido por Mesa de Partes
+        'registrado' => 'Registrado',       // 2. Registrado con número de expediente
+        'clasificado' => 'Clasificado',     // 3. Clasificado según tipo de trámite
+        'derivado' => 'Derivado',           // 4. Derivado a área competente
+        'en_proceso' => 'En Proceso',       // 5. En procesamiento por funcionario
+        'observado' => 'Observado',         // 5a. Requiere subsanación/información adicional
+        'resuelto' => 'Resuelto',           // 6. Resuelto con respuesta oficial
+        'notificado' => 'Notificado',       // 7. Notificado al administrado
+        'archivado' => 'Archivado'          // 8. Archivado definitivamente
     ];
     
     protected $fillable = [
@@ -62,7 +64,7 @@ class Expediente extends Model
     public function ciudadano()
     {
         // belongsTo: relación muchos-a-uno con tabla users usando clave foránea id_ciudadano
-        return $this->belongsTo(User::class, 'id_ciudadano');
+        return $this->belongsTo(User::class, 'id_ciudadano', 'id');
     }
 
     /**
@@ -72,7 +74,7 @@ class Expediente extends Model
     public function tipoTramite()
     {
         // Vincula con la tabla tipo_tramites para obtener información del trámite
-        return $this->belongsTo(TipoTramite::class, 'id_tipo_tramite');
+        return $this->belongsTo(TipoTramite::class, 'id_tipo_tramite', 'id_tipo_tramite');
     }
 
     /**
@@ -82,7 +84,7 @@ class Expediente extends Model
     public function documentos()
     {
         // hasMany: relación uno-a-muchos con tabla documentos
-        return $this->hasMany(Documento::class, 'id_expediente');
+        return $this->hasMany(Documento::class, 'id_expediente', 'id_expediente');
     }
 
     /**
@@ -92,7 +94,7 @@ class Expediente extends Model
     public function derivacions()
     {
         // Obtiene todas las derivaciones del expediente ordenadas por fecha
-        return $this->hasMany(Derivacion::class, 'id_expediente');
+        return $this->hasMany(Derivacion::class, 'id_expediente', 'id_expediente');
     }
     
     /**
@@ -107,32 +109,32 @@ class Expediente extends Model
 
     public function historial()
     {
-        return $this->hasMany(HistorialExpediente::class, 'id_expediente');
+        return $this->hasMany(HistorialExpediente::class, 'id_expediente', 'id_expediente');
     }
 
     public function observaciones()
     {
-        return $this->hasMany(Observacion::class, 'id_expediente');
+        return $this->hasMany(Observacion::class, 'id_expediente', 'id_expediente');
     }
 
     public function area()
     {
-        return $this->belongsTo(Area::class, 'id_area');
+        return $this->belongsTo(Area::class, 'id_area', 'id_area');
     }
 
     public function funcionarioAsignado()
     {
-        return $this->belongsTo(User::class, 'id_funcionario_asignado');
+        return $this->belongsTo(User::class, 'id_funcionario_asignado', 'id');
     }
 
     public function persona()
     {
-        return $this->belongsTo(Persona::class, 'id_persona');
+        return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
     }
 
     public function resolucion()
     {
-        return $this->hasOne(Resolucion::class, 'id_expediente');
+        return $this->hasOne(Resolucion::class, 'id_expediente', 'id_expediente');
     }
 
     // ===== MÉTODOS AUXILIARES =====
@@ -181,14 +183,14 @@ class Expediente extends Model
         
         // REGLA 2: Ciudadano solo puede eliminar sus propios expedientes no procesados
         if ($rol === 'Ciudadano') {
-            // Verificar que sea su expediente Y que esté en estado pendiente
-            return $this->id_ciudadano === $usuario->id && $this->estado === 'pendiente';
+            // Verificar que sea su expediente Y que esté en estado inicial
+            return $this->id_ciudadano === $usuario->id && $this->estado === 'recepcionado';
         }
         
         // REGLA 3: Mesa de Partes puede eliminar expedientes en estados iniciales
         if ($rol === 'Mesa de Partes') {
-            // Solo puede eliminar si no ha sido procesado aún
-            return in_array($this->estado, ['pendiente', 'registrado']);
+            // Solo puede eliminar si no ha sido derivado aún
+            return in_array($this->estado, ['recepcionado', 'registrado']);
         }
         
         // Por defecto, denegar eliminación para otros roles

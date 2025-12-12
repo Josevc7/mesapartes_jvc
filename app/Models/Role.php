@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
+    // Usar clave primaria personalizada
+    protected $primaryKey = 'id_rol';
+    
     protected $fillable = [
         'nombre',
         'descripcion'
@@ -13,6 +16,6 @@ class Role extends Model
 
     public function users()
     {
-        return $this->hasMany(User::class, 'id_rol',);
+        return $this->hasMany(User::class, 'id_rol', 'id_rol');
     }
 }

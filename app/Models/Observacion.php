@@ -8,6 +8,9 @@ class Observacion extends Model
 {
     protected $table = 'observaciones';
     
+    // Nueva llave primaria
+    protected $primaryKey = 'id_observacion';
+    
     protected $fillable = [
         'id_expediente',
         'id_usuario',
@@ -23,11 +26,11 @@ class Observacion extends Model
 
     public function expediente()
     {
-        return $this->belongsTo(Expediente::class);
+        return $this->belongsTo(Expediente::class, 'id_expediente', 'id_expediente');
     }
 
     public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_usuario', 'id_usuario');
     }
 }

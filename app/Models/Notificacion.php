@@ -8,6 +8,9 @@ class Notificacion extends Model
 {
     protected $table = 'notificaciones';
     
+    // Nueva llave primaria
+    protected $primaryKey = 'id_notificacion';
+    
     protected $fillable = [
         'id_usuario',
         'titulo',
@@ -23,7 +26,7 @@ class Notificacion extends Model
 
     public function usuario()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'id_usuario', 'id');
     }
 
     public function expediente()

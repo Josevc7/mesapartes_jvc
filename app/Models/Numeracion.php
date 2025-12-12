@@ -7,14 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Numeracion extends Model
 {
     protected $table = 'numeracion';
+    protected $primaryKey = 'id_numeracion';
     
     protected $fillable = [
         'año',
-        'ultimo_numero'
-    ];
-
-    protected $casts = [
-        'año' => 'integer',
-        'ultimo_numero' => 'integer'
+        'ultimo_numero',
+        'prefijo'
     ];
 }

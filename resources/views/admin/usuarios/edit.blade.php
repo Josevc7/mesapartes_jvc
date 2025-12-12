@@ -2,15 +2,27 @@
 
 @section('title', 'Editar Usuario')
 
+@push('styles')
+<link href="{{ asset('css/ciudadano-form.css') }}" rel="stylesheet">
+@endpush
+
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4><i class="fas fa-user-edit"></i> Editar Usuario: {{ $usuario->name }}</h4>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-user-edit fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-1 fw-bold">Editar Usuario</h3>
+                            <p class="mb-0 opacity-90">{{ $usuario->name }} - Administración</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form method="POST" action="{{ route('admin.usuarios.update', $usuario) }}">
                         @csrf
                         @method('PUT')
@@ -129,9 +141,13 @@
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ route('admin.usuarios') }}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">Actualizar Usuario</button>
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-end pt-4 border-top">
+                            <a href="{{ route('admin.usuarios') }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a Usuarios
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-save me-2"></i>Actualizar Usuario
+                            </button>
                         </div>
                     </form>
                 </div>

@@ -30,7 +30,7 @@
                             <tbody>
                                 @foreach($tipoTramites as $tipo)
                                 <tr>
-                                    <td>{{ $tipo->id }}</td>
+                                    <td>{{ $tipo->id_tipo_tramite }}</td>
                                     <td>{{ $tipo->nombre }}</td>
                                     <td>{{ $tipo->descripcion }}</td>
                                     <td>{{ $tipo->area->nombre ?? 'Sin asignar' }}</td>
@@ -41,11 +41,11 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning" onclick="editarTipo({{ $tipo->id }})">
+                                        <button class="btn btn-sm btn-warning" onclick="editarTipo({{ $tipo->id_tipo_tramite }})">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-sm btn-{{ $tipo->activo ? 'danger' : 'success' }}" 
-                                                onclick="toggleTipo({{ $tipo->id }})">
+                                                onclick="toggleTipo({{ $tipo->id_tipo_tramite }})">
                                             <i class="fas fa-{{ $tipo->activo ? 'ban' : 'check' }}"></i>
                                         </button>
                                     </td>
@@ -84,7 +84,7 @@
                         <select class="form-select" name="id_area" required>
                             <option value="">Seleccionar...</option>
                             @foreach($areas as $area)
-                            <option value="{{ $area->id }}">{{ $area->nombre }}</option>
+                            <option value="{{ $area->id_area }}">{{ $area->nombre }}</option>
                             @endforeach
                         </select>
                     </div>

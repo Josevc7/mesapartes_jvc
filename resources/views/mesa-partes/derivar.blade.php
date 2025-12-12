@@ -45,7 +45,7 @@
                                         name="id_area_destino" required>
                                     <option value="">Seleccione un área</option>
                                     @foreach($areas as $area)
-                                        <option value="{{ $area->id }}" {{ old('id_area_destino') == $area->id ? 'selected' : '' }}>
+                                        <option value="{{ $area->id_area }}" {{ old('id_area_destino') == $area->id_area ? 'selected' : '' }}>
                                             {{ $area->nombre }}
                                         </option>
                                     @endforeach
@@ -85,7 +85,7 @@
                                 <label for="prioridad" class="form-label">{{ __('Prioridad') }}</label>
                                 <select id="prioridad" class="form-select @error('prioridad') is-invalid @enderror" name="prioridad" required>
                                     <option value="baja" {{ old('prioridad', $expediente->prioridad) == 'baja' ? 'selected' : '' }}>Baja</option>
-                                    <option value="normal" {{ old('prioridad', $expediente->prioridad) == 'normal' ? 'selected' : '' }}>Normal</option>
+                                    <option value="media" {{ old('prioridad', $expediente->prioridad) == 'media' ? 'selected' : '' }}>Media</option>
                                     <option value="alta" {{ old('prioridad', $expediente->prioridad) == 'alta' ? 'selected' : '' }}>Alta</option>
                                     <option value="urgente" {{ old('prioridad', $expediente->prioridad) == 'urgente' ? 'selected' : '' }}>Urgente</option>
                                 </select>
@@ -104,12 +104,12 @@
                             @enderror
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ route('mesa-partes.index') }}" class="btn btn-secondary me-md-2">
-                                {{ __('Cancelar') }}
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-between pt-4 border-top">
+                            <a href="{{ route('mesa-partes.index') }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a Expedientes
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                {{ __('Derivar Expediente') }}
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-share me-2"></i>Derivar Expediente
                             </button>
                         </div>
                     </form>

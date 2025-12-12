@@ -93,6 +93,14 @@
 
         <!-- Panel de Acciones -->
         <div class="col-md-4">
+            <!-- Botón Volver -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <a href="{{ route('funcionario.dashboard') }}" class="btn btn-outline-secondary btn-lg w-100 px-4">
+                        <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
+                    </a>
+                </div>
+            </div>
             @if($expediente->estado == 'derivado')
             <div class="card">
                 <div class="card-header">

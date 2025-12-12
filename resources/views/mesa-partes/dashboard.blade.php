@@ -4,18 +4,18 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Resumen del Día -->
-    <div class="row mb-4">
+    <!-- Resumen del Día  las estadisticas de tramite -->
+   <!-- <div class="row mb-4">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between">
+                   <div class="d-flex justify-content-between">
                         <div>
-                            <h4>{{ $estadisticas['registrados_hoy'] }}</h4>
-                            <p class="mb-0">Registrados Hoy</p>
+                           <h4>{{ $estadisticas['registrados_hoy'] }}</h4>
+                             <p class="mb-0">Registrados Hoy</p>
                         </div>
                         <div class="align-self-center">
-                            <i class="fas fa-file-plus fa-2x"></i>
+                        <i class="fas fa-file-plus fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -66,7 +66,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
 
     <div class="row">
         <!-- Acciones Rápidas -->

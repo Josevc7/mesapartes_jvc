@@ -54,7 +54,7 @@
                                             <a href="{{ route('admin.usuarios.edit', $usuario) }}" class="btn btn-sm btn-warning">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            @if($usuario->id != auth()->id())
+                                            @if($usuario->id != auth()->user()->id)
                                             <form action="{{ route('admin.usuarios.destroy', $usuario) }}" method="POST" style="display: inline;">
                                                 @csrf
                                                 @method('DELETE')

@@ -9,7 +9,7 @@ class SeguimientoController extends Controller
 {
     public function index()
     {
-        $expedientes = Expediente::where('id_ciudadano', auth()->id())
+        $expedientes = Expediente::where('id_ciudadano', auth()->user()->id_usuario)
             ->with(['tipoTramite', 'area'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -23,7 +23,7 @@ class SeguimientoController extends Controller
             ->with(['documentos', 'historial', 'derivaciones', 'tipoTramite', 'area', 'persona'])
             ->firstOrFail();
             
-        if (auth()->check() && $expediente->id_ciudadano !== auth()->id()) {
+        if (auth()->check() && $expediente->id_ciudadano !== auth()->user()->id_usuario) {
             abort(403, 'No tienes acceso a este expediente');
         }
         

@@ -30,7 +30,7 @@
                                     id="id_tipo_tramite" name="id_tipo_tramite" required>
                                 <option value="">Seleccionar tipo</option>
                                 @foreach($tipoTramites as $tipo)
-                                    <option value="{{ $tipo->id }}" {{ old('id_tipo_tramite') == $tipo->id ? 'selected' : '' }}>
+                                    <option value="{{ $tipo->id_tipo_tramite }}" {{ old('id_tipo_tramite') == $tipo->id_tipo_tramite ? 'selected' : '' }}>
                                         {{ $tipo->nombre }} ({{ $tipo->dias_limite }} días)
                                     </option>
                                 @endforeach
@@ -46,7 +46,7 @@
                                     id="id_area" name="id_area" required>
                                 <option value="">Seleccionar área</option>
                                 @foreach($areas as $area)
-                                    <option value="{{ $area->id }}" {{ old('id_area') == $area->id ? 'selected' : '' }}>
+                                    <option value="{{ $area->id_area }}" {{ old('id_area') == $area->id_area ? 'selected' : '' }}>
                                         {{ $area->nombre }}
                                     </option>
                                 @endforeach
@@ -62,7 +62,7 @@
                                     id="prioridad" name="prioridad" required>
                                 <option value="">Seleccionar prioridad</option>
                                 <option value="baja" {{ old('prioridad') == 'baja' ? 'selected' : '' }}>🟢 Baja - Trámites regulares</option>
-                                <option value="normal" {{ old('prioridad') == 'normal' ? 'selected' : '' }} selected>🔵 Normal - Trámites estándar</option>
+                                <option value="media" {{ old('prioridad') == 'media' ? 'selected' : '' }} selected>🔵 Media - Trámites estándar</option>
                                 <option value="alta" {{ old('prioridad') == 'alta' ? 'selected' : '' }}>🟡 Alta - Vencimientos próximos</option>
                                 <option value="urgente" {{ old('prioridad') == 'urgente' ? 'selected' : '' }}>🔴 Urgente - Emergencias</option>
                             </select>
@@ -86,9 +86,13 @@
                             </ul>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ route('mesa-partes.index') }}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-success">Clasificar</button>
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-between pt-4 border-top">
+                            <a href="{{ route('mesa-partes.index') }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a Expedientes
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm">
+                                <i class="fas fa-check me-2"></i>Clasificar Expediente
+                            </button>
                         </div>
                     </form>
                 </div>

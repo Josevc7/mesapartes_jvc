@@ -56,8 +56,10 @@ class SoporteController extends Controller
         return view('soporte.usuarios', compact('usuarios'));
     }
 
-    public function resetearPassword(Request $request, User $usuario)
+    public function resetearPassword(Request $request, $id_usuario)
     {
+        $usuario = User::findOrFail($id_usuario);
+        
         $request->validate([
             'nueva_password' => 'required|min:6'
         ]);
@@ -74,8 +76,9 @@ class SoporteController extends Controller
         return back()->with('success', 'Contraseña actualizada correctamente');
     }
 
-    public function toggleUsuario(User $usuario)
+    public function toggleUsuario($id_usuario)
     {
+        $usuario = User::findOrFail($id_usuario);
         $usuario->update(['activo' => !$usuario->activo]);
         
         Log::info('Usuario ' . ($usuario->activo ? 'activado' : 'desactivado'), [

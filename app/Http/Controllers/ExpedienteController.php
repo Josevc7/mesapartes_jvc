@@ -31,7 +31,7 @@ class ExpedienteController extends Controller
         $expediente = Expediente::create([
             'codigo_expediente' => $codigo,
             'asunto' => $request->asunto,
-            'id_ciudadano' => auth()->id(),
+            'id_ciudadano' => auth()->user()->id_user,
             'fecha_registro' => now(),
             'estado' => 'Registrado',
             'canal' => 'Web'
@@ -41,11 +41,11 @@ class ExpedienteController extends Controller
             $path = $request->file('documento')->store('documentos', 'public');
             
             Documento::create([
-                'id_expediente' => $expediente->id,
+                'id_expediente' => $expediente->id_expediente,
                 'nombre' => 'Documento Principal',
                 'ruta_archivo' => $path,
                 'tipo' => 'Principal',
-                'id_usuario' => auth()->id()
+                'id_usuario' => auth()->user()->id_user
             ]);
         }
 

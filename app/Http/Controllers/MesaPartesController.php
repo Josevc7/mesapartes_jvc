@@ -10,15 +10,13 @@ use App\Models\Derivacion;
 use App\Models\Documento;
 use App\Models\User;
 use App\Models\Persona;
-// use App\Services\NotificacionService;
-// use App\Services\AuditoriaService;
 
 class MesaPartesController extends Controller
 {
     public function index()
     {
         $expedientes = Expediente::with(['tipoTramite', 'ciudadano', 'area', 'persona'])
-            ->whereIn('estado', ['pendiente', 'registrado', 'clasificado', 'derivado', 'en_proceso'])
+            ->whereIn('estado', ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
             
@@ -51,7 +49,7 @@ class MesaPartesController extends Controller
             'documentos_verificados.*' => 'in:dni,fut,pago',
             'documentos_adicionales' => 'nullable|array',
             'observaciones_documentos' => 'nullable|string',
-            'id_tipo_tramite' => 'required|exists:tipo_tramites,id',
+            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
             'documento' => 'required|file|mimes:pdf|max:10240',
             'observaciones' => 'nullable|string'
         ], [
@@ -59,30 +57,24 @@ class MesaPartesController extends Controller
             'documentos_verificados.min' => 'Debe marcar los 3 documentos básicos: DNI, FUT y Comprobante de Pago'
         ]);
 
-        // Manejar persona existente o crear nueva
         if ($request->persona_existente_id) {
-            // Usar persona existente
             $persona = Persona::findOrFail($request->persona_existente_id);
             
-            // Actualizar solo datos de contacto si han cambiado
             $persona->update([
                 'telefono' => $request->telefono ?: $persona->telefono,
                 'email' => $request->email ?: $persona->email,
                 'direccion' => $request->direccion ?: $persona->direccion
             ]);
         } else {
-            // Verificar si ya existe una persona con este documento
             $persona = Persona::where('numero_documento', $request->numero_documento)->first();
             
             if ($persona) {
-                // Actualizar datos de contacto si la persona ya existe
                 $persona->update([
                     'telefono' => $request->telefono ?: $persona->telefono,
                     'email' => $request->email ?: $persona->email,
                     'direccion' => $request->direccion ?: $persona->direccion
                 ]);
             } else {
-                // Crear nueva persona
                 $persona = Persona::create([
                     'tipo_documento' => $request->tipo_documento,
                     'numero_documento' => $request->numero_documento,
@@ -101,7 +93,6 @@ class MesaPartesController extends Controller
 
         $codigo = app(\App\Services\NumeracionService::class)->generarCodigo();
         
-        // Preparar observaciones completas
         $observacionesCompletas = [];
         if ($request->observaciones) {
             $observacionesCompletas[] = 'Trámite: ' . $request->observaciones;
@@ -110,7 +101,6 @@ class MesaPartesController extends Controller
             $observacionesCompletas[] = 'Documentos: ' . $request->observaciones_documentos;
         }
         
-        // Documentos verificados
         $docsVerificados = implode(', ', $request->documentos_verificados ?? []);
         $docsAdicionales = $request->documentos_adicionales ? implode(', ', $request->documentos_adicionales) : '';
         
@@ -122,12 +112,12 @@ class MesaPartesController extends Controller
         $expediente = Expediente::create([
             'codigo_expediente' => $codigo,
             'asunto' => $request->asunto,
-            'id_persona' => $persona->id,
+            'id_persona' => $persona->id_persona,
             'remitente' => $persona->nombre_completo,
             'dni_remitente' => $persona->numero_documento,
             'id_tipo_tramite' => $request->id_tipo_tramite,
             'fecha_registro' => now(),
-            'estado' => 'pendiente',
+            'estado' => 'recepcionado',
             'canal' => 'presencial',
             'observaciones' => implode(' | ', $observacionesCompletas)
         ]);
@@ -136,7 +126,7 @@ class MesaPartesController extends Controller
             $path = $request->file('documento')->store('documentos', 'public');
             
             Documento::create([
-                'id_expediente' => $expediente->id,
+                'id_expediente' => $expediente->id_expediente,
                 'nombre' => 'Documento Principal',
                 'ruta_pdf' => $path,
                 'tipo' => 'entrada'
@@ -156,17 +146,17 @@ class MesaPartesController extends Controller
 
     public function clasificar(Expediente $expediente)
     {
-        $tipoTramites = TipoTramite::all();
-        $areas = Area::all();
+        $tipoTramites = TipoTramite::where('activo', true)->orderBy('nombre')->get();
+        $areas = Area::where('activo', true)->orderBy('nombre')->get();
         return view('mesa-partes.clasificar', compact('expediente', 'tipoTramites', 'areas'));
     }
 
     public function updateClasificacion(Request $request, Expediente $expediente)
     {
         $request->validate([
-            'id_tipo_tramite' => 'required|exists:tipo_tramites,id',
-            'id_area' => 'required|exists:areas,id',
-            'prioridad' => 'required|in:baja,normal,alta,urgente',
+            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
+            'id_area' => 'required|exists:areas,id_area',
+            'prioridad' => 'required|in:baja,media,alta,urgente',
             'observaciones_clasificacion' => 'nullable|string|max:500'
         ]);
 
@@ -177,7 +167,6 @@ class MesaPartesController extends Controller
             'estado' => 'clasificado'
         ]);
         
-        // Registrar en historial
         $tipoTramite = TipoTramite::find($request->id_tipo_tramite);
         $area = Area::find($request->id_area);
         $descripcionHistorial = "Expediente clasificado - Tipo: {$tipoTramite->nombre}, Área: {$area->nombre}, Prioridad: {$request->prioridad}";
@@ -186,7 +175,7 @@ class MesaPartesController extends Controller
             $descripcionHistorial .= " - Observaciones: {$request->observaciones_clasificacion}";
         }
         
-        $expediente->agregarHistorial($descripcionHistorial, auth()->id());
+        $expediente->agregarHistorial($descripcionHistorial, auth()->user()->id);
 
         return redirect()->route('mesa-partes.derivar', $expediente)
             ->with('success', 'Expediente clasificado correctamente. Ahora proceda a derivarlo.');
@@ -194,10 +183,11 @@ class MesaPartesController extends Controller
 
     public function derivar(Expediente $expediente)
     {
-        $areas = Area::where('activo', true)->get();
+        $areas = Area::where('activo', true)->orderBy('nombre')->get();
         $funcionarios = User::where('id_rol', 4)
             ->where('id_area', $expediente->id_area)
             ->where('activo', true)
+            ->orderBy('name')
             ->get();
             
         return view('mesa-partes.derivar', compact('expediente', 'areas', 'funcionarios'));
@@ -206,20 +196,18 @@ class MesaPartesController extends Controller
     public function storeDerivar(Request $request, Expediente $expediente)
     {
         $request->validate([
-            'id_area_destino' => 'required|exists:areas,id',
+            'id_area_destino' => 'required|exists:areas,id_area',
             'id_funcionario_asignado' => 'nullable|exists:users,id',
             'plazo_dias' => 'required|integer|min:1|max:365',
-            'prioridad' => 'required|in:baja,normal,alta,urgente',
+            'prioridad' => 'required|in:baja,media,alta,urgente',
             'observaciones' => 'nullable|string'
         ]);
 
-        // Calcular fecha límite
         $fechaLimite = now()->addDays((int) $request->plazo_dias);
 
-        // Crear derivación si hay funcionario asignado
         if ($request->id_funcionario_asignado) {
             Derivacion::create([
-                'id_expediente' => $expediente->id,
+                'id_expediente' => $expediente->id_expediente,
                 'id_area_destino' => $request->id_area_destino,
                 'id_funcionario_asignado' => $request->id_funcionario_asignado,
                 'fecha_derivacion' => now()->toDateString(),
@@ -235,16 +223,6 @@ class MesaPartesController extends Controller
             'id_funcionario_asignado' => $request->id_funcionario_asignado,
             'prioridad' => $request->prioridad
         ]);
-
-        // Registrar auditoría
-        // AuditoriaService::registrar('DERIVAR', 'expedientes', $expediente->id, null, [
-        //     'area_destino' => $request->id_area_destino,
-        //     'funcionario_destino' => $request->id_funcionario_asignado,
-        //     'observaciones' => $request->observaciones
-        // ]);
-        
-        // Enviar notificación
-        // app(NotificacionService::class)->notificarDerivacion($expediente);
         
         return redirect()->route('mesa-partes.index')
             ->with('success', 'Expediente derivado correctamente');
@@ -291,7 +269,7 @@ class MesaPartesController extends Controller
     {
         $estadisticas = [
             'registrados_hoy' => Expediente::whereDate('created_at', today())->count(),
-            'pendientes_clasificar' => Expediente::whereIn('estado', ['pendiente', 'registrado'])->count(),
+            'pendientes_clasificar' => Expediente::whereIn('estado', ['recepcionado', 'registrado'])->count(),
             'pendientes_derivar' => Expediente::where('estado', 'derivado')->count(),
             'vencidos' => Expediente::whereIn('estado', ['derivado', 'en_proceso'])
                 ->whereHas('derivaciones', function($q) {
@@ -300,7 +278,7 @@ class MesaPartesController extends Controller
         ];
 
         $expedientesRecientes = Expediente::with(['ciudadano', 'tipoTramite', 'persona'])
-            ->whereIn('estado', ['pendiente', 'registrado', 'derivado'])
+            ->whereIn('estado', ['recepcionado', 'registrado', 'derivado'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -331,11 +309,10 @@ class MesaPartesController extends Controller
             ->get();
 
         $expedientesPendientes = Expediente::with(['ciudadano', 'tipoTramite', 'area'])
-            ->whereIn('estado', ['pendiente'])
+            ->whereIn('estado', ['recepcionado'])
             ->orderBy('created_at', 'asc')
             ->get();
 
-        // Datos para gráficos
         $graficoLabels = [];
         $graficoRegistrados = [];
         $graficoDerivados = [];
@@ -355,7 +332,6 @@ class MesaPartesController extends Controller
 
     public function numeracion()
     {
-        // $numeracion = app(\App\Services\NumeracionService::class)->obtenerEstado();
         $numeracionActual = \App\Models\Numeracion::where('año', date('Y'))->first();
         if (!$numeracionActual) {
             $numeracionActual = \App\Models\Numeracion::create([
@@ -381,12 +357,10 @@ class MesaPartesController extends Controller
 
     public function verificarNumeracion()
     {
-        // $resultado = app(\App\Services\NumeracionService::class)->verificarIntegridad();
         $resultado = ['status' => 'OK', 'mensaje' => 'Numeración verificada correctamente'];
         return response()->json($resultado);
     }
 
-    // Búsqueda de personas por DNI
     public function buscarPersona(Request $request)
     {
         try {
@@ -408,7 +382,6 @@ class MesaPartesController extends Controller
         }
     }
     
-    // Generar Cargo de Recepción
     public function cargoRecepcion(Expediente $expediente)
     {
         $expediente->load(['documentos', 'tipoTramite', 'persona']);

@@ -8,6 +8,9 @@ class Auditoria extends Model
 {
     protected $table = 'auditoria';
     
+    // Nueva llave primaria
+    protected $primaryKey = 'id_auditoria';
+    
     protected $fillable = [
         'id_usuario',
         'accion',
@@ -26,6 +29,6 @@ class Auditoria extends Model
 
     public function usuario()
     {
-        return $this->belongsTo(User::class, 'id_usuario');
+        return $this->belongsTo(User::class, 'id_usuario', 'id_usuario');
     }
 }

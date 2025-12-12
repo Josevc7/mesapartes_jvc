@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Meta extends Model
 {
+    // Nueva llave primaria
+    protected $primaryKey = 'id_meta';
+    
     protected $fillable = [
         'id_area',
         'descripcion',
@@ -28,7 +31,7 @@ class Meta extends Model
 
     public function area()
     {
-        return $this->belongsTo(Area::class);
+        return $this->belongsTo(Area::class, 'id_area', 'id_area');
     }
 
     public function getPorcentajeProgresoAttribute()

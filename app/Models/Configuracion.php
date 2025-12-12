@@ -8,6 +8,9 @@ class Configuracion extends Model
 {
     protected $table = 'configuraciones';
     
+    // Nueva llave primaria
+    protected $primaryKey = 'id_configuracion';
+    
     protected $fillable = [
         'clave',
         'valor',

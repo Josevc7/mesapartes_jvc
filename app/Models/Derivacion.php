@@ -6,18 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class Derivacion extends Model
 {
+    protected $table = 'derivacions';
+    protected $primaryKey = 'id_derivacion';
+    
     protected $fillable = [
         'id_expediente',
         'id_area_origen',
         'id_area_destino',
-        'id_funcionario_asignado',
         'id_funcionario_origen',
         'id_funcionario_destino',
+        'id_funcionario_asignado',
         'fecha_derivacion',
         'fecha_recepcion',
         'fecha_limite',
-        'estado',
         'plazo_dias',
+        'estado',
         'observaciones'
     ];
 
@@ -29,31 +32,31 @@ class Derivacion extends Model
 
     public function expediente()
     {
-        return $this->belongsTo(Expediente::class, 'id_expediente');
+        return $this->belongsTo(Expediente::class, 'id_expediente', 'id_expediente');
     }
 
-    public function origenArea()
+    public function areaOrigen()
     {
-        return $this->belongsTo(Area::class, 'id_area_origen');
+        return $this->belongsTo(Area::class, 'id_area_origen', 'id_area');
     }
 
-    public function destinoArea()
+    public function areaDestino()
     {
-        return $this->belongsTo(Area::class, 'id_area_destino');
+        return $this->belongsTo(Area::class, 'id_area_destino', 'id_area');
     }
 
     public function funcionarioOrigen()
     {
-        return $this->belongsTo(User::class, 'id_funcionario_origen');
+        return $this->belongsTo(User::class, 'id_funcionario_origen', 'id');
     }
 
     public function funcionarioDestino()
     {
-        return $this->belongsTo(User::class, 'id_funcionario_destino');
+        return $this->belongsTo(User::class, 'id_funcionario_destino', 'id');
     }
 
-    public function funcionario()
+    public function funcionarioAsignado()
     {
-        return $this->belongsTo(User::class, 'id_funcionario_asignado');
+        return $this->belongsTo(User::class, 'id_funcionario_asignado', 'id');
     }
 }

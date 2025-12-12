@@ -35,8 +35,8 @@ class AdminController extends Controller
             'dni' => 'required|string|max:20|unique:users',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
-            'id_rol' => 'required|exists:roles,id',
-            'id_area' => 'nullable|exists:areas,id',
+            'id_rol' => 'required|exists:roles,id_rol',
+            'id_area' => 'nullable|exists:areas,id_area',
             'telefono' => 'nullable|string|max:20'
         ]);
 
@@ -54,31 +54,31 @@ class AdminController extends Controller
         return redirect()->route('admin.usuarios')->with('success', 'Usuario creado correctamente');
     }
 
-    public function showUsuario($id)
+    public function showUsuario($id_user)
     {
-        $usuario = User::with(['role', 'area', 'expedientes', 'expedientesAsignados'])->findOrFail($id);
+        $usuario = User::with(['role', 'area', 'expedientesComoCiudadano', 'expedientesAsignados'])->findOrFail($id_user);
         return view('admin.usuarios.show', compact('usuario'));
     }
 
-    public function editUsuario($id)
+    public function editUsuario($id_user)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::findOrFail($id_user);
         $roles = Role::all();
         $areas = Area::all();
         return view('admin.usuarios.edit', compact('usuario', 'roles', 'areas'));
     }
 
-    public function updateUsuario(Request $request, $id)
+    public function updateUsuario(Request $request, $id_user)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::findOrFail($id_user);
         
         $request->validate([
             'name' => 'required|string|max:255',
-            'dni' => 'required|string|max:20|unique:users,dni,' . $id,
-            'email' => 'required|email|unique:users,email,' . $id,
+            'dni' => 'required|string|max:20|unique:users,dni,' . $id_user . ',id',
+            'email' => 'required|email|unique:users,email,' . $id_user . ',id',
             'password' => 'nullable|min:6|confirmed',
-            'id_rol' => 'required|exists:roles,id',
-            'id_area' => 'nullable|exists:areas,id',
+            'id_rol' => 'required|exists:roles,id_rol',
+            'id_area' => 'nullable|exists:areas,id_area',
             'telefono' => 'nullable|string|max:20'
         ]);
 
@@ -100,15 +100,15 @@ class AdminController extends Controller
         return redirect()->route('admin.usuarios')->with('success', 'Usuario actualizado correctamente');
     }
 
-    public function destroyUsuario($id)
+    public function destroyUsuario($id_user)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::findOrFail($id_user);
         
-        if ($usuario->id == auth()->id()) {
+        if ($usuario->id == auth()->user()->id) {
             return redirect()->route('admin.usuarios')->with('error', 'No puedes eliminar tu propio usuario');
         }
         
-        if ($usuario->expedientes()->count() > 0 || $usuario->expedientesAsignados()->count() > 0) {
+        if ($usuario->expedientesComoCiudadano()->count() > 0 || $usuario->expedientesAsignados()->count() > 0) {
             return redirect()->route('admin.usuarios')->with('error', 'No se puede eliminar. El usuario tiene expedientes asociados.');
         }
         
@@ -141,20 +141,20 @@ class AdminController extends Controller
 
         // Si se asignó un jefe, actualizar el id_area del usuario
         if ($request->id_jefe) {
-            User::where('id', $request->id_jefe)->update(['id_area' => $area->id]);
+            User::where('id', $request->id_jefe)->update(['id_area' => $area->id_area]);
         }
 
         return redirect()->route('admin.areas')->with('success', 'Área creada correctamente');
     }
 
-    public function editArea($id)
+    public function editArea($id_area)
     {
-        $area = Area::findOrFail($id);
+        $area = Area::findOrFail($id_area);
         $jefes = User::where('id_rol', 3)->where('activo', true)->get();
         return response()->json(['area' => $area, 'jefes' => $jefes]);
     }
 
-    public function updateArea(Request $request, $id)
+    public function updateArea(Request $request, $id_area)
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
@@ -162,7 +162,7 @@ class AdminController extends Controller
             'id_jefe' => 'nullable|exists:users,id'
         ]);
 
-        $area = Area::findOrFail($id);
+        $area = Area::findOrFail($id_area);
         
         // Si cambió el jefe, actualizar relaciones
         if ($area->id_jefe != $request->id_jefe) {
@@ -172,7 +172,7 @@ class AdminController extends Controller
             }
             // Asignar área al nuevo jefe
             if ($request->id_jefe) {
-                User::where('id', $request->id_jefe)->update(['id_area' => $area->id]);
+                User::where('id', $request->id_jefe)->update(['id_area' => $area->id_area]);
             }
         }
 
@@ -185,9 +185,9 @@ class AdminController extends Controller
         return redirect()->route('admin.areas')->with('success', 'Área actualizada correctamente');
     }
 
-    public function toggleArea($id)
+    public function toggleArea($id_area)
     {
-        $area = Area::findOrFail($id);
+        $area = Area::findOrFail($id_area);
         $area->update(['activo' => !$area->activo]);
         
         $estado = $area->activo ? 'activada' : 'desactivada';
@@ -207,7 +207,7 @@ class AdminController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'id_area' => 'required|exists:areas,id',
+            'id_area' => 'required|exists:areas,id_area',
             'plazo_dias' => 'required|integer|min:1',
             'requisitos' => 'nullable|string'
         ]);
@@ -224,24 +224,24 @@ class AdminController extends Controller
         return redirect()->route('admin.tipo-tramites')->with('success', 'Tipo de trámite creado correctamente');
     }
 
-    public function editTipoTramite($id)
+    public function editTipoTramite($id_tipo_tramite)
     {
-        $tipoTramite = TipoTramite::findOrFail($id);
+        $tipoTramite = TipoTramite::findOrFail($id_tipo_tramite);
         $areas = Area::where('activo', true)->get();
         return response()->json(['tipoTramite' => $tipoTramite, 'areas' => $areas]);
     }
 
-    public function updateTipoTramite(Request $request, $id)
+    public function updateTipoTramite(Request $request, $id_tipo_tramite)
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'id_area' => 'required|exists:areas,id',
+            'id_area' => 'required|exists:areas,id_area',
             'plazo_dias' => 'required|integer|min:1',
             'requisitos' => 'nullable|string'
         ]);
 
-        $tipoTramite = TipoTramite::findOrFail($id);
+        $tipoTramite = TipoTramite::findOrFail($id_tipo_tramite);
         $tipoTramite->update([
             'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
@@ -253,9 +253,9 @@ class AdminController extends Controller
         return redirect()->route('admin.tipo-tramites')->with('success', 'Tipo de trámite actualizado correctamente');
     }
 
-    public function toggleTipoTramite($id)
+    public function toggleTipoTramite($id_tipo_tramite)
     {
-        $tipoTramite = TipoTramite::findOrFail($id);
+        $tipoTramite = TipoTramite::findOrFail($id_tipo_tramite);
         $tipoTramite->update(['activo' => !$tipoTramite->activo]);
         
         $estado = $tipoTramite->activo ? 'activado' : 'desactivado';
@@ -290,9 +290,9 @@ class AdminController extends Controller
         return view('admin.auditoria.index', compact('auditorias'));
     }
 
-    public function auditoriaDetalles($id)
+    public function auditoriaDetalles($id_auditoria)
     {
-        $auditoria = Auditoria::with('usuario')->findOrFail($id);
+        $auditoria = Auditoria::with('usuario')->findOrFail($id_auditoria);
         return response()->json($auditoria);
     }
 
@@ -307,7 +307,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
-            'numero_documento' => 'required|string|max:20|unique:personas',
+            'numero_documento' => 'required|string|max:20|unique:personas,numero_documento,NULL,id_persona',
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',
             'nombres' => 'required_if:tipo_persona,NATURAL|string|max:100',
             'apellido_paterno' => 'required_if:tipo_persona,NATURAL|string|max:50',
@@ -323,19 +323,19 @@ class AdminController extends Controller
         return redirect()->route('admin.personas')->with('success', 'Persona creada correctamente');
     }
 
-    public function showPersona($id)
+    public function showPersona($id_persona)
     {
-        $persona = Persona::with('expedientes')->findOrFail($id);
+        $persona = Persona::with('expedientes')->findOrFail($id_persona);
         return response()->json($persona);
     }
 
-    public function updatePersona(Request $request, $id)
+    public function updatePersona(Request $request, $id_persona)
     {
-        $persona = Persona::findOrFail($id);
+        $persona = Persona::findOrFail($id_persona);
         
         $request->validate([
             'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
-            'numero_documento' => 'required|string|max:20|unique:personas,numero_documento,' . $id,
+            'numero_documento' => 'required|string|max:20|unique:personas,numero_documento,' . $id_persona . ',id_persona',
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',
             'nombres' => 'required_if:tipo_persona,NATURAL|string|max:100',
             'apellido_paterno' => 'required_if:tipo_persona,NATURAL|string|max:50',
@@ -351,9 +351,9 @@ class AdminController extends Controller
         return redirect()->route('admin.personas')->with('success', 'Persona actualizada correctamente');
     }
 
-    public function destroyPersona($id)
+    public function destroyPersona($id_persona)
     {
-        $persona = Persona::findOrFail($id);
+        $persona = Persona::findOrFail($id_persona);
         
         if ($persona->expedientes()->count() > 0) {
             return redirect()->route('admin.personas')->with('error', 'No se puede eliminar. La persona tiene expedientes asociados.');
@@ -373,7 +373,7 @@ class AdminController extends Controller
         // Resumen por roles
         $resumenRoles = [];
         foreach ($roles as $rol) {
-            $usuariosRol = $usuarios->where('id_rol', $rol->id);
+            $usuariosRol = $usuarios->where('id_rol', $rol->id_rol);
             $resumenRoles[$rol->nombre] = [
                 'total' => $usuariosRol->count(),
                 'activos' => $usuariosRol->where('activo', true)->count(),
@@ -385,15 +385,15 @@ class AdminController extends Controller
         $resumenAreas = [];
         $resumenAreas['Sin Área'] = $usuarios->whereNull('id_area')->count();
         foreach ($areas as $area) {
-            $resumenAreas[$area->nombre] = $usuarios->where('id_area', $area->id)->count();
+            $resumenAreas[$area->nombre] = $usuarios->where('id_area', $area->id_area)->count();
         }
         
         return view('admin.matriz-control', compact('usuarios', 'roles', 'areas', 'resumenRoles', 'resumenAreas'));
     }
 
-    public function toggleEstadoUsuario($id)
+    public function toggleEstadoUsuario($id_user)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::findOrFail($id_user);
         $usuario->update(['activo' => !$usuario->activo]);
         
         return response()->json(['success' => true, 'estado' => $usuario->activo]);
@@ -446,9 +446,9 @@ class AdminController extends Controller
             ->get()
             ->map(function($area) {
                 $total = $area->expedientes_count;
-                $completados = \App\Models\Expediente::where('id_area', $area->id)->where('estado', 'completado')->count();
-                $pendientes = \App\Models\Expediente::where('id_area', $area->id)->whereIn('estado', ['pendiente', 'derivado', 'en_proceso'])->count();
-                $vencidos = \App\Models\Expediente::where('id_area', $area->id)
+                $completados = \App\Models\Expediente::where('id_area', $area->id_area)->where('estado', 'completado')->count();
+                $pendientes = \App\Models\Expediente::where('id_area', $area->id_area)->whereIn('estado', ['pendiente', 'derivado', 'en_proceso'])->count();
+                $vencidos = \App\Models\Expediente::where('id_area', $area->id_area)
                     ->whereIn('estado', ['derivado', 'en_proceso'])
                     ->whereHas('derivaciones', function($q) {
                         $q->where('fecha_limite', '<', now());
@@ -477,7 +477,7 @@ class AdminController extends Controller
     public function storeRol(Request $request)
     {
         $request->validate([
-            'nombre' => 'required|string|max:255|unique:roles',
+            'nombre' => 'required|string|max:255|unique:roles,nombre,NULL,id_rol',
             'descripcion' => 'nullable|string'
         ]);
 
@@ -490,18 +490,18 @@ class AdminController extends Controller
         return redirect()->route('admin.roles')->with('success', 'Rol creado correctamente');
     }
 
-    public function showRol($id)
+    public function showRol($id_rol)
     {
-        $rol = Role::findOrFail($id);
+        $rol = Role::findOrFail($id_rol);
         return response()->json($rol);
     }
 
-    public function updateRol(Request $request, $id)
+    public function updateRol(Request $request, $id_rol)
     {
-        $rol = Role::findOrFail($id);
+        $rol = Role::findOrFail($id_rol);
         
         $request->validate([
-            'nombre' => 'required|string|max:255|unique:roles,nombre,' . $id,
+            'nombre' => 'required|string|max:255|unique:roles,nombre,' . $id_rol . ',id_rol',
             'descripcion' => 'nullable|string'
         ]);
 
@@ -514,9 +514,9 @@ class AdminController extends Controller
         return redirect()->route('admin.roles')->with('success', 'Rol actualizado correctamente');
     }
 
-    public function destroyRol($id)
+    public function destroyRol($id_rol)
     {
-        $rol = Role::findOrFail($id);
+        $rol = Role::findOrFail($id_rol);
         
         if ($rol->users()->count() > 0) {
             return redirect()->route('admin.roles')->with('error', 'No se puede eliminar. El rol tiene usuarios asignados.');
@@ -549,9 +549,9 @@ class AdminController extends Controller
         return view('admin.logs', compact('logs', 'usuarios'));
     }
 
-    public function logDetalles($id)
+    public function logDetalles($id_auditoria)
     {
-        $log = \App\Models\Auditoria::findOrFail($id);
+        $log = \App\Models\Auditoria::findOrFail($id_auditoria);
         return response()->json($log);
     }
 

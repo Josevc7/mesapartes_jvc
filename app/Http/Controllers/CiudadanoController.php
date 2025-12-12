@@ -18,7 +18,7 @@ class CiudadanoController extends Controller
     public function dashboard()
     {
         // Obtener el ID del usuario autenticado (ciudadano logueado)
-        $ciudadanoId = auth()->id();
+        $ciudadanoId = auth()->user()->id_user;
         
         // Calcular estadísticas de expedientes del ciudadano
         $stats = [
@@ -54,7 +54,7 @@ class CiudadanoController extends Controller
 
     public function misExpedientes()
     {
-        $expedientes = Expediente::where('id_ciudadano', auth()->id())
+        $expedientes = Expediente::where('id_ciudadano', auth()->user()->id_user)
             ->with(['tipoTramite', 'area', 'documentos'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -65,7 +65,7 @@ class CiudadanoController extends Controller
     public function seguimiento($codigo)
     {
         $expediente = Expediente::where('codigo_expediente', $codigo)
-            ->where('id_ciudadano', auth()->id())
+            ->where('id_ciudadano', auth()->user()->id_user)
             ->with(['tipoTramite', 'area', 'documentos', 'historial.usuario', 'derivaciones'])
             ->firstOrFail();
             
@@ -81,19 +81,20 @@ class CiudadanoController extends Controller
         return view('ciudadano.acuse-recibo', compact('expediente'));
     }
 
-    public function descargarDocumento(Documento $documento)
+    public function descargarDocumento($id_documento)
     {
+        $documento = Documento::findOrFail($id_documento);
         $expediente = $documento->expediente;
         
         if ($expediente->id_ciudadano !== auth()->id()) {
             abort(403, 'No tienes acceso a este documento');
         }
         
-        if (!Storage::disk('public')->exists($documento->ruta_archivo)) {
+        if (!Storage::disk('public')->exists($documento->ruta_pdf)) {
             abort(404, 'Archivo no encontrado');
         }
         
-        return Storage::disk('public')->download($documento->ruta_archivo, $documento->nombre . '.pdf');
+        return Storage::disk('public')->download($documento->ruta_pdf, $documento->nombre . '.pdf');
     }
 
     public function notificaciones()
@@ -143,7 +144,7 @@ class CiudadanoController extends Controller
             'direccion' => 'nullable|string',
             
             // === VALIDACIONES DE DATOS DEL TRÁMITE ===
-            'id_tipo_tramite' => 'required|exists:tipo_tramites,id',       // Debe existir en la tabla
+            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',       // Debe existir en la tabla
             'asunto' => 'required|string|max:500',                        // Asunto obligatorio
             'descripcion' => 'nullable|string|max:2000',                  // Descripción opcional
             
@@ -152,7 +153,7 @@ class CiudadanoController extends Controller
             'documentos_adicionales.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // Archivos opcionales, máx 5MB c/u
             
             // === VALIDACIONES ADICIONALES ===
-            'prioridad' => 'in:Normal,Alta,Urgente',                      // Prioridades válidas
+            'prioridad' => 'in:baja,media,alta,urgente',                  // Prioridades válidas
             'acepta_terminos' => 'required|accepted'                      // Debe aceptar términos
         ]);
 
@@ -188,13 +189,13 @@ class CiudadanoController extends Controller
             'asunto' => $request->asunto,                               // Motivo del trámite
             'descripcion' => $request->descripcion,                     // Descripción detallada (opcional)
             'id_tipo_tramite' => $request->id_tipo_tramite,             // Tipo de trámite seleccionado
-            'id_ciudadano' => auth()->id(),                             // Usuario autenticado que crea el expediente
-            'id_persona' => $persona->id,                               // Referencia a la persona (solicitante)
+            'id_ciudadano' => auth()->user()->id_user,                     // Usuario autenticado que crea el expediente
+            'id_persona' => $persona->id_persona,                               // Referencia a la persona (solicitante)
             'remitente' => $persona->nombre_completo,                   // Nombre completo para búsquedas rápidas
             'dni_remitente' => $persona->numero_documento,              // Documento para búsquedas rápidas
             'fecha_registro' => now(),                                  // Fecha y hora actual de registro
-            'estado' => 'registrado',                                   // Estado inicial del expediente
-            'prioridad' => strtolower($request->prioridad ?? 'normal'), // Prioridad en minúsculas
+            'estado' => 'recepcionado',                                 // Estado inicial del expediente
+            'prioridad' => $request->prioridad ?? 'media',              // Prioridad por defecto
             'canal' => 'virtual'                                        // Canal de ingreso (virtual/presencial)
         ]);
 
@@ -206,7 +207,7 @@ class CiudadanoController extends Controller
             
             // Crear registro en tabla documentos
             Documento::create([
-                'id_expediente' => $expediente->id,    // Vincular con el expediente creado
+                'id_expediente' => $expediente->id_expediente,    // Vincular con el expediente creado
                 'nombre' => 'Documento Principal',     // Nombre descriptivo
                 'ruta_pdf' => $path,                   // Ruta donde se guardó el archivo
                 'tipo' => 'entrada'                    // Tipo: documento de entrada al sistema
@@ -223,7 +224,7 @@ class CiudadanoController extends Controller
                 
                 // Crear registro individual para cada documento
                 Documento::create([
-                    'id_expediente' => $expediente->id,                    // Mismo expediente
+                    'id_expediente' => $expediente->id_expediente,                    // Mismo expediente
                     'nombre' => 'Documento Adicional ' . ($index + 1),     // Nombre numerado
                     'ruta_pdf' => $path,                                   // Ruta del archivo
                     'tipo' => 'entrada'                                    // Tipo: documento de entrada

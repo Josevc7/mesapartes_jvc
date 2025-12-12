@@ -8,8 +8,13 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Mis Expedientes Asignados</h3>
-                    <div class="card-tools">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Mis Expedientes Asignados</h3>
+                        <a href="{{ route('funcionario.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
+                        </a>
+                    </div>
+                    <div class="card-tools mt-3">
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-primary" onclick="filtrarEstado('todos')">
                                 Todos ({{ $expedientes->count() }})
@@ -93,31 +98,31 @@
                                     <td>{{ $expediente->fecha_derivacion ? $expediente->fecha_derivacion->format('d/m/Y') : 'N/A' }}</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{{ route('funcionario.show', $expediente->id) }}" 
+                                            <a href="{{ route('funcionario.show', $expediente->id_expediente) }}" 
                                                class="btn btn-outline-primary" title="Ver Detalle">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             
                                             @if($expediente->estado == 'derivado')
                                             <button class="btn btn-outline-success" 
-                                                    onclick="recibirExpediente({{ $expediente->id }})" 
+                                                    onclick="recibirExpediente({{ $expediente->id_expediente }})" 
                                                     title="Recibir">
                                                 <i class="fas fa-hand-paper"></i>
                                             </button>
                                             @endif
                                             
                                             @if($expediente->estado == 'en_proceso')
-                                            <a href="{{ route('funcionario.procesar', $expediente->id) }}" 
+                                            <a href="{{ route('funcionario.procesar', $expediente->id_expediente) }}" 
                                                class="btn btn-outline-info" title="Procesar">
                                                 <i class="fas fa-cogs"></i>
                                             </a>
-                                            <a href="{{ route('funcionario.derivar-form', $expediente->id) }}" 
+                                            <a href="{{ route('funcionario.derivar-form', $expediente->id_expediente) }}" 
                                                class="btn btn-outline-warning" title="Derivar">
                                                 <i class="fas fa-share"></i>
                                             </a>
                                             @endif
                                             
-                                            <a href="{{ route('funcionario.historial', $expediente->id) }}" 
+                                            <a href="{{ route('funcionario.historial', $expediente->id_expediente) }}" 
                                                class="btn btn-outline-secondary" title="Historial">
                                                 <i class="fas fa-history"></i>
                                             </a>

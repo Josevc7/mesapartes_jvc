@@ -89,8 +89,14 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        <button type="submit" class="btn btn-primary">Crear Resolución</button>
-                        <a href="{{ route('expedientes.show', $expediente) }}" class="btn btn-secondary">Cancelar</a>
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-between pt-3">
+                            <a href="{{ route('resoluciones.index') }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a Resoluciones
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-gavel me-2"></i>Crear Resolución
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

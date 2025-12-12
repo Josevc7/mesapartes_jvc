@@ -330,6 +330,9 @@
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('funcionario.mis-expedientes') }}"><i class="fas fa-user-check"></i> Mis Asignados</a>
                         </li>
+                        <li class="nav-item mb-1">
+                            <a class="nav-link text-dark" href="{{ route('resoluciones.index') }}"><i class="fas fa-gavel"></i> Resoluciones</a>
+                        </li>
                     </ul>
                 @endif
 

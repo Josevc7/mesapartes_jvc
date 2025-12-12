@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Resolucion extends Model
 {
     protected $table = 'resoluciones';
+    protected $primaryKey = 'id_resolucion';
     
     protected $fillable = [
         'id_expediente',
@@ -29,11 +30,11 @@ class Resolucion extends Model
 
     public function expediente()
     {
-        return $this->belongsTo(Expediente::class, 'id_expediente');
+        return $this->belongsTo(Expediente::class, 'id_expediente', 'id_expediente');
     }
 
     public function funcionarioResolutor()
     {
-        return $this->belongsTo(User::class, 'id_funcionario_resolutor');
+        return $this->belongsTo(User::class, 'id_funcionario_resolutor', 'id');
     }
 }

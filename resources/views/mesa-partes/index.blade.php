@@ -6,14 +6,26 @@
 <style>
 /* Botones de acción compactos */
 .btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
     border-radius: 0.25rem;
-    margin-right: 2px;
+    margin-right: 1px;
 }
 
 .btn-group .btn:last-child {
     margin-right: 0;
+}
+
+/* Tabla compacta */
+.table th, .table td {
+    font-size: 0.8rem;
+    padding: 0.4rem;
+    vertical-align: middle;
+}
+
+.table th {
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
 /* Hover effects */
@@ -56,14 +68,24 @@
 .tooltip-inner {
     background-color: #333;
     color: #fff;
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* Badges más pequeños */
+.badge {
+    font-size: 0.7rem;
+}
+
+/* Texto pequeño más compacto */
+small {
+    font-size: 0.7rem;
 }
 </style>
 @endsection
 
 @section('content')
-<div class="container">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -80,19 +102,19 @@
 
             <div class="card">
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped">
+                    <div class="table-responsive" style="overflow-x: auto;">
+                        <table class="table table-striped table-sm" style="width: 100%; min-width: 1400px;">
                             <thead>
                                 <tr>
-                                    <th>Código</th>
-                                    <th>Documento</th>
-                                    <th>Solicitante</th>
-                                    <th>Asunto</th>
-                                    <th>Tipo Trámite</th>
-                                    <th>Estado</th>
-                                    <th>Área Actual</th>
-                                    <th>Fecha</th>
-                                    <th>Acciones</th>
+                                    <th style="width: 110px;">Código</th>
+                                    <th style="width: 90px;">Documento</th>
+                                    <th style="width: 160px;">Solicitante</th>
+                                    <th style="width: 180px;">Asunto</th>
+                                    <th style="width: 130px;">Tipo Trámite</th>
+                                    <th style="width: 120px;">Estado</th>
+                                    <th style="width: 100px;">Área</th>
+                                    <th style="width: 70px;">Fecha</th>
+                                    <th style="width: 280px; min-width: 280px;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -117,9 +139,11 @@
                                             {{ $expediente->remitente ?? 'N/A' }}
                                         @endif
                                     </td>
-                                    <td>{{ Str::limit($expediente->asunto, 40) }}</td>
+                                    <td title="{{ $expediente->asunto }}">{{ Str::limit($expediente->asunto, 30) }}</td>
                                     <td>
-                                        <span class="badge bg-info">{{ $expediente->tipoTramite->nombre ?? 'Sin clasificar' }}</span>
+                                        <span class="badge bg-info" title="{{ $expediente->tipoTramite->nombre ?? 'Sin clasificar' }}">
+                                            {{ Str::limit($expediente->tipoTramite->nombre ?? 'Sin clasificar', 15) }}
+                                        </span>
                                     </td>
                                     <td>
                                         <div class="d-flex flex-column">
@@ -170,27 +194,27 @@
                                     </td>
                                     <td>
                                         @if($expediente->area)
-                                            <small>{{ $expediente->area->nombre }}</small>
+                                            <small title="{{ $expediente->area->nombre }}">{{ Str::limit($expediente->area->nombre, 12) }}</small>
                                         @else
                                             <span class="text-muted">Sin asignar</span>
                                         @endif
                                     </td>
-                                    <td>{{ $expediente->created_at->format('d/m/Y') }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group">
+                                    <td><small>{{ $expediente->created_at->format('d/m') }}</small></td>
+                                    <td style="white-space: nowrap;">
+                                        <div class="d-flex gap-1" style="min-width: 260px; flex-wrap: nowrap;">
                                             <!-- Ver Expediente -->
                                             <a href="{{ route('mesa-partes.show', $expediente) }}" 
-                                               class="btn btn-outline-primary btn-sm" 
+                                               class="btn btn-primary btn-sm" 
                                                data-bs-toggle="tooltip" 
-                                               title="Ver detalles del expediente">
+                                               title="Ver detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             
                                             <!-- Descargar Cargo -->
                                             <a href="{{ route('mesa-partes.cargo-recepcion', $expediente) }}" 
-                                               class="btn btn-outline-success btn-sm" 
+                                               class="btn btn-success btn-sm" 
                                                data-bs-toggle="tooltip" 
-                                               title="Descargar cargo de recepción">
+                                               title="Cargo">
                                                 <i class="fas fa-download"></i>
                                             </a>
                                             
@@ -198,12 +222,12 @@
                                                 $estadoInteligente = $expediente->estado_inteligente;
                                             @endphp
                                             
-                                            @if($estadoInteligente === 'pendiente')
+                                            @if($estadoInteligente === 'recepcionado')
                                             <!-- Clasificar -->
                                             <a href="{{ route('mesa-partes.clasificar', $expediente) }}" 
-                                               class="btn btn-outline-warning btn-sm" 
+                                               class="btn btn-warning btn-sm" 
                                                data-bs-toggle="tooltip" 
-                                               title="Clasificar expediente">
+                                               title="Clasificar">
                                                 <i class="fas fa-tags"></i>
                                             </a>
                                             @endif
@@ -211,9 +235,9 @@
                                             @if($estadoInteligente === 'clasificado')
                                             <!-- Derivar/Asignar -->
                                             <a href="{{ route('mesa-partes.derivar', $expediente) }}" 
-                                               class="btn btn-outline-info btn-sm" 
+                                               class="btn btn-info btn-sm" 
                                                data-bs-toggle="tooltip" 
-                                               title="Derivar a funcionario">
+                                               title="Derivar">
                                                 <i class="fas fa-share"></i>
                                             </a>
                                             @endif
@@ -221,9 +245,9 @@
                                             @if($estadoInteligente === 'asignado' || $estadoInteligente === 'por_recibir')
                                             <!-- Reasignar -->
                                             <a href="{{ route('mesa-partes.derivar', $expediente) }}" 
-                                               class="btn btn-outline-secondary btn-sm" 
+                                               class="btn btn-secondary btn-sm" 
                                                data-bs-toggle="tooltip" 
-                                               title="Reasignar funcionario">
+                                               title="Reasignar">
                                                 <i class="fas fa-exchange-alt"></i>
                                             </a>
                                             @endif
@@ -231,10 +255,10 @@
                                             @if(in_array($expediente->estado, ['resuelto']))
                                             <!-- Archivar -->
                                             <button type="button" 
-                                                    class="btn btn-outline-secondary btn-sm" 
+                                                    class="btn btn-dark btn-sm" 
                                                     data-bs-toggle="tooltip" 
-                                                    title="Archivar expediente"
-                                                    onclick="archivarExpediente({{ $expediente->id }})">
+                                                    title="Archivar"
+                                                    onclick="archivarExpediente({{ $expediente->id_expediente }})">
                                                 <i class="fas fa-archive"></i>
                                             </button>
                                             @endif

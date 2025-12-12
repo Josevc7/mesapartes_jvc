@@ -12,6 +12,9 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    // Usar clave primaria estándar de Laravel
+    protected $primaryKey = 'id';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -61,51 +64,51 @@ class User extends Authenticatable
 
     public function role()
     {
-        return $this->belongsTo(Role::class, 'id_rol');
+        return $this->belongsTo(Role::class, 'id_rol', 'id_rol');
     }
 
     public function area()
     {
-        return $this->belongsTo(Area::class, 'id_area');
+        return $this->belongsTo(Area::class, 'id_area', 'id_area');
     }
 
     public function expedientesComoFuncionario()
     {
-        return $this->hasMany(Expediente::class, 'id_funcionario_asignado');
+        return $this->hasMany(Expediente::class, 'id_funcionario_asignado', 'id');
     }
 
     public function expedientesAsignados()
     {
-        return $this->hasMany(Expediente::class, 'id_funcionario_asignado');
+        return $this->hasMany(Expediente::class, 'id_funcionario_asignado', 'id');
     }
 
     public function expedientesComoCiudadano()
     {
-        return $this->hasMany(Expediente::class, 'id_ciudadano');
+        return $this->hasMany(Expediente::class, 'id_ciudadano', 'id');
     }
 
     public function derivacionesComoOrigen()
     {
-        return $this->hasMany(Derivacion::class, 'id_funcionario_origen');
+        return $this->hasMany(Derivacion::class, 'id_funcionario_origen', 'id');
     }
 
     public function derivacionesComoDestino()
     {
-        return $this->hasMany(Derivacion::class, 'id_funcionario_destino');
+        return $this->hasMany(Derivacion::class, 'id_funcionario_destino', 'id');
     }
 
     public function notificaciones()
     {
-        return $this->hasMany(Notificacion::class, 'id_usuario');
+        return $this->hasMany(Notificacion::class, 'id_usuario', 'id');
     }
 
     public function auditorias()
     {
-        return $this->hasMany(Auditoria::class, 'id_usuario');
+        return $this->hasMany(Auditoria::class, 'id_usuario', 'id');
     }
 
     public function persona()
     {
-        return $this->belongsTo(Persona::class);
+        return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
     }
 }

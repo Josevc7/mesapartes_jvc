@@ -46,14 +46,14 @@
                                         <span class="badge bg-primary">{{ $persona->expedientes->count() }}</span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-info" onclick="verPersona({{ $persona->id }})">
+                                        <button class="btn btn-sm btn-info" onclick="verPersona({{ $persona->id_persona }})">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-warning" onclick="editarPersona({{ $persona->id }})">
+                                        <button class="btn btn-sm btn-warning" onclick="editarPersona({{ $persona->id_persona }})">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         @if($persona->expedientes->count() == 0)
-                                        <button class="btn btn-sm btn-danger" onclick="eliminarPersona({{ $persona->id }})">
+                                        <button class="btn btn-sm btn-danger" onclick="eliminarPersona({{ $persona->id_persona }})">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         @endif

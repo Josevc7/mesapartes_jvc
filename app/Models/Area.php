@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Area extends Model
 {
+    // Usar clave primaria personalizada
+    protected $primaryKey = 'id_area';
+    
     protected $fillable = [
         'nombre',
         'descripcion',
@@ -17,39 +20,34 @@ class Area extends Model
         'activo' => 'boolean'
     ];
 
-    // Relaciones
+    // Relaciones esenciales
     public function jefe()
     {
-        return $this->belongsTo(User::class, 'id_jefe');
+        return $this->belongsTo(User::class, 'id_jefe', 'id');
     }
 
     public function funcionarios()
     {
-        return $this->hasMany(User::class, 'id_area');
+        return $this->hasMany(User::class, 'id_area', 'id_area');
     }
 
     public function expedientes()
     {
-        return $this->hasMany(Expediente::class, 'id_area');
+        return $this->hasMany(Expediente::class, 'id_area', 'id_area');
     }
 
     public function tipoTramites()
     {
-        return $this->hasMany(TipoTramite::class, 'id_area');
+        return $this->hasMany(TipoTramite::class, 'id_area', 'id_area');
     }
 
     public function derivacionesOrigen()
     {
-        return $this->hasMany(Derivacion::class, 'id_area_origen');
+        return $this->hasMany(Derivacion::class, 'id_area_origen', 'id_area');
     }
 
     public function derivacionesDestino()
     {
-        return $this->hasMany(Derivacion::class, 'id_area_destino');
-    }
-
-    public function metas()
-    {
-        return $this->hasMany(Meta::class, 'id_area');
+        return $this->hasMany(Derivacion::class, 'id_area_destino', 'id_area');
     }
 }

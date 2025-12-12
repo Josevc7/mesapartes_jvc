@@ -30,7 +30,7 @@
                             <tbody>
                                 @foreach($roles as $rol)
                                 <tr>
-                                    <td>{{ $rol->id }}</td>
+                                    <td>{{ $rol->id_rol }}</td>
                                     <td><strong>{{ $rol->nombre }}</strong></td>
                                     <td>{{ $rol->descripcion ?? 'Sin descripción' }}</td>
                                     <td><span class="badge bg-info">{{ $rol->users_count }}</span></td>
@@ -65,7 +65,7 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-warning" onclick="editarRol({{ $rol->id }})">
+                                            <button class="btn btn-sm btn-warning" onclick="editarRol({{ $rol->id_rol }})">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             @if($rol->users_count == 0)

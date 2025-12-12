@@ -34,13 +34,13 @@ class PersonaController extends Controller
         return redirect()->route('admin.personas')->with('success', 'Persona creada correctamente');
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $id_persona)
     {
-        $persona = Persona::findOrFail($id);
+        $persona = Persona::findOrFail($id_persona);
         
         $request->validate([
             'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
-            'numero_documento' => 'required|string|max:20|unique:personas,numero_documento,' . $id,
+            'numero_documento' => 'required|string|max:20|unique:personas,numero_documento,' . $id_persona,
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',
             'nombres' => 'required_if:tipo_persona,NATURAL|string|max:100',
             'apellido_paterno' => 'required_if:tipo_persona,NATURAL|string|max:50',
@@ -56,9 +56,9 @@ class PersonaController extends Controller
         return redirect()->route('admin.personas')->with('success', 'Persona actualizada correctamente');
     }
 
-    public function destroy($id)
+    public function destroy($id_persona)
     {
-        $persona = Persona::findOrFail($id);
+        $persona = Persona::findOrFail($id_persona);
         
         // Verificar si tiene expedientes
         if ($persona->expedientes()->count() > 0) {
@@ -83,9 +83,9 @@ class PersonaController extends Controller
         return response()->json($personas);
     }
 
-    public function show($id)
+    public function show($id_persona)
     {
-        $persona = Persona::with('expedientes')->findOrFail($id);
+        $persona = Persona::with('expedientes')->findOrFail($id_persona);
         return response()->json($persona);
     }
 }

@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class TipoTramite extends Model
 {
+    // Usar clave primaria personalizada
+    protected $primaryKey = 'id_tipo_tramite';
+    
     protected $fillable = [
         'nombre',
         'descripcion',
@@ -21,11 +24,11 @@ class TipoTramite extends Model
 
     public function expedientes()
     {
-        return $this->hasMany(Expediente::class);
+        return $this->hasMany(Expediente::class, 'id_tipo_tramite', 'id_tipo_tramite');
     }
 
     public function area()
     {
-        return $this->belongsTo(Area::class, 'id_area');
+        return $this->belongsTo(Area::class, 'id_area', 'id_area');
     }
 }

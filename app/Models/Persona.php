@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Persona extends Model
 {
+    // Usar clave primaria personalizada
+    protected $primaryKey = 'id_persona';
+    
     protected $fillable = [
         'tipo_documento',
         'numero_documento',
@@ -40,12 +43,12 @@ class Persona extends Model
     // Relaciones
     public function expedientes()
     {
-        return $this->hasMany(Expediente::class, 'id_persona',);
+        return $this->hasMany(Expediente::class, 'id_persona', 'id_persona');
     }
 
     public function usuario()
     {
-        return $this->hasOne(User::class, 'id_persona',);
+        return $this->hasOne(User::class, 'id_persona', 'id_persona');
     }
 
     // Scopes

@@ -1,0 +1,200 @@
+/* Estilos modernos para formularios de ciudadano */
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #cc5500 0%, #2c2c2c 100%);
+}
+
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.card-header {
+    border: none;
+}
+
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #cc5500;
+    box-shadow: 0 0 0 0.2rem rgba(204, 85, 0, 0.25);
+    transform: translateY(-2px);
+}
+
+.form-control-lg, .form-select-lg {
+    padding: 16px 20px;
+    font-size: 1.1rem;
+}
+
+.form-label {
+    color: #495057;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.btn {
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #cc5500 0%, #2c2c2c 100%);
+    border: none;
+}
+
+.btn-outline-secondary {
+    border: 2px solid #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.alert {
+    border-radius: 12px;
+    border: none;
+    padding: 20px;
+}
+
+.bg-opacity-10 {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+.bg-opacity-20 {
+    background-color: rgba(var(--bs-primary-rgb), 0.2) !important;
+}
+
+.section-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #667eea, transparent);
+    margin: 2rem 0;
+}
+
+/* Animaciones suaves */
+.card {
+    animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1.5rem !important;
+    }
+    
+    .btn-lg {
+        padding: 14px 20px;
+        font-size: 1rem;
+    }
+    
+    .form-control-lg, .form-select-lg {
+        padding: 14px 16px;
+        font-size: 1rem;
+    }
+}
+
+/* File input styling */
+.form-control[type="file"] {
+    padding: 10px;
+    background-color: #f8f9fa;
+}
+
+.form-control[type="file"]:focus {
+    background-color: #fff;
+}
+
+/* Checkbox styling */
+.form-check-input:checked {
+    background-color: #cc5500;
+    border-color: #cc5500;
+}
+
+.form-check-input:focus {
+    border-color: #cc5500;
+    box-shadow: 0 0 0 0.25rem rgba(204, 85, 0, 0.25);
+}
+
+/* Modal improvements */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #cc5500 0%, #2c2c2c 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+/* Progress indicator (if needed) */
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.progress-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+}
+
+.progress-step::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background-color: #e9ecef;
+    z-index: -1;
+}
+
+.progress-step:last-child::after {
+    display: none;
+}
+
+.progress-step.active::after {
+    background-color: #cc5500;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.progress-step.active .step-circle {
+    background-color: #cc5500;
+    color: white;
+}

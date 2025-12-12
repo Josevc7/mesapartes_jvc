@@ -33,7 +33,7 @@ class ResolucionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'id_expediente' => 'required|exists:expedientes,id',
+            'id_expediente' => 'required|exists:expedientes,id_expediente',
             'numero_resolucion' => 'required|string|max:50|unique:resoluciones',
             'tipo_resolucion' => 'required|in:aprobado,rechazado,observado',
             'fundamento_legal' => 'nullable|string',
@@ -58,7 +58,7 @@ class ResolucionController extends Controller
         ]);
 
         // Actualizar estado del expediente
-        $expediente = Expediente::find($request->id_expediente);
+        $expediente = Expediente::where('id_expediente', $request->id_expediente)->first();
         $expediente->update(['estado' => 'resuelto']);
         
         // Agregar al historial
@@ -71,14 +71,15 @@ class ResolucionController extends Controller
             ->with('success', 'Resolución creada exitosamente.');
     }
 
-    public function show(Resolucion $resolucion)
+    public function show($id_resolucion)
     {
-        $resolucion->load(['expediente.tipoTramite', 'expediente.ciudadano', 'funcionarioResolutor']);
+        $resolucion = Resolucion::with(['expediente.tipoTramite', 'expediente.ciudadano', 'funcionarioResolutor'])->findOrFail($id_resolucion);
         return view('resoluciones.show', compact('resolucion'));
     }
 
-    public function notificar(Resolucion $resolucion)
+    public function notificar($id_resolucion)
     {
+        $resolucion = Resolucion::findOrFail($id_resolucion);
         $resolucion->update([
             'fecha_notificacion' => now(),
             'notificado' => true
@@ -87,8 +88,9 @@ class ResolucionController extends Controller
         return redirect()->back()->with('success', 'Resolución notificada exitosamente.');
     }
 
-    public function descargar(Resolucion $resolucion)
+    public function descargar($id_resolucion)
     {
+        $resolucion = Resolucion::findOrFail($id_resolucion);
         if (!$resolucion->ruta_documento_resolucion) {
             return redirect()->back()->with('error', 'No hay documento disponible.');
         }

@@ -2,32 +2,60 @@
 
 @section('title', 'Registrar Nuevo Expediente')
 
+@push('styles')
+<link href="{{ asset('css/ciudadano-form.css') }}" rel="stylesheet">
+@endpush
+
 @section('content')
-<div class="adaptive-form">
-    <div class="card">
-        <div class="card-header">
-            <h4><i class="fas fa-file-plus"></i> Registrar Nuevo Expediente</h4>
-            <small class="text-muted">Ventanilla Virtual DRTC - Mesa de Partes Digital</small>
-        </div>
-        <div class="card-body">
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-xl-10 col-lg-11">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-file-plus fa-2x"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-1 fw-bold">Registrar Nuevo Expediente</h3>
+                            <p class="mb-0 opacity-90">Ventanilla Virtual DRTC - Mesa de Partes Digital</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
                     @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle"></i> <strong>{{ session('success') }}</strong>
-                            @if(session('codigo_expediente'))
-                                <br><small>Código de expediente: <strong>{{ session('codigo_expediente') }}</strong></small>
-                            @endif
+                        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success bg-opacity-20 rounded-circle p-2 me-3">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="alert-heading mb-1">¡Expediente registrado exitosamente!</h6>
+                                    <p class="mb-0">{{ session('success') }}</p>
+                                    @if(session('codigo_expediente'))
+                                        <small class="d-block mt-1">Código de expediente: <strong class="text-success">{{ session('codigo_expediente') }}</strong></small>
+                                    @endif
+                                </div>
+                            </div>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
                     
                     @if($errors->any())
-                        <div class="alert alert-danger">
-                            <h6>Errores en el formulario:</h6>
-                            <ul class="mb-0">
-                                @foreach($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
+                        <div class="alert alert-danger border-0 shadow-sm">
+                            <div class="d-flex align-items-start">
+                                <div class="bg-danger bg-opacity-20 rounded-circle p-2 me-3 mt-1">
+                                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading mb-2">Errores en el formulario:</h6>
+                                    <ul class="mb-0 ps-3">
+                                        @foreach($errors->all() as $error)
+                                            <li class="mb-1">{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     @endif
                     
@@ -35,15 +63,23 @@
                         @csrf
                         
                         <!-- Sección 1: Identificación del Solicitante -->
-                        <div class="mb-4">
-                            <h5 class="text-primary border-bottom pb-2 mb-3">
-                                <i class="fas fa-user"></i> 1. Identificación del Solicitante
-                            </h5>
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-user text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-primary fw-bold">1. Identificación del Solicitante</h5>
+                                    <p class="text-muted mb-0 small">Ingrese sus datos de identificación personal</p>
+                                </div>
+                            </div>
                             
-                            <div class="three-columns">
-                                <div class="adaptive-field">
-                                    <label for="tipo_persona" class="form-label">Tipo de Persona *</label>
-                                    <select class="form-select @error('tipo_persona') is-invalid @enderror" 
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <label for="tipo_persona" class="form-label fw-semibold">
+                                        <i class="fas fa-user-tag text-primary me-2"></i>Tipo de Persona *
+                                    </label>
+                                    <select class="form-select form-select-lg @error('tipo_persona') is-invalid @enderror" 
                                             id="tipo_persona" name="tipo_persona" required>
                                         <option value="NATURAL" {{ old('tipo_persona', 'NATURAL') == 'NATURAL' ? 'selected' : '' }}>Persona Natural</option>
                                         <option value="JURIDICA" {{ old('tipo_persona') == 'JURIDICA' ? 'selected' : '' }}>Persona Jurídica</option>
@@ -53,9 +89,11 @@
                                     @enderror
                                 </div>
                                 
-                                <div class="adaptive-field">
-                                    <label for="tipo_documento" class="form-label">Tipo de Documento *</label>
-                                    <select class="form-select @error('tipo_documento') is-invalid @enderror" 
+                                <div class="col-md-4">
+                                    <label for="tipo_documento" class="form-label fw-semibold">
+                                        <i class="fas fa-id-card text-primary me-2"></i>Tipo de Documento *
+                                    </label>
+                                    <select class="form-select form-select-lg @error('tipo_documento') is-invalid @enderror" 
                                             id="tipo_documento" name="tipo_documento" required>
                                         <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
                                         <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carné de Extranjería</option>
@@ -67,9 +105,11 @@
                                     @enderror
                                 </div>
                                 
-                                <div class="adaptive-field">
-                                    <label for="numero_documento" class="form-label">Número de Documento *</label>
-                                    <input type="text" class="form-control @error('numero_documento') is-invalid @enderror" 
+                                <div class="col-md-4">
+                                    <label for="numero_documento" class="form-label fw-semibold">
+                                        <i class="fas fa-hashtag text-primary me-2"></i>Número de Documento *
+                                    </label>
+                                    <input type="text" class="form-control form-control-lg @error('numero_documento') is-invalid @enderror" 
                                            id="numero_documento" name="numero_documento" value="{{ old('numero_documento') }}" 
                                            placeholder="Ingrese su número de documento" required>
                                     @error('numero_documento')
@@ -198,10 +238,10 @@
                                             id="id_tipo_tramite" name="id_tipo_tramite" required>
                                         <option value="">Seleccionar tipo de trámite</option>
                                         @foreach($tipoTramites as $tipo)
-                                            <option value="{{ $tipo->id }}" 
+                                            <option value="{{ $tipo->id_tipo_tramite }}" 
                                                     data-plazo="{{ $tipo->plazo_dias }}"
                                                     data-requisitos="{{ $tipo->requisitos }}"
-                                                    {{ old('id_tipo_tramite') == $tipo->id ? 'selected' : '' }}>
+                                                    {{ old('id_tipo_tramite') == $tipo->id_tipo_tramite ? 'selected' : '' }}>
                                                 {{ $tipo->nombre }}
                                             </option>
                                         @endforeach
@@ -214,9 +254,10 @@
                                 <div class="adaptive-field">
                                     <label for="prioridad" class="form-label">Prioridad</label>
                                     <select class="form-select" id="prioridad" name="prioridad">
-                                        <option value="Normal" {{ old('prioridad') == 'Normal' ? 'selected' : '' }}>Normal</option>
-                                        <option value="Alta" {{ old('prioridad') == 'Alta' ? 'selected' : '' }}>Alta</option>
-                                        <option value="Urgente" {{ old('prioridad') == 'Urgente' ? 'selected' : '' }}>Urgente</option>
+                                        <option value="baja" {{ old('prioridad') == 'baja' ? 'selected' : '' }}>Baja</option>
+                                        <option value="media" {{ old('prioridad', 'media') == 'media' ? 'selected' : '' }}>Media</option>
+                                        <option value="alta" {{ old('prioridad') == 'alta' ? 'selected' : '' }}>Alta</option>
+                                        <option value="urgente" {{ old('prioridad') == 'urgente' ? 'selected' : '' }}>Urgente</option>
                                     </select>
                                 </div>
                                 
@@ -314,17 +355,19 @@
                             </div>
                         </div>
 
-                        <div class="adaptive-buttons">
-                            <a href="{{ route('ciudadano.dashboard') }}" class="btn btn-secondary adaptive-btn">
-                                <i class="fas fa-times"></i> Cancelar
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-end pt-4 border-top">
+                            <a href="{{ route('ciudadano.dashboard') }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
                             </a>
-                            <button type="submit" class="btn btn-primary adaptive-btn">
-                                <i class="fas fa-paper-plane"></i> Enviar Expediente
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-paper-plane me-2"></i>Enviar Expediente
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Términos y Condiciones -->

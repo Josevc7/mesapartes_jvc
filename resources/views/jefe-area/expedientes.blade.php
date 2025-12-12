@@ -70,7 +70,7 @@
                             </thead>
                             <tbody>
                                 @forelse($expedientes as $expediente)
-                                <tr class="{{ $expediente->created_at->diffInDays() > 15 ? 'table-warning' : '' }}">
+                                <tr class="{{ floor($expediente->created_at->diffInDays()) > 15 ? 'table-warning' : '' }}">
                                     <td>
                                         <strong>{{ $expediente->codigo_expediente }}</strong>
                                         @if($expediente->prioridad == 'Urgente')
@@ -88,8 +88,8 @@
                                         </span>
                                     </td>
                                     <td>
-                                        {{ $expediente->created_at->diffInDays() }} días
-                                        @if($expediente->created_at->diffInDays() > 15)
+                                        {{ floor($expediente->created_at->diffInDays()) }} días
+                                        @if(floor($expediente->created_at->diffInDays()) > 15)
                                             <i class="fas fa-exclamation-triangle text-warning"></i>
                                         @endif
                                     </td>

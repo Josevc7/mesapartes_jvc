@@ -71,9 +71,13 @@
                             </ul>
                         </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ route('funcionario.show', $expediente) }}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">Procesar Expediente</button>
+                        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-between pt-4 border-top">
+                            <a href="{{ route('funcionario.show', $expediente) }}" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Volver al Expediente
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-cogs me-2"></i>Procesar Expediente
+                            </button>
                         </div>
                     </form>
                 </div>

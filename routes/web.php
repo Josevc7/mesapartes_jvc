@@ -39,7 +39,7 @@ Route::prefix('ciudadano')->middleware(['auth', 'role:Ciudadano,Administrador'])
     Route::get('/seguimiento/{codigo}', [CiudadanoController::class, 'seguimiento'])->name('ciudadano.seguimiento');
     Route::get('/acuse-recibo/{codigo}', [CiudadanoController::class, 'acuseRecibo'])->name('ciudadano.acuse-recibo');
     Route::get('/descargar-acuse/{codigo}', [CiudadanoController::class, 'descargarAcuse'])->name('ciudadano.descargar-acuse');
-    Route::get('/documento/{documento}/descargar', [CiudadanoController::class, 'descargarDocumento'])->name('ciudadano.descargar-documento');
+    Route::get('/documento/{id_documento}/descargar', [CiudadanoController::class, 'descargarDocumento'])->name('ciudadano.descargar-documento');
     Route::get('/notificaciones', [CiudadanoController::class, 'notificaciones'])->name('ciudadano.notificaciones');
     
     // Registrar expedientes
@@ -62,6 +62,7 @@ Route::prefix('ciudadano')->middleware(['auth', 'role:Ciudadano,Administrador'])
     
     // Seguimiento con DNI
     Route::get('/seguimiento-form', [CiudadanoController::class, 'seguimientoForm'])->name('ciudadano.seguimiento-form');
+    Route::get('/buscar-expediente', [CiudadanoController::class, 'seguimientoForm'])->name('ciudadano.buscar-expediente.form');
     Route::post('/buscar-expediente', [CiudadanoController::class, 'buscarExpediente'])->name('ciudadano.buscar-expediente');
 });
 
@@ -184,24 +185,24 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::get('/usuarios', [AdminController::class, 'usuarios'])->name('admin.usuarios');
     Route::get('/usuarios/crear', [AdminController::class, 'crearUsuario'])->name('admin.usuarios.create');
     Route::post('/usuarios', [AdminController::class, 'storeUsuario'])->name('admin.usuarios.store');
-    Route::get('/usuarios/{id}', [AdminController::class, 'showUsuario'])->name('admin.usuarios.show');
-    Route::get('/usuarios/{id}/editar', [AdminController::class, 'editUsuario'])->name('admin.usuarios.edit');
-    Route::put('/usuarios/{id}', [AdminController::class, 'updateUsuario'])->name('admin.usuarios.update');
-    Route::delete('/usuarios/{id}', [AdminController::class, 'destroyUsuario'])->name('admin.usuarios.destroy');
+    Route::get('/usuarios/{id_user}', [AdminController::class, 'showUsuario'])->name('admin.usuarios.show');
+    Route::get('/usuarios/{id_user}/editar', [AdminController::class, 'editUsuario'])->name('admin.usuarios.edit');
+    Route::put('/usuarios/{id_user}', [AdminController::class, 'updateUsuario'])->name('admin.usuarios.update');
+    Route::delete('/usuarios/{id_user}', [AdminController::class, 'destroyUsuario'])->name('admin.usuarios.destroy');
     
     // Gestión de áreas
     Route::get('/areas', [AdminController::class, 'areas'])->name('admin.areas');
     Route::post('/areas', [AdminController::class, 'storeArea'])->name('admin.areas.store');
-    Route::get('/areas/{id}/edit', [AdminController::class, 'editArea'])->name('admin.areas.edit');
-    Route::put('/areas/{id}', [AdminController::class, 'updateArea'])->name('admin.areas.update');
-    Route::put('/areas/{id}/toggle', [AdminController::class, 'toggleArea'])->name('admin.areas.toggle');
+    Route::get('/areas/{id_area}/edit', [AdminController::class, 'editArea'])->name('admin.areas.edit');
+    Route::put('/areas/{id_area}', [AdminController::class, 'updateArea'])->name('admin.areas.update');
+    Route::put('/areas/{id_area}/toggle', [AdminController::class, 'toggleArea'])->name('admin.areas.toggle');
     
     // Gestión de tipos de trámite
     Route::get('/tipo-tramites', [AdminController::class, 'tipoTramites'])->name('admin.tipo-tramites');
     Route::post('/tipo-tramites', [AdminController::class, 'storeTipoTramite'])->name('admin.tipo-tramites.store');
-    Route::get('/tipo-tramites/{id}/edit', [AdminController::class, 'editTipoTramite'])->name('admin.tipo-tramites.edit');
-    Route::put('/tipo-tramites/{id}', [AdminController::class, 'updateTipoTramite'])->name('admin.tipo-tramites.update');
-    Route::put('/tipo-tramites/{id}/toggle', [AdminController::class, 'toggleTipoTramite'])->name('admin.tipo-tramites.toggle');
+    Route::get('/tipo-tramites/{id_tipo_tramite}/edit', [AdminController::class, 'editTipoTramite'])->name('admin.tipo-tramites.edit');
+    Route::put('/tipo-tramites/{id_tipo_tramite}', [AdminController::class, 'updateTipoTramite'])->name('admin.tipo-tramites.update');
+    Route::put('/tipo-tramites/{id_tipo_tramite}/toggle', [AdminController::class, 'toggleTipoTramite'])->name('admin.tipo-tramites.toggle');
     
     // Configuraciones
     Route::get('/configuraciones', [AdminController::class, 'configuraciones'])->name('admin.configuraciones');
@@ -215,9 +216,9 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     // Gestión de personas
     Route::get('/personas', [AdminController::class, 'personas'])->name('admin.personas');
     Route::post('/personas', [AdminController::class, 'storePersona'])->name('admin.personas.store');
-    Route::get('/personas/{id}', [AdminController::class, 'showPersona'])->name('admin.personas.show');
-    Route::put('/personas/{id}', [AdminController::class, 'updatePersona'])->name('admin.personas.update');
-    Route::delete('/personas/{id}', [AdminController::class, 'destroyPersona'])->name('admin.personas.destroy');
+    Route::get('/personas/{id_persona}', [AdminController::class, 'showPersona'])->name('admin.personas.show');
+    Route::put('/personas/{id_persona}', [AdminController::class, 'updatePersona'])->name('admin.personas.update');
+    Route::delete('/personas/{id_persona}', [AdminController::class, 'destroyPersona'])->name('admin.personas.destroy');
     
     // Auditoría
     Route::get('/auditoria', [AdminController::class, 'auditoria'])->name('admin.auditoria');
@@ -225,7 +226,7 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     
     // Matriz de Control
     Route::get('/matriz-control', [AdminController::class, 'matrizControl'])->name('admin.matriz-control');
-    Route::post('/usuarios/{id}/toggle-estado', [AdminController::class, 'toggleEstadoUsuario'])->name('admin.usuarios.toggle-estado');
+    Route::post('/usuarios/{id_user}/toggle-estado', [AdminController::class, 'toggleEstadoUsuario'])->name('admin.usuarios.toggle-estado');
     
     // Dashboard Administrativo
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -233,9 +234,9 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     // Gestión de Roles
     Route::get('/roles', [AdminController::class, 'roles'])->name('admin.roles');
     Route::post('/roles', [AdminController::class, 'storeRol'])->name('admin.roles.store');
-    Route::get('/roles/{id}', [AdminController::class, 'showRol'])->name('admin.roles.show');
-    Route::put('/roles/{id}', [AdminController::class, 'updateRol'])->name('admin.roles.update');
-    Route::delete('/roles/{id}', [AdminController::class, 'destroyRol'])->name('admin.roles.destroy');
+    Route::get('/roles/{id_rol}', [AdminController::class, 'showRol'])->name('admin.roles.show');
+    Route::put('/roles/{id_rol}', [AdminController::class, 'updateRol'])->name('admin.roles.update');
+    Route::delete('/roles/{id_rol}', [AdminController::class, 'destroyRol'])->name('admin.roles.destroy');
     
     // Logs del Sistema
     Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs');
@@ -252,8 +253,8 @@ Route::prefix('soporte')->middleware(['auth', 'role:Soporte,Administrador'])->gr
     Route::get('/usuarios', [SoporteController::class, 'usuarios'])->name('soporte.usuarios');
     Route::get('/respaldo', [SoporteController::class, 'respaldoView'])->name('soporte.respaldo.view');
     Route::get('/monitoreo', [SoporteController::class, 'monitoreo'])->name('soporte.monitoreo');
-    Route::post('/usuarios/{usuario}/resetear-password', [SoporteController::class, 'resetearPassword'])->name('soporte.resetear-password');
-    Route::post('/usuarios/{usuario}/toggle', [SoporteController::class, 'toggleUsuario'])->name('soporte.toggle-usuario');
+    Route::post('/usuarios/{id_user}/resetear-password', [SoporteController::class, 'resetearPassword'])->name('soporte.resetear-password');
+    Route::post('/usuarios/{id_user}/toggle', [SoporteController::class, 'toggleUsuario'])->name('soporte.toggle-usuario');
     Route::post('/respaldo', [SoporteController::class, 'respaldo'])->name('soporte.respaldo');
     Route::post('/limpiar-cache', [SoporteController::class, 'limpiarCache'])->name('soporte.limpiar-cache');
 });
@@ -270,15 +271,15 @@ Route::prefix('resoluciones')->middleware(['auth', 'role:Funcionario,Jefe de Ár
     Route::get('/', [App\Http\Controllers\ResolucionController::class, 'index'])->name('resoluciones.index');
     Route::get('/crear/{expediente}', [App\Http\Controllers\ResolucionController::class, 'create'])->name('resoluciones.create');
     Route::post('/', [App\Http\Controllers\ResolucionController::class, 'store'])->name('resoluciones.store');
-    Route::get('/{resolucion}', [App\Http\Controllers\ResolucionController::class, 'show'])->name('resoluciones.show');
-    Route::patch('/{resolucion}/notificar', [App\Http\Controllers\ResolucionController::class, 'notificar'])->name('resoluciones.notificar');
-    Route::get('/{resolucion}/descargar', [App\Http\Controllers\ResolucionController::class, 'descargar'])->name('resoluciones.descargar');
+    Route::get('/{id_resolucion}', [App\Http\Controllers\ResolucionController::class, 'show'])->name('resoluciones.show');
+    Route::patch('/{id_resolucion}/notificar', [App\Http\Controllers\ResolucionController::class, 'notificar'])->name('resoluciones.notificar');
+    Route::get('/{id_resolucion}/descargar', [App\Http\Controllers\ResolucionController::class, 'descargar'])->name('resoluciones.descargar');
 });
 
 // API Routes para consultas AJAX - con validación y autorización
 Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/areas', function() {
-        return App\Models\Area::where('activo', true)->select('id', 'nombre')->get();
+        return App\Models\Area::where('activo', true)->select('id_area', 'nombre')->get();
     })->name('api.areas');
     
     Route::get('/funcionarios/{area}', function($area) {
@@ -288,7 +289,7 @@ Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
         return App\Models\User::where('id_rol', 4)
             ->where('id_area', $area)
             ->where('activo', true)
-            ->select('id', 'name', 'email')
+            ->select('id_user', 'name', 'email')
             ->get();
     })->name('api.funcionarios');
 });

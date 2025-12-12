@@ -29,7 +29,7 @@
                             <tbody>
                                 @foreach($areas as $area)
                                 <tr>
-                                    <td>{{ $area->id }}</td>
+                                    <td>{{ $area->id_area }}</td>
                                     <td>{{ $area->nombre }}</td>
                                     <td>{{ $area->descripcion }}</td>
                                     <td>{{ $area->jefe->name ?? 'Sin asignar' }}</td>
@@ -39,11 +39,11 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning" onclick="editarArea({{ $area->id }})">
+                                        <button class="btn btn-sm btn-warning" onclick="editarArea({{ $area->id_area }})">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-sm btn-{{ $area->activo ? 'danger' : 'success' }}" 
-                                                onclick="toggleArea({{ $area->id }})">
+                                                onclick="toggleArea({{ $area->id_area }})">
                                             <i class="fas fa-{{ $area->activo ? 'ban' : 'check' }}"></i>
                                         </button>
                                     </td>

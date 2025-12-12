@@ -11,7 +11,7 @@ class FuncionarioController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Expediente::where('id_funcionario_asignado', auth()->id())
+        $query = Expediente::where('id_funcionario_asignado', auth()->user()->id)
             ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona']);
 
         // Filtros
@@ -36,13 +36,13 @@ class FuncionarioController extends Controller
         
         // Estadísticas
         $stats = [
-            'derivados' => Expediente::where('id_funcionario_asignado', auth()->id())->where('estado', 'derivado')->count(),
-            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->id())->where('estado', 'en_proceso')->count(),
-            'vencidos' => Expediente::where('id_funcionario_asignado', auth()->id())
+            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'derivado')->count(),
+            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'en_proceso')->count(),
+            'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
                 ->whereHas('derivaciones', function($q) {
                     $q->where('fecha_limite', '<', now());
                 })->count(),
-            'resueltos' => Expediente::where('id_funcionario_asignado', auth()->id())->where('estado', 'resuelto')->count()
+            'resueltos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'resuelto')->count()
         ];
             
         return view('funcionario.mis-expedientes', compact('expedientes', 'stats'));
@@ -50,7 +50,7 @@ class FuncionarioController extends Controller
 
     public function show(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->id()) {
+        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
             abort(403, 'No tienes acceso a este expediente');
         }
         
@@ -62,7 +62,7 @@ class FuncionarioController extends Controller
     {
         try {
             // Verificar que el funcionario tenga acceso
-            if ($expediente->id_funcionario_asignado !== auth()->id()) {
+            if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
                 return response()->json(['error' => 'No tienes acceso a este expediente'], 403);
             }
             
@@ -97,7 +97,7 @@ class FuncionarioController extends Controller
             $path = $request->file('documento_respuesta')->store('documentos', 'public');
             
             Documento::create([
-                'id_expediente' => $expediente->id,
+                'id_expediente' => $expediente->id_expediente,
                 'nombre' => $request->input('nombre_documento', 'Documento de Respuesta'),
                 'ruta_pdf' => $path,
                 'tipo' => 'respuesta'
@@ -118,7 +118,7 @@ class FuncionarioController extends Controller
         // Registrar en historial
         $expediente->agregarHistorial(
             'Procesado por funcionario: ' . $request->observaciones_funcionario,
-            auth()->id()
+            auth()->user()->id
         );
 
         return redirect()->route('funcionario.index')
@@ -132,7 +132,7 @@ class FuncionarioController extends Controller
             'fecha_resolucion' => now()
         ]);
         
-        $expediente->agregarHistorial('Expediente resuelto', auth()->id());
+        $expediente->agregarHistorial('Expediente resuelto', auth()->user()->id);
         
         return redirect()->route('funcionario.index')
             ->with('success', 'Expediente resuelto correctamente');
@@ -146,7 +146,7 @@ class FuncionarioController extends Controller
         ]);
 
         $expediente->observaciones()->create([
-            'id_usuario' => auth()->id(),
+            'id_usuario' => auth()->user()->id,
             'tipo' => 'subsanacion',
             'descripcion' => $request->observaciones,
             'fecha_limite' => now()->addDays($request->plazo_respuesta),
@@ -157,7 +157,7 @@ class FuncionarioController extends Controller
         
         $expediente->agregarHistorial(
             'Solicitud de información adicional: ' . $request->observaciones,
-            auth()->id()
+            auth()->user()->id
         );
 
         return redirect()->route('funcionario.index')
@@ -175,7 +175,7 @@ class FuncionarioController extends Controller
         $path = $request->file('documento')->store('documentos', 'public');
         
         Documento::create([
-            'id_expediente' => $expediente->id,
+            'id_expediente' => $expediente->id_expediente,
             'nombre' => $request->nombre,
             'ruta_pdf' => $path,
             'tipo' => strtolower($request->tipo)
@@ -183,7 +183,7 @@ class FuncionarioController extends Controller
 
         $expediente->agregarHistorial(
             'Documento adjuntado: ' . $request->nombre,
-            auth()->id()
+            auth()->user()->id
         );
 
         return back()->with('success', 'Documento adjuntado correctamente');
@@ -191,7 +191,7 @@ class FuncionarioController extends Controller
 
     public function historial(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->id()) {
+        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
             abort(403, 'No tienes acceso a este expediente');
         }
         
@@ -201,7 +201,7 @@ class FuncionarioController extends Controller
 
     public function documentos(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->id()) {
+        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
             abort(403, 'No tienes acceso a este expediente');
         }
         
@@ -212,19 +212,19 @@ class FuncionarioController extends Controller
     public function dashboard()
     {
         $estadisticas = [
-            'derivados' => Expediente::where('id_funcionario_asignado', auth()->id())->where('estado', 'derivado')->count(),
-            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->id())->where('estado', 'en_proceso')->count(),
-            'vencidos' => Expediente::where('id_funcionario_asignado', auth()->id())
+            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'derivado')->count(),
+            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'en_proceso')->count(),
+            'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
                 ->whereHas('derivaciones', function($q) {
                     $q->where('fecha_limite', '<', now());
                 })->count(),
-            'resueltos_mes' => Expediente::where('id_funcionario_asignado', auth()->id())
+            'resueltos_mes' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
                 ->where('estado', 'resuelto')
                 ->whereMonth('updated_at', now()->month)
                 ->count()
         ];
 
-        $expedientesPrioritarios = Expediente::where('id_funcionario_asignado', auth()->id())
+        $expedientesPrioritarios = Expediente::where('id_funcionario_asignado', auth()->user()->id)
             ->whereIn('estado', ['derivado', 'en_proceso'])
             ->whereIn('prioridad', ['alta', 'urgente'])
             ->with(['tipoTramite', 'derivaciones'])
@@ -235,14 +235,14 @@ class FuncionarioController extends Controller
 
         $rendimiento = [
             'resueltos_mes' => $estadisticas['resueltos_mes'],
-            'tiempo_promedio' => Expediente::where('id_funcionario_asignado', auth()->id())
+            'tiempo_promedio' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
                 ->where('estado', 'resuelto')
                 ->whereNotNull('fecha_resolucion')
                 ->get()
                 ->avg(function($exp) {
                     return $exp->created_at->diffInDays($exp->fecha_resolucion);
                 }) ?? 0,
-            'total_asignados' => Expediente::where('id_funcionario_asignado', auth()->id())->count(),
+            'total_asignados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->count(),
             'pendientes' => $estadisticas['derivados'] + $estadisticas['en_proceso']
         ];
 
@@ -259,7 +259,7 @@ class FuncionarioController extends Controller
 
     public function misExpedientes()
     {
-        $expedientes = Expediente::where('id_funcionario_asignado', auth()->id())
+        $expedientes = Expediente::where('id_funcionario_asignado', auth()->user()->id)
             ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona'])
             ->whereIn('estado', ['derivado', 'en_proceso', 'observado'])
             ->get()
@@ -275,7 +275,7 @@ class FuncionarioController extends Controller
 
     public function solicitarInfoForm(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->id()) {
+        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
             abort(403, 'No tienes acceso a este expediente');
         }
         
@@ -284,12 +284,12 @@ class FuncionarioController extends Controller
     
     public function derivarForm(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->id()) {
+        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
             abort(403, 'No tienes acceso a este expediente');
         }
         
         $areas = \App\Models\Area::where('activo', true)
-            ->where('id', '!=', auth()->user()->id_area)
+            ->where('id_area', '!=', auth()->user()->id_area)
             ->get();
             
         return view('funcionario.derivar', compact('expediente', 'areas'));
@@ -298,22 +298,22 @@ class FuncionarioController extends Controller
     public function derivar(Request $request, Expediente $expediente)
     {
         $request->validate([
-            'id_area_destino' => 'required|exists:areas,id',
+            'id_area_destino' => 'required|exists:areas,id_area',
             'id_funcionario_destino' => 'nullable|exists:users,id',
             'observaciones' => 'required|string|max:500',
             'plazo_dias' => 'required|integer|min:1|max:30'
         ]);
         
-        if ($expediente->id_funcionario_asignado !== auth()->id()) {
+        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
             abort(403, 'No tienes acceso a este expediente');
         }
         
         // Crear derivación
         \App\Models\Derivacion::create([
-            'id_expediente' => $expediente->id,
+            'id_expediente' => $expediente->id_expediente,
             'id_area_origen' => auth()->user()->id_area,
             'id_area_destino' => $request->id_area_destino,
-            'id_funcionario_origen' => auth()->id(),
+            'id_funcionario_origen' => auth()->user()->id,
             'id_funcionario_destino' => $request->id_funcionario_destino,
             'id_funcionario_asignado' => $request->id_funcionario_destino,
             'fecha_derivacion' => now(),
@@ -334,7 +334,7 @@ class FuncionarioController extends Controller
         $area_destino = \App\Models\Area::find($request->id_area_destino);
         $expediente->agregarHistorial(
             "Derivado a {$area_destino->nombre}: {$request->observaciones}",
-            auth()->id()
+            auth()->user()->id
         );
         
         return redirect()->route('funcionario.index')
