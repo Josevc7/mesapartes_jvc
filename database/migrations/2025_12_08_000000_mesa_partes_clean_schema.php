@@ -9,7 +9,8 @@ return new class extends Migration
     /**
      * ESQUEMA LIMPIO Y CONSOLIDADO - MESA DE PARTES JVC
      * Esta migración reemplaza todas las migraciones anteriores desordenadas
-     */
+     */ 
+    //migracion resumida  y optimizada  
     public function up(): void
     {
         // Eliminar todas las tablas existentes para empezar limpio
