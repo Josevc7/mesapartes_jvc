@@ -166,7 +166,7 @@ small {
                                                 };
                                             @endphp
                                             
-                                            <!-- Barra de progreso -->
+                                            <!-- Barra de progreso de formulario registrar documento -->
                                             <div class="progress" style="height: 4px;">
                                                 <div class="progress-bar bg-{{ $expediente->getColorEstadoInteligente() }}" 
                                                      role="progressbar" 
