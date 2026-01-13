@@ -64,10 +64,8 @@ class JefeAreaController extends Controller
 
     public function aprobar(Expediente $expediente)
     {
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
-        
+        $this->authorize('approve', $expediente);
+
         $expediente->update([
             'estado' => 'aprobado',
             'aprobado_por' => auth()->user()->id,
@@ -88,9 +86,7 @@ class JefeAreaController extends Controller
             'motivo_rechazo.min' => 'El motivo debe tener al menos 10 caracteres'
         ]);
 
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
+        $this->authorize('reject', $expediente);
 
         try {
             \DB::beginTransaction();
@@ -183,8 +179,8 @@ class JefeAreaController extends Controller
             ->map(function($exp) {
                 $derivacion = $exp->derivaciones->first();
                 if ($derivacion && $derivacion->fecha_limite) {
-                    $exp->dias_vencido = $derivacion->fecha_limite->isPast() ? $derivacion->fecha_limite->diffInDays(now()) : 0;
-                    $exp->dias_restantes = $derivacion->fecha_limite->isFuture() ? now()->diffInDays($derivacion->fecha_limite) : 0;
+                    $exp->dias_vencido = $derivacion->fecha_limite->isPast() ? (int) $derivacion->fecha_limite->diffInDays(now()) : 0;
+                    $exp->dias_restantes = $derivacion->fecha_limite->isFuture() ? (int) now()->diffInDays($derivacion->fecha_limite) : 0;
                 }
                 return $exp;
             })
@@ -243,16 +239,14 @@ class JefeAreaController extends Controller
 
     public function detalleValidacion(Expediente $expediente)
     {
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403);
-        }
-        
+        $this->authorize('view', $expediente);
+
         $data = [
             'codigo_expediente' => $expediente->codigo_expediente,
             'asunto' => $expediente->asunto,
             'funcionario' => $expediente->funcionarioAsignado->name ?? 'N/A',
-            'fecha_resolucion' => $expediente->fecha_resolucion->format('d/m/Y H:i'),
-            'observaciones_funcionario' => $expediente->observaciones_funcionario,
+            'fecha_resolucion' => $expediente->fecha_resolucion ? $expediente->fecha_resolucion->format('d/m/Y H:i') : 'N/A',
+            'observaciones_funcionario' => $expediente->observaciones_funcionario ?? 'Sin observaciones',
             'documentos' => $expediente->documentos->where('tipo', '!=', 'entrada')->map(function($doc) {
                 return [
                     'nombre' => $doc->nombre,
@@ -273,9 +267,7 @@ class JefeAreaController extends Controller
      */
     public function validarExpediente(ValidarExpedienteRequest $request, Expediente $expediente)
     {
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403);
-        }
+        $this->authorize('approve', $expediente);
 
         $accion = $request->input('accion');
         $observaciones = $request->input('observaciones');
@@ -323,7 +315,7 @@ class JefeAreaController extends Controller
                 // Verificar si está vencido
                 if ($derivacion && $derivacion->fecha_limite && $derivacion->fecha_limite->isPast()) {
                     $exp->tipo_conflicto = 'vencido';
-                    $exp->dias_vencido = $derivacion->fecha_limite->diffInDays(now());
+                    $exp->dias_vencido = (int) $derivacion->fecha_limite->diffInDays(now());
                 }
                 // Verificar si requiere autorización especial (prioridad Urgente sin clasificar)
                 elseif ($exp->prioridad === 'Urgente' && $exp->estado === 'Registrado') {
@@ -346,13 +338,11 @@ class JefeAreaController extends Controller
 
     public function detalleConflicto(Expediente $expediente)
     {
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403);
-        }
-        
+        $this->authorize('view', $expediente);
+
         $derivacion = $expediente->derivaciones->first();
-        $diasVencido = $derivacion && $derivacion->fecha_limite ? 
-            ($derivacion->fecha_limite->isPast() ? $derivacion->fecha_limite->diffInDays(now()) : 0) : 0;
+        $diasVencido = $derivacion && $derivacion->fecha_limite ?
+            ($derivacion->fecha_limite->isPast() ? (int) $derivacion->fecha_limite->diffInDays(now()) : 0) : 0;
         
         $data = [
             'codigo_expediente' => $expediente->codigo_expediente,
@@ -384,9 +374,7 @@ class JefeAreaController extends Controller
      */
     public function extenderPlazo(ExtenderPlazoRequest $request, Expediente $expediente)
     {
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403);
-        }
+        $this->authorize('extendDeadline', $expediente);
 
         $this->derivacionService->extenderPlazo(
             $expediente,
@@ -399,10 +387,8 @@ class JefeAreaController extends Controller
 
     public function autorizarEspecial(Request $request, Expediente $expediente)
     {
-        if ($expediente->id_area !== auth()->user()->id_area) {
-            abort(403);
-        }
-        
+        $this->authorize('grantSpecialAuthorization', $expediente);
+
         $observaciones = $request->input('observaciones');
         
         $expediente->agregarHistorial(

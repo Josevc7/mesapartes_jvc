@@ -10,14 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ asset('css/modern-style.css') }}" rel="stylesheet">
     <link href="{{ asset('css/adaptive-forms.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/logo-styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
 </head>
 <body>
     <!-- Top Header -->
     <nav class="navbar navbar-dark fixed-top" style="background-color: #cc5500; height: 60px;">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <i class="fas fa-file-alt"></i> Mesa de Partes DRTC
+            <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
+                <img src="{{ asset('images/logo-drtc.png') }}" alt="Logo DRTC">
+                <span class="fw-bold">Mesa de Partes DRTC</span>
             </a>
             
             <div class="d-flex align-items-center">

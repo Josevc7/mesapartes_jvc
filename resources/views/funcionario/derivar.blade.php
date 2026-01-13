@@ -24,11 +24,11 @@
                         
                         <div class="mb-3">
                             <label for="id_area_destino" class="form-label">Área de Destino *</label>
-                            <select class="form-select @error('id_area_destino') is-invalid @enderror" 
+                            <select class="form-select @error('id_area_destino') is-invalid @enderror"
                                     id="id_area_destino" name="id_area_destino" required onchange="cargarFuncionarios()">
                                 <option value="">Seleccionar área</option>
                                 @foreach($areas as $area)
-                                    <option value="{{ $area->id }}" {{ old('id_area_destino') == $area->id ? 'selected' : '' }}>
+                                    <option value="{{ $area->id_area }}" {{ old('id_area_destino') == $area->id_area ? 'selected' : '' }}>
                                         {{ $area->nombre }}
                                     </option>
                                 @endforeach

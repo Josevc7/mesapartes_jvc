@@ -97,14 +97,14 @@
                                         <a href="{{ route('funcionario.show', $expediente) }}" class="btn btn-sm btn-outline-primary">Ver</a>
                                         
                                         @if($expediente->estado == 'Resuelto')
-                                            <button type="button" class="btn btn-sm btn-success" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#aprobarModal{{ $expediente->id }}">
+                                            <button type="button" class="btn btn-sm btn-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#aprobarModal{{ $expediente->id_expediente }}">
                                                 Aprobar
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-danger" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#rechazarModal{{ $expediente->id }}">
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#rechazarModal{{ $expediente->id_expediente }}">
                                                 Rechazar
                                             </button>
                                         @endif
@@ -112,7 +112,7 @@
                                 </tr>
 
                                 <!-- Modal Aprobar -->
-                                <div class="modal fade" id="aprobarModal{{ $expediente->id }}" tabindex="-1">
+                                <div class="modal fade" id="aprobarModal{{ $expediente->id_expediente }}" tabindex="-1">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
@@ -134,7 +134,7 @@
                                 </div>
 
                                 <!-- Modal Rechazar -->
-                                <div class="modal fade" id="rechazarModal{{ $expediente->id }}" tabindex="-1">
+                                <div class="modal fade" id="rechazarModal{{ $expediente->id_expediente }}" tabindex="-1">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">

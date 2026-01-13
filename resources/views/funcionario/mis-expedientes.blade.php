@@ -205,11 +205,13 @@ function recibirExpediente(id) {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     'Content-Type': 'application/json'
                 }
-            }).then(response => {
-                if (response.ok) {
+            })
+            .then(response => response.json().then(data => ({status: response.status, body: data})))
+            .then(result => {
+                if (result.status === 200) {
                     Swal.fire({
                         title: '¡Expediente Recibido!',
-                        text: 'El expediente ha sido asignado correctamente',
+                        text: result.body.message || 'El expediente ha sido asignado correctamente',
                         icon: 'success',
                         confirmButtonColor: '#28a745',
                         confirmButtonText: 'Continuar'
@@ -219,12 +221,14 @@ function recibirExpediente(id) {
                 } else {
                     Swal.fire({
                         title: 'Error',
-                        text: 'No se pudo recibir el expediente. Intenta nuevamente.',
+                        text: result.body.error || 'No se pudo recibir el expediente. Intenta nuevamente.',
                         icon: 'error',
                         confirmButtonColor: '#dc3545'
                     });
                 }
-            }).catch(error => {
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 Swal.fire({
                     title: 'Error de Conexión',
                     text: 'Verifica tu conexión a internet e intenta nuevamente.',

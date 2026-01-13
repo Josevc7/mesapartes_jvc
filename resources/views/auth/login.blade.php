@@ -45,15 +45,23 @@
             z-index: 2;
         }
         .logo-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, 1);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1.5rem;
+            margin: 0 auto 2rem;
             backdrop-filter: blur(10px);
+            padding: 25px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            border: 4px solid rgba(255, 255, 255, 0.3);
+        }
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .btn-login {
             background: linear-gradient(135deg, #cc5500 0%, #2c2c2c 100%);
@@ -174,7 +182,7 @@
                     <div class="card-header text-white text-center">
                         <div class="logo-container">
                             <div class="logo-icon">
-                                <i class="fas fa-file-alt fa-2x text-white"></i>
+                                <img src="{{ asset('images/logo-drtc.png') }}" alt="Logo DRTC">
                             </div>
                             <h3 class="mb-2 fw-bold">Mesa de Partes DRTC</h3>
                             <p class="mb-0 opacity-90">Sistema Digital de Trámites</p>

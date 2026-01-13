@@ -1,0 +1,83 @@
+/* Estilos para el Logo Institucional */
+
+/* Logo en Navbar */
+.navbar-brand img {
+    height: 55px;
+    width: auto;
+    object-fit: contain;
+    margin-right: 12px;
+    transition: transform 0.2s ease;
+    filter: brightness(1.2) contrast(1.1);
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.navbar-brand:hover img {
+    transform: scale(1.05);
+}
+
+.navbar-brand span {
+    font-weight: 700;
+    color: white;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+}
+
+/* Responsive - Ocultar texto en móviles pequeños */
+@media (max-width: 576px) {
+    .navbar-brand span {
+        display: none;
+    }
+
+    .navbar-brand img {
+        height: 40px;
+        margin-right: 0;
+    }
+}
+
+/* Responsive - Ajustar tamaño en tablets */
+@media (min-width: 577px) and (max-width: 768px) {
+    .navbar-brand img {
+        height: 45px;
+    }
+
+    .navbar-brand span {
+        font-size: 1rem;
+    }
+}
+
+/* Logo alternativo para fondos claros (si se necesita) */
+.logo-light {
+    filter: brightness(0) invert(1);
+}
+
+/* Logo para imprimir */
+@media print {
+    .navbar-brand img {
+        height: 30px;
+    }
+}
+
+/* Animación de carga del logo */
+.navbar-brand img {
+    animation: fadeInLogo 0.3s ease-in;
+}
+
+@keyframes fadeInLogo {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fallback si no carga la imagen */
+.navbar-brand img[src*="logo-drtc.png"] {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 2px;
+}

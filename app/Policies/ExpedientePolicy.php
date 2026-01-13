@@ -162,4 +162,80 @@ class ExpedientePolicy
         // Todos los roles pueden descargar si tienen acceso al expediente
         return $this->view($user, $expediente);
     }
+
+    /**
+     * Determine si el usuario puede aprobar el expediente
+     * Usado por Jefe de Área para aprobar resoluciones de funcionarios
+     */
+    public function approve(User $user, Expediente $expediente): bool
+    {
+        // Solo Jefe de Área puede aprobar expedientes de su área
+        if ($user->role->nombre === 'Jefe de Área') {
+            return $expediente->id_area === $user->id_area;
+        }
+
+        // Administrador puede aprobar cualquier expediente
+        if ($user->role->nombre === 'Administrador') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine si el usuario puede rechazar el expediente
+     * Usado por Jefe de Área para rechazar resoluciones de funcionarios
+     */
+    public function reject(User $user, Expediente $expediente): bool
+    {
+        // Solo Jefe de Área puede rechazar expedientes de su área
+        if ($user->role->nombre === 'Jefe de Área') {
+            return $expediente->id_area === $user->id_area;
+        }
+
+        // Administrador puede rechazar cualquier expediente
+        if ($user->role->nombre === 'Administrador') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine si el usuario puede extender el plazo del expediente
+     * Usado por Jefe de Área para dar extensiones por conflictos
+     */
+    public function extendDeadline(User $user, Expediente $expediente): bool
+    {
+        // Solo Jefe de Área puede extender plazos en su área
+        if ($user->role->nombre === 'Jefe de Área') {
+            return $expediente->id_area === $user->id_area;
+        }
+
+        // Administrador puede extender plazos en cualquier expediente
+        if ($user->role->nombre === 'Administrador') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine si el usuario puede otorgar autorización especial al expediente
+     * Usado por Jefe de Área para autorizar casos especiales
+     */
+    public function grantSpecialAuthorization(User $user, Expediente $expediente): bool
+    {
+        // Solo Jefe de Área puede otorgar autorizaciones especiales en su área
+        if ($user->role->nombre === 'Jefe de Área') {
+            return $expediente->id_area === $user->id_area;
+        }
+
+        // Administrador puede otorgar autorizaciones en cualquier expediente
+        if ($user->role->nombre === 'Administrador') {
+            return true;
+        }
+
+        return false;
+    }
 }

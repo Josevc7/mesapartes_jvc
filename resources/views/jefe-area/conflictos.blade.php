@@ -129,27 +129,27 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" 
-                                                    onclick="verDetalleConflicto({{ $conflicto->id }})"
-                                                    data-bs-toggle="modal" 
+                                            <button class="btn btn-outline-primary"
+                                                    onclick="verDetalleConflicto({{ $conflicto->id_expediente }})"
+                                                    data-bs-toggle="modal"
                                                     data-bs-target="#modalConflicto">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            
+
                                             @if($conflicto->tipo_conflicto == 'vencido')
-                                            <button class="btn btn-outline-warning" 
-                                                    onclick="extenderPlazo({{ $conflicto->id }})">
+                                            <button class="btn btn-outline-warning"
+                                                    onclick="extenderPlazo({{ $conflicto->id_expediente }})">
                                                 <i class="fas fa-clock"></i> Extender
                                             </button>
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="reasignar({{ $conflicto->id }})">
+                                            <button class="btn btn-outline-info"
+                                                    onclick="reasignar({{ $conflicto->id_expediente }})">
                                                 <i class="fas fa-exchange-alt"></i> Reasignar
                                             </button>
                                             @endif
-                                            
+
                                             @if($conflicto->tipo_conflicto == 'autorizacion')
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="autorizarEspecial({{ $conflicto->id }})">
+                                            <button class="btn btn-outline-success"
+                                                    onclick="autorizarEspecial({{ $conflicto->id_expediente }})">
                                                 <i class="fas fa-key"></i> Autorizar
                                             </button>
                                             @endif

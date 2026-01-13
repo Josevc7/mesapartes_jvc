@@ -68,28 +68,44 @@ class FuncionarioController extends Controller
         try {
             // Verificar permisos
             $this->authorize('process', $expediente);
-            
-            // Verificar que el expediente esté en estado derivado
-            if ($expediente->estado !== 'derivado') {
-                return response()->json(['error' => 'El expediente no está en estado derivado'], 400);
+
+            // Verificar que el expediente esté en estado derivado o Derivado (con mayúscula)
+            if (!in_array($expediente->estado, ['derivado', 'Derivado'])) {
+                return response()->json([
+                    'error' => 'El expediente no está en estado derivado. Estado actual: ' . $expediente->estado
+                ], 400);
             }
-            
+
+            // Actualizar estado y agregar al historial
             $expediente->update(['estado' => 'en_proceso']);
-            
+            $expediente->agregarHistorial(
+                'Expediente recibido por el funcionario para su procesamiento',
+                auth()->id()
+            );
+
             return response()->json(['success' => true, 'message' => 'Expediente recibido correctamente']);
-            
+
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json([
+                'error' => 'No tienes permisos para recibir este expediente. Solo puedes recibir expedientes asignados a ti.'
+            ], 403);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Error interno del servidor'], 500);
+            return response()->json([
+                'error' => 'Error interno del servidor: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     public function procesar(Expediente $expediente)
     {
+        $this->authorize('process', $expediente);
         return view('funcionario.procesar', compact('expediente'));
     }
 
     public function updateProcesar(Request $request, Expediente $expediente)
     {
+        $this->authorize('process', $expediente);
+
         $request->validate([
             'observaciones_funcionario' => 'required|string',
             'documento_respuesta' => 'nullable|file|mimes:pdf|max:10240',
@@ -130,19 +146,23 @@ class FuncionarioController extends Controller
 
     public function resolver(Expediente $expediente)
     {
+        $this->authorize('resolver', $expediente);
+
         $expediente->update([
             'estado' => 'resuelto',
             'fecha_resolucion' => now()
         ]);
-        
+
         $expediente->agregarHistorial('Expediente resuelto', auth()->user()->id);
-        
+
         return redirect()->route('funcionario.index')
             ->with('success', 'Expediente resuelto correctamente');
     }
 
     public function solicitarInfo(Request $request, Expediente $expediente)
     {
+        $this->authorize('process', $expediente);
+
         $request->validate([
             'observaciones' => 'required|string',
             'plazo_respuesta' => 'required|integer|min:1|max:30'
@@ -169,6 +189,8 @@ class FuncionarioController extends Controller
 
     public function adjuntarDocumento(Request $request, Expediente $expediente)
     {
+        $this->authorize('process', $expediente);
+
         $request->validate([
             'documento' => 'required|file|mimes:pdf,doc,docx|max:10240',
             'nombre' => 'required|string|max:255',
@@ -264,7 +286,15 @@ class FuncionarioController extends Controller
             ->get()
             ->map(function($expediente) {
                 $derivacion = $expediente->derivaciones->first();
-                $expediente->dias_restantes = ($derivacion && $derivacion->fecha_limite) ? $derivacion->fecha_limite->diffInDays(now(), false) : 0;
+
+                // Calcular días restantes como número entero
+                if ($derivacion && $derivacion->fecha_limite) {
+                    $diasRestantes = now()->diffInDays($derivacion->fecha_limite, false);
+                    $expediente->dias_restantes = (int) $diasRestantes;
+                } else {
+                    $expediente->dias_restantes = 0;
+                }
+
                 $expediente->fecha_derivacion = $derivacion ? $derivacion->fecha_derivacion : null;
                 return $expediente;
             });
@@ -308,12 +338,14 @@ class FuncionarioController extends Controller
 
         try {
             // Usar el servicio de derivación
+            // Parámetros: expediente, areaDestino, funcionario, plazoDias, prioridad, observaciones
             $derivacion = $this->derivacionService->derivarExpediente(
                 $expediente,
                 $request->id_area_destino,
                 $request->id_funcionario_destino,
-                $request->observaciones,
-                $request->plazo_dias
+                $request->plazo_dias,
+                $request->prioridad ?? $expediente->prioridad ?? 'normal', // Usar prioridad del expediente o normal por defecto
+                $request->observaciones
             );
 
             $area_destino = \App\Models\Area::find($request->id_area_destino);

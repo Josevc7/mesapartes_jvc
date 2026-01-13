@@ -104,7 +104,7 @@
                                     <td><strong>{{ $expediente->codigo_expediente }}</strong></td>
                                     <td>{{ Str::limit($expediente->asunto, 40) }}</td>
                                     <td>{{ $expediente->funcionarioAsignado->name ?? 'N/A' }}</td>
-                                    <td>{{ $expediente->fecha_resolucion->format('d/m/Y H:i') }}</td>
+                                    <td>{{ $expediente->fecha_resolucion ? $expediente->fecha_resolucion->format('d/m/Y H:i') : 'N/A' }}</td>
                                     <td>
                                         <span class="badge bg-{{ $expediente->requiere_autorizacion_especial ? 'warning' : 'info' }}">
                                             {{ $expediente->requiere_autorizacion_especial ? 'Autorización Especial' : 'Validación Normal' }}
@@ -120,18 +120,18 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" 
-                                                    onclick="verDetalleValidacion({{ $expediente->id }})"
-                                                    data-bs-toggle="modal" 
+                                            <button class="btn btn-outline-primary"
+                                                    onclick="verDetalleValidacion({{ $expediente->id_expediente }})"
+                                                    data-bs-toggle="modal"
                                                     data-bs-target="#modalValidacion">
                                                 <i class="fas fa-eye"></i> Revisar
                                             </button>
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="validarExpediente({{ $expediente->id }}, 'aprobar')">
+                                            <button class="btn btn-outline-success"
+                                                    onclick="validarExpediente({{ $expediente->id_expediente }}, 'aprobar')">
                                                 <i class="fas fa-check"></i> Validar
                                             </button>
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="validarExpediente({{ $expediente->id }}, 'rechazar')">
+                                            <button class="btn btn-outline-danger"
+                                                    onclick="validarExpediente({{ $expediente->id_expediente }}, 'rechazar')">
                                                 <i class="fas fa-times"></i> Rechazar
                                             </button>
                                         </div>
