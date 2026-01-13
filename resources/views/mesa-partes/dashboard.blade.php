@@ -80,6 +80,17 @@
                         <a href="{{ route('mesa-partes.registrar') }}" class="btn btn-success">
                             <i class="fas fa-plus"></i> Registrar Documento
                         </a>
+                        <a href="{{ route('mesa-partes.expedientes-virtuales') }}" class="btn btn-primary">
+                            <i class="fas fa-globe"></i> Expedientes Virtuales
+                            @php
+                                $virtualesPendientes = \App\Models\Expediente::where('canal', 'virtual')
+                                    ->where('estado', 'recepcionado')
+                                    ->count();
+                            @endphp
+                            @if($virtualesPendientes > 0)
+                                <span class="badge bg-danger">{{ $virtualesPendientes }}</span>
+                            @endif
+                        </a>
                         <a href="{{ route('mesa-partes.index') }}?estado=Registrado" class="btn btn-warning">
                             <i class="fas fa-tags"></i> Clasificar Pendientes
                         </a>

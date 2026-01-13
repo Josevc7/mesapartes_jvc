@@ -51,6 +51,26 @@
         </div>
     </div>-->
 
+    <!-- Alerta de Observaciones Pendientes -->
+    @if($stats['observados'] > 0)
+    <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center" role="alert">
+        <div class="flex-grow-1">
+            <h5 class="alert-heading mb-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ¡Atención! Tiene {{ $stats['observados'] }} {{ Str::plural('expediente', $stats['observados']) }} con observaciones pendientes
+            </h5>
+            <p class="mb-2">
+                Algunos de sus expedientes requieren que subsane información o presente documentos adicionales para continuar con su trámite.
+            </p>
+            <a href="{{ route('ciudadano.observaciones') }}" class="btn btn-warning">
+                <i class="fas fa-reply me-2"></i>
+                Ver y Responder Observaciones
+            </a>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
     <!-- Acciones Principales -->
     <div class="row mt-4">
         <div class="col-md-6">

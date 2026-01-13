@@ -91,20 +91,21 @@ class Expediente extends Model
      * Relación: Un expediente puede tener múltiples derivaciones (movimientos entre áreas)
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function derivacions()
+    public function derivaciones()
     {
         // Obtiene todas las derivaciones del expediente ordenadas por fecha
         return $this->hasMany(Derivacion::class, 'id_expediente', 'id_expediente');
     }
-    
+
     /**
-     * Alias para compatibilidad con código existente
+     * Alias para compatibilidad con código antiguo (DEPRECATED)
+     * @deprecated Use derivaciones() instead
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function derivaciones()
+    public function derivacions()
     {
-        // Retorna la misma relación que derivacions() para mantener compatibilidad
-        return $this->derivacions();
+        // Retorna la misma relación que derivaciones() para mantener compatibilidad
+        return $this->derivaciones();
     }
 
     public function historial()
@@ -163,7 +164,7 @@ class Expediente extends Model
     public function derivacionActual()
     {
         // latest(): ordena por created_at DESC, first(): obtiene el primer resultado
-        return $this->derivacions()->latest()->first();
+        return $this->derivaciones()->latest()->first();
     }
 
     /**
@@ -233,7 +234,7 @@ class Expediente extends Model
         
         // Si está en proceso pero no ha sido recibido = "Por Recibir"
         if ($this->estado === 'derivado' && $this->id_funcionario_asignado) {
-            $ultimaDerivacion = $this->derivacions()->latest()->first();
+            $ultimaDerivacion = $this->derivaciones()->latest()->first();
             if ($ultimaDerivacion && !$ultimaDerivacion->fecha_recepcion) {
                 return 'por_recibir';
             }

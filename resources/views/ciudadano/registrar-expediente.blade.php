@@ -4,57 +4,61 @@
 
 @push('styles')
 <link href="{{ asset('css/ciudadano-form.css') }}" rel="stylesheet">
+<link href="{{ asset('css/modern-forms.css') }}" rel="stylesheet">
 @endpush
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="row justify-content-center">
-        <div class="col-xl-10 col-lg-11">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-gradient-primary text-white py-4">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
-                            <i class="fas fa-file-plus fa-2x"></i>
-                        </div>
-                        <div>
-                            <h3 class="mb-1 fw-bold">Registrar Nuevo Expediente</h3>
-                            <p class="mb-0 opacity-90">Ventanilla Virtual DRTC - Mesa de Partes Digital</p>
-                        </div>
-                    </div>
+<div class="modern-form-container">
+    <div class="modern-form-card">
+        <!-- ENCABEZADO MODERNO -->
+        <div class="modern-form-header">
+            <div class="modern-form-header-content">
+                <div class="modern-form-icon">
+                    <i class="fas fa-file-plus"></i>
                 </div>
-                <div class="card-body p-4">
+                <div class="modern-form-title">
+                    <h1>Registrar Nuevo Expediente</h1>
+                    <p>Ventanilla Virtual DRTC - Complete todos los campos marcados con (*)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUERPO DEL FORMULARIO -->
+        <div class="modern-form-body">
                     @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-success bg-opacity-20 rounded-circle p-2 me-3">
-                                    <i class="fas fa-check-circle text-success"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="alert-heading mb-1">¡Expediente registrado exitosamente!</h6>
-                                    <p class="mb-0">{{ session('success') }}</p>
-                                    @if(session('codigo_expediente'))
-                                        <small class="d-block mt-1">Código de expediente: <strong class="text-success">{{ session('codigo_expediente') }}</strong></small>
-                                    @endif
-                                </div>
+                        <div class="alert-modern alert-modern-success">
+                            <div class="alert-modern-icon">
+                                <i class="fas fa-check-circle"></i>
                             </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <div>
+                                <h6 class="mb-1 fw-bold">¡Expediente registrado exitosamente!</h6>
+                                <p class="mb-0">{{ session('success') }}</p>
+                                @if(session('codigo_expediente'))
+                                    <div class="mt-2">
+                                        <small class="d-block mb-2">Código de expediente: <strong>{{ session('codigo_expediente') }}</strong></small>
+                                        <a href="{{ route('ciudadano.acuse-recibo', session('codigo_expediente') }}"
+                                           class="btn-modern btn-modern-success btn-modern-sm"
+                                           target="_blank">
+                                            <i class="fas fa-download"></i> Descargar Cargo
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     @endif
-                    
+
                     @if($errors->any())
-                        <div class="alert alert-danger border-0 shadow-sm">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-danger bg-opacity-20 rounded-circle p-2 me-3 mt-1">
-                                    <i class="fas fa-exclamation-triangle text-danger"></i>
-                                </div>
-                                <div>
-                                    <h6 class="alert-heading mb-2">Errores en el formulario:</h6>
-                                    <ul class="mb-0 ps-3">
-                                        @foreach($errors->all() as $error)
-                                            <li class="mb-1">{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
+                        <div class="alert-modern alert-modern-danger">
+                            <div class="alert-modern-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-2 fw-bold">Errores en el formulario:</h6>
+                                <ul class="mb-0 ps-3">
+                                    @foreach($errors->all() as $error)
+                                        <li class="mb-1">{{ $error }}</li>
+                                    @endforeach
+                                </ul>
                             </div>
                         </div>
                     @endif
@@ -75,11 +79,12 @@
                             </div>
                             
                             <div class="row g-4">
+                                <!-- Tipo de Persona (siempre visible) -->
                                 <div class="col-md-4">
                                     <label for="tipo_persona" class="form-label fw-semibold">
                                         <i class="fas fa-user-tag text-primary me-2"></i>Tipo de Persona *
                                     </label>
-                                    <select class="form-select form-select-lg @error('tipo_persona') is-invalid @enderror" 
+                                    <select class="form-select form-select-lg @error('tipo_persona') is-invalid @enderror"
                                             id="tipo_persona" name="tipo_persona" required>
                                         <option value="NATURAL" {{ old('tipo_persona', 'NATURAL') == 'NATURAL' ? 'selected' : '' }}>Persona Natural</option>
                                         <option value="JURIDICA" {{ old('tipo_persona') == 'JURIDICA' ? 'selected' : '' }}>Persona Jurídica</option>
@@ -88,33 +93,53 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                
-                                <div class="col-md-4">
-                                    <label for="tipo_documento" class="form-label fw-semibold">
-                                        <i class="fas fa-id-card text-primary me-2"></i>Tipo de Documento *
-                                    </label>
-                                    <select class="form-select form-select-lg @error('tipo_documento') is-invalid @enderror" 
-                                            id="tipo_documento" name="tipo_documento" required>
-                                        <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
-                                        <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carné de Extranjería</option>
-                                        <option value="RUC" {{ old('tipo_documento') == 'RUC' ? 'selected' : '' }}>RUC</option>
-                                        <option value="PASAPORTE" {{ old('tipo_documento') == 'PASAPORTE' ? 'selected' : '' }}>Pasaporte</option>
-                                    </select>
-                                    @error('tipo_documento')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+
+                                <!-- Campos para Persona Natural -->
+                                <div id="campos-natural-doc" class="col-md-8">
+                                    <div class="row g-4">
+                                        <div class="col-md-5">
+                                            <label for="tipo_documento" class="form-label fw-semibold">
+                                                <i class="fas fa-id-card text-primary me-2"></i>Tipo de Documento *
+                                            </label>
+                                            <select class="form-select form-select-lg @error('tipo_documento') is-invalid @enderror"
+                                                    id="tipo_documento" name="tipo_documento">
+                                                <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
+                                                <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carné de Extranjería</option>
+                                                <option value="PASAPORTE" {{ old('tipo_documento') == 'PASAPORTE' ? 'selected' : '' }}>Pasaporte</option>
+                                            </select>
+                                            @error('tipo_documento')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-7">
+                                            <label for="numero_documento" class="form-label fw-semibold">
+                                                <i class="fas fa-hashtag text-primary me-2"></i>Número de Documento *
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg @error('numero_documento') is-invalid @enderror"
+                                                   id="numero_documento" name="numero_documento" value="{{ old('numero_documento') }}"
+                                                   placeholder="Ingrese su número de documento">
+                                            @error('numero_documento')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
                                 </div>
-                                
-                                <div class="col-md-4">
-                                    <label for="numero_documento" class="form-label fw-semibold">
-                                        <i class="fas fa-hashtag text-primary me-2"></i>Número de Documento *
-                                    </label>
-                                    <input type="text" class="form-control form-control-lg @error('numero_documento') is-invalid @enderror" 
-                                           id="numero_documento" name="numero_documento" value="{{ old('numero_documento') }}" 
-                                           placeholder="Ingrese su número de documento" required>
-                                    @error('numero_documento')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+
+                                <!-- Campos para Persona Jurídica -->
+                                <div id="campos-juridica-doc" class="col-md-8" style="display: none;">
+                                    <div class="row g-4">
+                                        <div class="col-md-12">
+                                            <label for="numero_documento_juridica" class="form-label fw-semibold">
+                                                <i class="fas fa-building text-primary me-2"></i>RUC *
+                                            </label>
+                                            <input type="text" class="form-control form-control-lg"
+                                                   id="numero_documento_juridica"
+                                                   placeholder="Ingrese RUC de 11 dígitos"
+                                                   maxlength="11">
+                                            <div class="form-text">Ingrese el RUC de la empresa (11 dígitos)</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -238,9 +263,9 @@
                                             id="id_tipo_tramite" name="id_tipo_tramite" required>
                                         <option value="">Seleccionar tipo de trámite</option>
                                         @foreach($tipoTramites as $tipo)
-                                            <option value="{{ $tipo->id_tipo_tramite }}" 
-                                                    data-plazo="{{ $tipo->plazo_dias }}"
-                                                    data-requisitos="{{ $tipo->requisitos }}"
+                                            <option value="{{ $tipo->id_tipo_tramite }}"
+                                                    data-plazo="{{ $tipo->plazo_dias ?? '' }}"
+                                                    data-requisitos="{{ $tipo->requisitos ?? '' }}"
                                                     {{ old('id_tipo_tramite') == $tipo->id_tipo_tramite ? 'selected' : '' }}>
                                                 {{ $tipo->nombre }}
                                             </option>
@@ -255,7 +280,7 @@
                                     <label for="prioridad" class="form-label">Prioridad</label>
                                     <select class="form-select" id="prioridad" name="prioridad">
                                         <option value="baja" {{ old('prioridad') == 'baja' ? 'selected' : '' }}>Baja</option>
-                                        <option value="media" {{ old('prioridad', 'media') == 'media' ? 'selected' : '' }}>Media</option>
+                                        <option value="normal" {{ old('prioridad', 'normal') == 'normal' ? 'selected' : '' }}>Media</option>
                                         <option value="alta" {{ old('prioridad') == 'alta' ? 'selected' : '' }}>Alta</option>
                                         <option value="urgente" {{ old('prioridad') == 'urgente' ? 'selected' : '' }}>Urgente</option>
                                     </select>
@@ -364,8 +389,6 @@
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -415,26 +438,73 @@ document.addEventListener('DOMContentLoaded', function() {
     const camposJuridica = document.getElementById('campos-juridica');
     
     function togglePersonaFields() {
+        const camposNaturalDoc = document.getElementById('campos-natural-doc');
+        const camposJuridicaDoc = document.getElementById('campos-juridica-doc');
+        const tipoDocumento = document.getElementById('tipo_documento');
+        const numeroDocumento = document.getElementById('numero_documento');
+        const numeroDocumentoJuridica = document.getElementById('numero_documento_juridica');
+
         if (tipoPersonaSelect.value === 'NATURAL') {
             camposNatural.style.display = 'block';
             camposJuridica.style.display = 'none';
+            camposNaturalDoc.style.display = 'block';
+            camposJuridicaDoc.style.display = 'none';
+
             // Hacer campos naturales requeridos
             document.getElementById('nombres').required = true;
             document.getElementById('apellido_paterno').required = true;
             document.getElementById('razon_social').required = false;
+            tipoDocumento.required = true;
+            numeroDocumento.required = true;
+            numeroDocumentoJuridica.required = false;
+
+            // Limpiar campos de persona jurídica
+            document.getElementById('razon_social').value = '';
+            const repLegal = document.getElementById('representante_legal');
+            if (repLegal) repLegal.value = '';
         } else {
             camposNatural.style.display = 'none';
             camposJuridica.style.display = 'block';
+            camposNaturalDoc.style.display = 'none';
+            camposJuridicaDoc.style.display = 'block';
+
             // Hacer campos jurídicos requeridos
             document.getElementById('nombres').required = false;
             document.getElementById('apellido_paterno').required = false;
             document.getElementById('razon_social').required = true;
+            tipoDocumento.required = false;
+            numeroDocumento.required = false;
+            numeroDocumentoJuridica.required = true;
+
+            // Cambiar automáticamente a RUC y sincronizar valores
+            tipoDocumento.value = 'RUC';
+            if (numeroDocumento.value) {
+                numeroDocumentoJuridica.value = numeroDocumento.value;
+            }
+
+            // Limpiar campos de persona natural
+            document.getElementById('nombres').value = '';
+            document.getElementById('apellido_paterno').value = '';
+            const apMaterno = document.getElementById('apellido_materno');
+            if (apMaterno) apMaterno.value = '';
+            numeroDocumento.value = '';
         }
     }
     
     tipoPersonaSelect.addEventListener('change', togglePersonaFields);
     togglePersonaFields(); // Ejecutar al cargar
-    
+
+    // Sincronizar el campo RUC con el campo oculto numero_documento
+    const numeroDocumentoJuridica = document.getElementById('numero_documento_juridica');
+    const numeroDocumento = document.getElementById('numero_documento');
+    const tipoDocumento = document.getElementById('tipo_documento');
+
+    numeroDocumentoJuridica.addEventListener('input', function() {
+        // Sincronizar el valor con el campo principal
+        numeroDocumento.value = this.value;
+        tipoDocumento.value = 'RUC';
+    });
+
     // Manejar cambio de tipo de trámite
     document.getElementById('id_tipo_tramite').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -450,22 +520,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('requisitos-info').style.display = 'none';
         }
     });
-    
-    // Validar tipo de documento según tipo de persona
-    const tipoDocumentoSelect = document.getElementById('tipo_documento');
-    tipoPersonaSelect.addEventListener('change', function() {
-        if (this.value === 'JURIDICA') {
-            // Para personas jurídicas, mostrar solo RUC
-            tipoDocumentoSelect.innerHTML = '<option value="RUC">RUC</option>';
-        } else {
-            // Para personas naturales, mostrar DNI, CE, Pasaporte
-            tipoDocumentoSelect.innerHTML = `
-                <option value="DNI">DNI</option>
-                <option value="CE">Carné de Extranjería</option>
-                <option value="PASAPORTE">Pasaporte</option>
-            `;
-        }
-    });
 });
 </script>
+
+<!-- Script de validación de documentos (DNI, RUC, CE, PASAPORTE) -->
+<script src="{{ asset('js/validacion-documentos.js') }}"></script>
 @endsection

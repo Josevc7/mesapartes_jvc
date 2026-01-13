@@ -12,10 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('expedientes', function (Blueprint $table) {
-            $table->id();
+            $table->id('id_expediente');
             $table->string('codigo_expediente')->unique();
             $table->text('asunto');
-            $table->foreignId('id_tipo_tramite')->constrained('tipo_tramites');
+            $table->unsignedBigInteger('id_tipo_tramite');
+            $table->foreign('id_tipo_tramite')->references('id_tipo_tramite')->on('tipo_tramites');
             $table->foreignId('id_ciudadano')->constrained('users');
             $table->date('fecha_registro');
             $table->enum('estado', ['pendiente', 'derivado', 'en_proceso', 'resuelto', 'archivado'])->default('pendiente');

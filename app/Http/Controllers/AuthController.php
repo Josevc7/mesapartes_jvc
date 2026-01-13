@@ -24,7 +24,8 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            $user = Auth::user()->load('role');
+            $user = Auth::user();
+            $user->load('role');
             
             // Verificar si el usuario está activo
             if (!$user->activo) {

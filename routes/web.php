@@ -22,6 +22,11 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
+// Ruta de ejemplo para formulario moderno (solo para desarrollo)
+Route::get('/ejemplo-formulario-moderno', function () {
+    return view('ejemplo-formulario-moderno');
+})->name('ejemplo.formulario');
+
 // Rutas de autenticación - con rate limiting
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -64,6 +69,11 @@ Route::prefix('ciudadano')->middleware(['auth', 'role:Ciudadano,Administrador'])
     Route::get('/seguimiento-form', [CiudadanoController::class, 'seguimientoForm'])->name('ciudadano.seguimiento-form');
     Route::get('/buscar-expediente', [CiudadanoController::class, 'seguimientoForm'])->name('ciudadano.buscar-expediente.form');
     Route::post('/buscar-expediente', [CiudadanoController::class, 'buscarExpediente'])->name('ciudadano.buscar-expediente');
+
+    // Observaciones y subsanaciones
+    Route::get('/observaciones', [CiudadanoController::class, 'observaciones'])->name('ciudadano.observaciones');
+    Route::get('/observaciones/{expediente}', [CiudadanoController::class, 'verObservacion'])->name('ciudadano.ver-observacion');
+    Route::post('/observaciones/{expediente}/responder', [CiudadanoController::class, 'responderObservacion'])->name('ciudadano.responder-observacion');
 });
 
 
@@ -105,19 +115,33 @@ Route::prefix('mesa-partes')->middleware(['auth', 'role:Mesa de Partes,Administr
     Route::get('/dashboard', [MesaPartesController::class, 'dashboard'])->name('mesa-partes.dashboard');
     Route::get('/monitoreo', [MesaPartesController::class, 'monitoreo'])->name('mesa-partes.monitoreo');
     Route::get('/expedientes/{expediente}/acuse-recibo', [MesaPartesController::class, 'acuseRecibo'])->name('mesa-partes.acuse-recibo');
+    Route::get('/expedientes/{expediente}/cargo', [MesaPartesController::class, 'cargoRecepcion'])->name('mesa-partes.cargo-recepcion');
     Route::get('/estadisticas', [MesaPartesController::class, 'estadisticas'])->name('mesa-partes.estadisticas');
     Route::get('/numeracion', [MesaPartesController::class, 'numeracion'])->name('mesa-partes.numeracion');
     Route::post('/numeracion/verificar', [MesaPartesController::class, 'verificarNumeracion'])->name('mesa-partes.verificar-numeracion');
     
     // Archivar expedientes
     Route::put('/expedientes/{expediente}/archivar', [MesaPartesController::class, 'archivar'])->name('mesa-partes.archivar');
-    
-    // Cargo de recepción
-    Route::get('/expedientes/{expediente}/cargo', [MesaPartesController::class, 'cargoRecepcion'])->name('mesa-partes.cargo-recepcion');
-    
+
     // Búsqueda de personas
     Route::get('/buscar-persona', [MesaPartesController::class, 'buscarPersona'])->name('mesa-partes.buscar-persona');
+
+    // Gestión de expedientes virtuales
+    Route::get('/expedientes-virtuales', [MesaPartesController::class, 'expedientesVirtuales'])->name('mesa-partes.expedientes-virtuales');
+    Route::get('/expedientes/{expediente}/clasificar-virtual', [MesaPartesController::class, 'clasificarVirtual'])->name('mesa-partes.clasificar-virtual');
+    Route::post('/expedientes/{expediente}/clasificar-virtual', [MesaPartesController::class, 'storeClasificarVirtual'])->name('mesa-partes.store-clasificar-virtual');
 });
+
+// API para cargar funcionarios por área (usado en formulario de registro)
+Route::get('/api/areas/{area}/funcionarios', function($areaId) {
+    $funcionarios = \App\Models\User::where('id_rol', 4) // Rol: Funcionario
+        ->where('id_area', $areaId)
+        ->where('activo', true)
+        ->orderBy('name')
+        ->get(['id', 'name']);
+
+    return response()->json(['funcionarios' => $funcionarios]);
+})->middleware('auth');
 
 // RUTAS DE JEFE DE ÁREA (Supervisión)
 Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrador'])->group(function () {
@@ -289,7 +313,7 @@ Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
         return App\Models\User::where('id_rol', 4)
             ->where('id_area', $area)
             ->where('activo', true)
-            ->select('id_user', 'name', 'email')
+            ->select('id', 'name', 'email')
             ->get();
     })->name('api.funcionarios');
 });

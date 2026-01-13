@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('documentos', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('expediente_id')->constrained('expedientes');
+            $table->id('id_documento');
+            $table->unsignedBigInteger('id_expediente');
+            $table->foreign('id_expediente')->references('id_expediente')->on('expedientes');
             $table->string('ruta_pdf');
             $table->string('nombre');
             $table->enum('tipo', ['entrada', 'informe', 'respuesta'])->default('entrada');

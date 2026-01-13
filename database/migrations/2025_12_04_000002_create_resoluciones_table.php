@@ -9,8 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('resoluciones', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_expediente')->constrained('expedientes');
+            $table->id('id_resolucion');
+            $table->unsignedBigInteger('id_expediente');
+            $table->foreign('id_expediente')->references('id_expediente')->on('expedientes');
             $table->foreignId('id_funcionario_resolutor')->constrained('users');
             $table->string('numero_resolucion', 50)->unique();
             $table->enum('tipo_resolucion', ['aprobado', 'rechazado', 'observado']);

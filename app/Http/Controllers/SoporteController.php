@@ -49,8 +49,7 @@ class SoporteController extends Controller
 
     public function usuarios()
     {
-        $usuarios = User::with(['role', 'area'])
-            ->withCount('expedientesAsignados')
+        $usuarios = User::withCount('expedientesAsignados')
             ->paginate(15);
             
         return view('soporte.usuarios', compact('usuarios'));

@@ -8,11 +8,13 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "doctrine/dbal": "^4.4",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
         "maatwebsite/excel": "^1.1"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.6",
         "fakerphp/faker": "^1.23",
         "laravel/breeze": "*",
         "laravel/pail": "^1.1",

@@ -6,10 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * NOTA: Esta migración ya fue ejecutada con 'id' como primary key.
+     * La migración 2026_01_12_132522_rename_id_to_id_persona_in_personas_table
+     * se encarga de renombrar 'id' a 'id_persona'.
+     *
+     * Si ejecutas migrate:fresh, esta versión creará directamente con id_persona.
+     */
     public function up(): void
     {
         Schema::create('personas', function (Blueprint $table) {
-            $table->id();
+            $table->id('id_persona');
             $table->enum('tipo_documento', ['DNI', 'CE', 'RUC', 'PASAPORTE'])->default('DNI');
             $table->string('numero_documento', 20)->unique();
             $table->enum('tipo_persona', ['NATURAL', 'JURIDICA'])->default('NATURAL');

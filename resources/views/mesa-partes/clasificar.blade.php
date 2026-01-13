@@ -62,7 +62,7 @@
                                     id="prioridad" name="prioridad" required>
                                 <option value="">Seleccionar prioridad</option>
                                 <option value="baja" {{ old('prioridad') == 'baja' ? 'selected' : '' }}>🟢 Baja - Trámites regulares</option>
-                                <option value="media" {{ old('prioridad') == 'media' ? 'selected' : '' }} selected>🔵 Media - Trámites estándar</option>
+                                <option value="normal" {{ old('prioridad') == 'normal' ? 'selected' : '' }} selected>🔵 Normal - Trámites estándar</option>
                                 <option value="alta" {{ old('prioridad') == 'alta' ? 'selected' : '' }}>🟡 Alta - Vencimientos próximos</option>
                                 <option value="urgente" {{ old('prioridad') == 'urgente' ? 'selected' : '' }}>🔴 Urgente - Emergencias</option>
                             </select>

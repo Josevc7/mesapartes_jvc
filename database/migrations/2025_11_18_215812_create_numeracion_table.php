@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('numeracion', function (Blueprint $table) {
-            $table->id();
+            $table->id('id_numeracion');
             $table->year('año');
             $table->integer('ultimo_numero')->default(0);
             $table->timestamps();

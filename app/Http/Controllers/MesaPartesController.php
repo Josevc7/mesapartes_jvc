@@ -10,9 +10,27 @@ use App\Models\Derivacion;
 use App\Models\Documento;
 use App\Models\User;
 use App\Models\Persona;
+use App\Http\Requests\Expediente\StoreExpedienteRequest;
+use App\Http\Requests\Derivacion\StoreDerivacionRequest;
+use App\Services\ExpedienteService;
+use App\Services\DerivacionService;
+use App\Services\EstadisticasService;
 
 class MesaPartesController extends Controller
 {
+    protected ExpedienteService $expedienteService;
+    protected DerivacionService $derivacionService;
+    protected EstadisticasService $estadisticasService;
+
+    public function __construct(
+        ExpedienteService $expedienteService,
+        DerivacionService $derivacionService,
+        EstadisticasService $estadisticasService
+    ) {
+        $this->expedienteService = $expedienteService;
+        $this->derivacionService = $derivacionService;
+        $this->estadisticasService = $estadisticasService;
+    }
     public function index()
     {
         $expedientes = Expediente::with(['tipoTramite', 'ciudadano', 'area', 'persona'])
@@ -29,113 +47,64 @@ class MesaPartesController extends Controller
         return view('mesa-partes.registrar', compact('tipoTramites'));
     }
 
-    public function storeRegistrar(Request $request)
+    /**
+     * Registra un nuevo expediente en Mesa de Partes
+     *
+     * REFACTORIZADO: Ahora usa FormRequest y Service
+     * ADEMÁS: Clasifica y deriva automáticamente en un solo paso
+     */
+    public function storeRegistrar(StoreExpedienteRequest $request)
     {
-        $request->validate([
-            'asunto' => 'required|string|max:500',
-            'persona_existente_id' => 'nullable|exists:personas,id',
-            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
-            'numero_documento' => 'required|string|max:20',
-            'tipo_persona' => 'required|in:NATURAL,JURIDICA',
-            'nombres' => 'required_if:tipo_persona,NATURAL|nullable|string|max:100',
-            'apellido_paterno' => 'required_if:tipo_persona,NATURAL|nullable|string|max:50',
-            'apellido_materno' => 'nullable|string|max:50',
-            'razon_social' => 'required_if:tipo_persona,JURIDICA|nullable|string|max:200',
-            'representante_legal' => 'nullable|string|max:150',
-            'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'direccion' => 'nullable|string',
-            'documentos_verificados' => 'required|array|min:3',
-            'documentos_verificados.*' => 'in:dni,fut,pago',
-            'documentos_adicionales' => 'nullable|array',
-            'observaciones_documentos' => 'nullable|string',
-            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
-            'documento' => 'required|file|mimes:pdf|max:10240',
-            'observaciones' => 'nullable|string'
-        ], [
-            'documentos_verificados.required' => 'Debe verificar todos los documentos obligatorios',
-            'documentos_verificados.min' => 'Debe marcar los 3 documentos básicos: DNI, FUT y Comprobante de Pago'
-        ]);
+        try {
+            \DB::beginTransaction();
 
-        if ($request->persona_existente_id) {
-            $persona = Persona::findOrFail($request->persona_existente_id);
-            
-            $persona->update([
-                'telefono' => $request->telefono ?: $persona->telefono,
-                'email' => $request->email ?: $persona->email,
-                'direccion' => $request->direccion ?: $persona->direccion
+            // 1. Registrar el expediente
+            $expediente = $this->expedienteService->registrarExpediente(
+                $request->validated()
+            );
+
+            // 2. Clasificar el expediente automáticamente
+            $tipoTramite = TipoTramite::find($request->id_tipo_tramite);
+            $area = Area::find($request->id_area);
+
+            $expediente->update([
+                'id_area' => $request->id_area,
+                'prioridad' => $request->prioridad,
+                'estado' => 'derivado' // Cambiar directamente a derivado
             ]);
-        } else {
-            $persona = Persona::where('numero_documento', $request->numero_documento)->first();
-            
-            if ($persona) {
-                $persona->update([
-                    'telefono' => $request->telefono ?: $persona->telefono,
-                    'email' => $request->email ?: $persona->email,
-                    'direccion' => $request->direccion ?: $persona->direccion
-                ]);
-            } else {
-                $persona = Persona::create([
-                    'tipo_documento' => $request->tipo_documento,
-                    'numero_documento' => $request->numero_documento,
-                    'tipo_persona' => $request->tipo_persona,
-                    'nombres' => $request->nombres,
-                    'apellido_paterno' => $request->apellido_paterno,
-                    'apellido_materno' => $request->apellido_materno,
-                    'razon_social' => $request->razon_social,
-                    'representante_legal' => $request->representante_legal,
-                    'telefono' => $request->telefono,
-                    'email' => $request->email,
-                    'direccion' => $request->direccion
-                ]);
+
+            $descripcionClasificacion = "Expediente registrado y clasificado automáticamente - Tipo: {$tipoTramite->nombre}, Área: {$area->nombre}, Prioridad: {$request->prioridad}";
+
+            if ($request->observaciones_clasificacion) {
+                $descripcionClasificacion .= " - Observaciones: {$request->observaciones_clasificacion}";
             }
-        }
 
-        $codigo = app(\App\Services\NumeracionService::class)->generarCodigo();
-        
-        $observacionesCompletas = [];
-        if ($request->observaciones) {
-            $observacionesCompletas[] = 'Trámite: ' . $request->observaciones;
-        }
-        if ($request->observaciones_documentos) {
-            $observacionesCompletas[] = 'Documentos: ' . $request->observaciones_documentos;
-        }
-        
-        $docsVerificados = implode(', ', $request->documentos_verificados ?? []);
-        $docsAdicionales = $request->documentos_adicionales ? implode(', ', $request->documentos_adicionales) : '';
-        
-        $observacionesCompletas[] = 'Docs verificados: ' . $docsVerificados;
-        if ($docsAdicionales) {
-            $observacionesCompletas[] = 'Docs adicionales: ' . $docsAdicionales;
-        }
-        
-        $expediente = Expediente::create([
-            'codigo_expediente' => $codigo,
-            'asunto' => $request->asunto,
-            'id_persona' => $persona->id_persona,
-            'remitente' => $persona->nombre_completo,
-            'dni_remitente' => $persona->numero_documento,
-            'id_tipo_tramite' => $request->id_tipo_tramite,
-            'fecha_registro' => now(),
-            'estado' => 'recepcionado',
-            'canal' => 'presencial',
-            'observaciones' => implode(' | ', $observacionesCompletas)
-        ]);
+            $expediente->agregarHistorial($descripcionClasificacion, auth()->id());
 
-        if ($request->hasFile('documento')) {
-            $path = $request->file('documento')->store('documentos', 'public');
-            
-            Documento::create([
-                'id_expediente' => $expediente->id_expediente,
-                'nombre' => 'Documento Principal',
-                'ruta_pdf' => $path,
-                'tipo' => 'entrada'
-            ]);
-        }
+            // 3. Derivar el expediente automáticamente
+            $this->derivacionService->derivarExpediente(
+                $expediente,
+                $request->id_area,
+                $request->id_funcionario_asignado,
+                $request->plazo_dias ?? 15,
+                $request->prioridad_derivacion ?? $request->prioridad,
+                $request->observaciones_derivacion
+            );
 
-        return redirect()->route('mesa-partes.registrar')
-            ->with('success', 'SE REGISTRÓ CORRECTAMENTE')
-            ->with('codigo_expediente', $codigo);
+            \DB::commit();
+
+            return redirect()
+                ->route('mesa-partes.registrar')
+                ->with('success', 'Expediente registrado, clasificado y derivado correctamente en un solo paso')
+                ->with('codigo_expediente', $expediente->codigo_expediente);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Error al procesar el expediente: ' . $e->getMessage());
+        }
     }
 
     public function show(Expediente $expediente)
@@ -156,7 +125,7 @@ class MesaPartesController extends Controller
         $request->validate([
             'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
             'id_area' => 'required|exists:areas,id_area',
-            'prioridad' => 'required|in:baja,media,alta,urgente',
+            'prioridad' => 'required|in:baja,normal,alta,urgente',
             'observaciones_clasificacion' => 'nullable|string|max:500'
         ]);
 
@@ -193,37 +162,24 @@ class MesaPartesController extends Controller
         return view('mesa-partes.derivar', compact('expediente', 'areas', 'funcionarios'));
     }
 
-    public function storeDerivar(Request $request, Expediente $expediente)
+    /**
+     * Deriva un expediente a un área y funcionario
+     *
+     * REFACTORIZADO: Ahora usa StoreDerivacionRequest y DerivacionService
+     * ANTES: 34 líneas con validación inline y lógica de negocio
+     * DESPUÉS: 14 líneas delegando al Service
+     */
+    public function storeDerivar(StoreDerivacionRequest $request, Expediente $expediente)
     {
-        $request->validate([
-            'id_area_destino' => 'required|exists:areas,id_area',
-            'id_funcionario_asignado' => 'nullable|exists:users,id',
-            'plazo_dias' => 'required|integer|min:1|max:365',
-            'prioridad' => 'required|in:baja,media,alta,urgente',
-            'observaciones' => 'nullable|string'
-        ]);
+        $this->derivacionService->derivarExpediente(
+            $expediente,
+            $request->id_area_destino,
+            $request->id_funcionario_asignado,
+            $request->plazo_dias,
+            $request->prioridad,
+            $request->observaciones
+        );
 
-        $fechaLimite = now()->addDays((int) $request->plazo_dias);
-
-        if ($request->id_funcionario_asignado) {
-            Derivacion::create([
-                'id_expediente' => $expediente->id_expediente,
-                'id_area_destino' => $request->id_area_destino,
-                'id_funcionario_asignado' => $request->id_funcionario_asignado,
-                'fecha_derivacion' => now()->toDateString(),
-                'plazo_dias' => (int) $request->plazo_dias,
-                'observaciones' => $request->observaciones,
-                'estado' => 'pendiente'
-            ]);
-        }
-
-        $expediente->update([
-            'estado' => 'derivado',
-            'id_area' => $request->id_area_destino,
-            'id_funcionario_asignado' => $request->id_funcionario_asignado,
-            'prioridad' => $request->prioridad
-        ]);
-        
         return redirect()->route('mesa-partes.index')
             ->with('success', 'Expediente derivado correctamente');
     }
@@ -265,17 +221,16 @@ class MesaPartesController extends Controller
         return view('mesa-partes.acuse-recibo', compact('expediente'));
     }
 
+    /**
+     * Dashboard de Mesa de Partes
+     *
+     * REFACTORIZADO: Ahora usa EstadisticasService
+     * ANTES: 26 líneas con queries inline
+     * DESPUÉS: 19 líneas con lógica de alertas separada
+     */
     public function dashboard()
     {
-        $estadisticas = [
-            'registrados_hoy' => Expediente::whereDate('created_at', today())->count(),
-            'pendientes_clasificar' => Expediente::whereIn('estado', ['recepcionado', 'registrado'])->count(),
-            'pendientes_derivar' => Expediente::where('estado', 'derivado')->count(),
-            'vencidos' => Expediente::whereIn('estado', ['derivado', 'en_proceso'])
-                ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now())->where('estado', 'Pendiente');
-                })->count()
-        ];
+        $estadisticas = $this->estadisticasService->obtenerEstadisticasMesaPartes();
 
         $expedientesRecientes = Expediente::with(['ciudadano', 'tipoTramite', 'persona'])
             ->whereIn('estado', ['recepcionado', 'registrado', 'derivado'])
@@ -385,9 +340,107 @@ class MesaPartesController extends Controller
     public function cargoRecepcion(Expediente $expediente)
     {
         $expediente->load(['documentos', 'tipoTramite', 'persona']);
-        
+
         $pdf = \PDF::loadView('pdf.cargo-recepcion', compact('expediente'));
-        
+
         return $pdf->download('CARGO_' . $expediente->codigo_expediente . '.pdf');
+    }
+
+    /**
+     * Lista los expedientes virtuales pendientes de clasificación
+     */
+    public function expedientesVirtuales()
+    {
+        $expedientes = Expediente::where('canal', 'virtual')
+            ->where('estado', 'recepcionado')
+            ->with(['persona', 'tipoTramite', 'documentos'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return view('mesa-partes.expedientes-virtuales', compact('expedientes'));
+    }
+
+    /**
+     * Muestra el formulario para clasificar y derivar un expediente virtual
+     */
+    public function clasificarVirtual(Expediente $expediente)
+    {
+        // Verificar que sea un expediente virtual
+        if ($expediente->canal != 'virtual') {
+            return redirect()
+                ->route('mesa-partes.index')
+                ->with('error', 'Este expediente no es virtual. Use el flujo normal de clasificación.');
+        }
+
+        // Verificar que esté en estado recepcionado
+        if ($expediente->estado != 'recepcionado') {
+            return redirect()
+                ->route('mesa-partes.index')
+                ->with('error', 'Este expediente ya ha sido clasificado.');
+        }
+
+        $expediente->load(['persona', 'tipoTramite', 'documentos']);
+
+        return view('mesa-partes.clasificar-virtual', compact('expediente'));
+    }
+
+    /**
+     * Procesa la clasificación y derivación de un expediente virtual
+     */
+    public function storeClasificarVirtual(Request $request, Expediente $expediente)
+    {
+        $request->validate([
+            'id_area' => 'required|exists:areas,id_area',
+            'prioridad' => 'required|in:baja,normal,alta,urgente',
+            'observaciones_clasificacion' => 'nullable|string|max:500',
+            'id_funcionario_asignado' => 'nullable|exists:users,id',
+            'plazo_dias' => 'required|integer|min:1|max:365',
+            'prioridad_derivacion' => 'required|in:baja,normal,alta,urgente',
+            'observaciones_derivacion' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            // 1. Clasificar el expediente
+            $area = Area::find($request->id_area);
+
+            $expediente->update([
+                'id_area' => $request->id_area,
+                'prioridad' => $request->prioridad,
+                'estado' => 'derivado'
+            ]);
+
+            $descripcionClasificacion = "Expediente virtual clasificado - Área: {$area->nombre}, Prioridad: {$request->prioridad}";
+
+            if ($request->observaciones_clasificacion) {
+                $descripcionClasificacion .= " - Observaciones: {$request->observaciones_clasificacion}";
+            }
+
+            $expediente->agregarHistorial($descripcionClasificacion, auth()->id());
+
+            // 2. Derivar el expediente
+            $this->derivacionService->derivarExpediente(
+                $expediente,
+                $request->id_area,
+                $request->id_funcionario_asignado,
+                $request->plazo_dias,
+                $request->prioridad_derivacion,
+                $request->observaciones_derivacion
+            );
+
+            \DB::commit();
+
+            return redirect()
+                ->route('mesa-partes.expedientes-virtuales')
+                ->with('success', "Expediente virtual {$expediente->codigo_expediente} clasificado y derivado correctamente");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Error al procesar el expediente: ' . $e->getMessage());
+        }
     }
 }

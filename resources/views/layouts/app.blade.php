@@ -105,6 +105,17 @@
                                     <a class="nav-link text-dark" href="{{ route('mesa-partes.index') }}"><i class="fas fa-folder"></i> Expedientes</a>
                                 </li>
                                 <li class="nav-item mb-1">
+                                    <a class="nav-link text-dark" href="{{ route('mesa-partes.expedientes-virtuales') }}">
+                                        <i class="fas fa-globe"></i> Expedientes Virtuales
+                                        @php
+                                            $pendientesVirtuales = \App\Models\Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count();
+                                        @endphp
+                                        @if($pendientesVirtuales > 0)
+                                            <span class="badge bg-danger ms-1">{{ $pendientesVirtuales }}</span>
+                                        @endif
+                                    </a>
+                                </li>
+                                <li class="nav-item mb-1">
                                     <a class="nav-link text-dark" href="{{ route('mesa-partes.registrar') }}"><i class="fas fa-plus"></i> Registrar</a>
                                 </li>
                                 <li class="nav-item mb-1">
@@ -266,6 +277,17 @@
                         </li>
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('mesa-partes.index') }}"><i class="fas fa-folder"></i> Expedientes</a>
+                        </li>
+                        <li class="nav-item mb-1">
+                            <a class="nav-link text-dark" href="{{ route('mesa-partes.expedientes-virtuales') }}">
+                                <i class="fas fa-globe"></i> Expedientes Virtuales
+                                @php
+                                    $pendientesVirtuales = \App\Models\Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count();
+                                @endphp
+                                @if($pendientesVirtuales > 0)
+                                    <span class="badge bg-danger ms-1">{{ $pendientesVirtuales }}</span>
+                                @endif
+                            </a>
                         </li>
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('mesa-partes.registrar') }}"><i class="fas fa-plus"></i> Registrar</a>

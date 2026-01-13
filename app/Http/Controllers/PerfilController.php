@@ -17,11 +17,12 @@ class PerfilController extends Controller
     public function edit()
     {
         $user = auth()->user();
+        $role = \App\Models\Role::where('id_rol', $user->id_rol)->first();
         $canEditAll = false;
         
-        if ($user->role->nombre === 'Administrador') {
+        if ($role && $role->nombre === 'Administrador') {
             $canEditAll = true;
-        } elseif ($user->role->nombre === 'Ciudadano') {
+        } elseif ($role && $role->nombre === 'Ciudadano') {
             // Ciudadano puede editar solo si no tiene expedientes en trámite
             $expedientesEnTramite = \App\Models\Expediente::where('id_ciudadano', $user->id)
                 ->whereNotIn('estado', ['archivado', 'resuelto'])
@@ -35,11 +36,12 @@ class PerfilController extends Controller
     public function update(Request $request)
     {
         $user = auth()->user();
+        $role = \App\Models\Role::where('id_rol', $user->id_rol)->first();
         $canEditAll = false;
         
-        if ($user->role->nombre === 'Administrador') {
+        if ($role && $role->nombre === 'Administrador') {
             $canEditAll = true;
-        } elseif ($user->role->nombre === 'Ciudadano') {
+        } elseif ($role && $role->nombre === 'Ciudadano') {
             // Ciudadano puede editar solo si no tiene expedientes en trámite
             $expedientesEnTramite = \App\Models\Expediente::where('id_ciudadano', $user->id)
                 ->whereNotIn('estado', ['archivado', 'resuelto'])

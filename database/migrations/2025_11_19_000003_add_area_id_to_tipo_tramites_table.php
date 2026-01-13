@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tipo_tramites', function (Blueprint $table) {
-            $table->foreignId('id_area')->nullable()->constrained('areas');
+            $table->unsignedBigInteger('id_area')->nullable();
+            $table->foreign('id_area')->references('id_area')->on('areas');
             $table->text('requisitos')->nullable();
         });
     }

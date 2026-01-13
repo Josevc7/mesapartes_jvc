@@ -11,7 +11,8 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $roleName = $user->role->nombre ?? '';
+        $role = \App\Models\Role::where('id_rol', $user->id_rol)->first();
+        $roleName = $role->nombre ?? '';
         
         switch ($roleName) {
             case 'Administrador':

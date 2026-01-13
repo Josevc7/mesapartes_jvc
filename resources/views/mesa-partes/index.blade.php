@@ -107,6 +107,7 @@ small {
                             <thead>
                                 <tr>
                                     <th style="width: 110px;">Código</th>
+                                    <th style="width: 70px;">Canal</th>
                                     <th style="width: 90px;">Documento</th>
                                     <th style="width: 160px;">Solicitante</th>
                                     <th style="width: 180px;">Asunto</th>
@@ -121,6 +122,17 @@ small {
                                 @forelse($expedientes as $expediente)
                                 <tr>
                                     <td><strong>{{ $expediente->codigo_expediente }}</strong></td>
+                                    <td>
+                                        @if($expediente->canal == 'virtual')
+                                            <span class="badge bg-primary" title="Ingresado vía plataforma web">
+                                                <i class="fas fa-globe"></i> Virtual
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary" title="Ingresado presencialmente">
+                                                <i class="fas fa-building"></i> Presencial
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($expediente->persona)
                                             <span class="badge bg-secondary">{{ $expediente->persona->tipo_documento }}</span>
@@ -211,9 +223,9 @@ small {
                                             </a>
                                             
                                             <!-- Descargar Cargo -->
-                                            <a href="{{ route('mesa-partes.cargo-recepcion', $expediente) }}" 
-                                               class="btn btn-success btn-sm" 
-                                               data-bs-toggle="tooltip" 
+                                            <a href="{{ route('mesa-partes.cargo-recepcion', $expediente) }}"
+                                               class="btn btn-success btn-sm"
+                                               data-bs-toggle="tooltip"
                                                title="Cargo">
                                                 <i class="fas fa-download"></i>
                                             </a>
@@ -223,13 +235,23 @@ small {
                                             @endphp
                                             
                                             @if($estadoInteligente === 'recepcionado')
-                                            <!-- Clasificar -->
-                                            <a href="{{ route('mesa-partes.clasificar', $expediente) }}" 
-                                               class="btn btn-warning btn-sm" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Clasificar">
-                                                <i class="fas fa-tags"></i>
-                                            </a>
+                                                @if($expediente->canal == 'virtual')
+                                                <!-- Clasificar y Derivar Expediente Virtual -->
+                                                <a href="{{ route('mesa-partes.clasificar-virtual', $expediente) }}"
+                                                   class="btn btn-success btn-sm"
+                                                   data-bs-toggle="tooltip"
+                                                   title="Clasificar y Derivar (Virtual)">
+                                                    <i class="fas fa-share"></i> Clasif.
+                                                </a>
+                                                @else
+                                                <!-- Clasificar Expediente Presencial -->
+                                                <a href="{{ route('mesa-partes.clasificar', $expediente) }}"
+                                                   class="btn btn-warning btn-sm"
+                                                   data-bs-toggle="tooltip"
+                                                   title="Clasificar">
+                                                    <i class="fas fa-tags"></i>
+                                                </a>
+                                                @endif
                                             @endif
                                             
                                             @if($estadoInteligente === 'clasificado')

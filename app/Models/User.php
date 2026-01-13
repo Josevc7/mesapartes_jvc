@@ -14,6 +14,12 @@ class User extends Authenticatable
 
     // Usar clave primaria estándar de Laravel
     protected $primaryKey = 'id';
+    
+    // Deshabilitar eager loading automático
+    protected $with = [];
+    
+    // Deshabilitar appends automáticos
+    protected $appends = [];
 
     /**
      * The attributes that are mass assignable.

@@ -13,7 +13,9 @@ class RoleMiddleware
             return redirect('/login');
         }
 
-        $userRole = auth()->user()->role->nombre ?? '';
+        $user = auth()->user();
+        $role = \App\Models\Role::where('id_rol', $user->id_rol)->first();
+        $userRole = $role->nombre ?? '';
         
         if (!in_array($userRole, $roles)) {
             abort(403, 'No tienes permisos para acceder a esta sección.');

@@ -195,7 +195,7 @@ class FuncionarioController extends Controller
             abort(403, 'No tienes acceso a este expediente');
         }
         
-        $expediente->load(['historial.usuario.role', 'observaciones']);
+        $expediente->load(['historial.usuario', 'observaciones']);
         return view('funcionario.historial', compact('expediente'));
     }
 

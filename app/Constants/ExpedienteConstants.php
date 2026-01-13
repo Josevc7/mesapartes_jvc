@@ -17,7 +17,7 @@ class ExpedienteConstants
 
     // Prioridades
     const PRIORIDAD_BAJA = 'baja';
-    const PRIORIDAD_MEDIA = 'media';
+    const PRIORIDAD_NORMAL = 'normal';
     const PRIORIDAD_ALTA = 'alta';
     const PRIORIDAD_URGENTE = 'urgente';
 
@@ -46,7 +46,7 @@ class ExpedienteConstants
     {
         return [
             self::PRIORIDAD_BAJA,
-            self::PRIORIDAD_MEDIA,
+            self::PRIORIDAD_NORMAL,
             self::PRIORIDAD_ALTA,
             self::PRIORIDAD_URGENTE,
         ];

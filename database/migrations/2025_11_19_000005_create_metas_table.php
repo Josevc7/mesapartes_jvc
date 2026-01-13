@@ -9,8 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('metas', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_area')->constrained('areas');
+            $table->id('id_meta');
+            $table->unsignedBigInteger('id_area');
+            $table->foreign('id_area')->references('id_area')->on('areas');
             $table->string('descripcion');
             $table->enum('tipo', ['expedientes', 'tiempo', 'eficiencia', 'satisfaccion']);
             $table->decimal('valor_meta', 10, 2);

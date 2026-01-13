@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('id_rol')->nullable()->constrained('roles');
-            $table->foreignId('id_area')->nullable()->constrained('areas');
+            $table->unsignedBigInteger('id_rol')->nullable();
+            $table->foreign('id_rol')->references('id_rol')->on('roles');
+            $table->unsignedBigInteger('id_area')->nullable();
+            $table->foreign('id_area')->references('id_area')->on('areas');
             $table->boolean('activo')->default(true);
         });
     }

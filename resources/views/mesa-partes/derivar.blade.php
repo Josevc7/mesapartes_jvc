@@ -85,7 +85,7 @@
                                 <label for="prioridad" class="form-label">{{ __('Prioridad') }}</label>
                                 <select id="prioridad" class="form-select @error('prioridad') is-invalid @enderror" name="prioridad" required>
                                     <option value="baja" {{ old('prioridad', $expediente->prioridad) == 'baja' ? 'selected' : '' }}>Baja</option>
-                                    <option value="media" {{ old('prioridad', $expediente->prioridad) == 'media' ? 'selected' : '' }}>Media</option>
+                                    <option value="normal" {{ old('prioridad', $expediente->prioridad) == 'normal' ? 'selected' : '' }}>Media</option>
                                     <option value="alta" {{ old('prioridad', $expediente->prioridad) == 'alta' ? 'selected' : '' }}>Alta</option>
                                     <option value="urgente" {{ old('prioridad', $expediente->prioridad) == 'urgente' ? 'selected' : '' }}>Urgente</option>
                                 </select>

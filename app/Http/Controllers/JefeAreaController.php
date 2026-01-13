@@ -5,26 +5,37 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\User;
+use App\Services\EstadisticasService;
+use App\Services\DerivacionService;
+use App\Http\Requests\Derivacion\ExtenderPlazoRequest;
+use App\Http\Requests\Expediente\ValidarExpedienteRequest;
 use Carbon\Carbon;
 
 class JefeAreaController extends Controller
 {
+    protected EstadisticasService $estadisticasService;
+    protected DerivacionService $derivacionService;
+
+    public function __construct(
+        EstadisticasService $estadisticasService,
+        DerivacionService $derivacionService
+    ) {
+        $this->estadisticasService = $estadisticasService;
+        $this->derivacionService = $derivacionService;
+    }
+
+    /**
+     * Dashboard del Jefe de Área
+     *
+     * REFACTORIZADO: Ahora usa EstadisticasService
+     * ANTES: 17 líneas con queries inline
+     * DESPUÉS: 4 líneas delegando al Service
+     */
     public function dashboard()
     {
         $areaId = auth()->user()->id_area;
-        
-        $stats = [
-            'total_expedientes' => Expediente::where('id_area', $areaId)->count(),
-            'pendientes' => Expediente::where('id_area', $areaId)->whereIn('estado', ['Derivado', 'En Proceso'])->count(),
-            'vencidos' => Expediente::where('id_area', $areaId)
-                ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now());
-                })->count(),
-            'resueltos_mes' => Expediente::where('id_area', $areaId)
-                ->where('estado', 'Resuelto')
-                ->whereMonth('updated_at', now()->month)->count()
-        ];
-        
+        $stats = $this->estadisticasService->obtenerEstadisticasJefeArea($areaId);
+
         return view('jefe-area.dashboard', compact('stats'));
     }
 
@@ -71,21 +82,50 @@ class JefeAreaController extends Controller
     public function rechazar(Request $request, Expediente $expediente)
     {
         $request->validate([
-            'motivo_rechazo' => 'required|string'
+            'motivo_rechazo' => 'required|string|min:10'
+        ], [
+            'motivo_rechazo.required' => 'Debe especificar el motivo del rechazo',
+            'motivo_rechazo.min' => 'El motivo debe tener al menos 10 caracteres'
         ]);
-        
+
         if ($expediente->id_area !== auth()->user()->id_area) {
             abort(403, 'No tienes acceso a este expediente');
         }
-        
-        $expediente->update([
-            'estado' => 'rechazado',
-            'motivo_rechazo' => $request->motivo_rechazo
-        ]);
-        
-        $expediente->agregarHistorial('Expediente rechazado: ' . $request->motivo_rechazo, auth()->user()->id);
-        
-        return back()->with('success', 'Expediente rechazado');
+
+        try {
+            \DB::beginTransaction();
+
+            // Crear observación para el funcionario con el motivo del rechazo
+            \App\Models\Observacion::create([
+                'id_expediente' => $expediente->id_expediente,
+                'id_usuario' => auth()->id(),
+                'tipo' => 'rechazo',
+                'descripcion' => 'JEFE DE ÁREA RECHAZÓ LA RESOLUCIÓN: ' . $request->motivo_rechazo,
+                'estado' => 'pendiente',
+                'fecha_limite' => now()->addDays(3) // 3 días para corregir
+            ]);
+
+            // Regresar el expediente al funcionario para que lo corrija
+            // Cambiar estado a "en_proceso" para que aparezca en su lista
+            $expediente->update([
+                'estado' => 'en_proceso'
+            ]);
+
+            // Registrar en historial con detalle
+            $expediente->agregarHistorial(
+                'Jefe de Área rechazó la resolución. Motivo: ' . $request->motivo_rechazo . '. Expediente devuelto al funcionario para corrección.',
+                auth()->id()
+            );
+
+            \DB::commit();
+
+            return back()->with('success', 'Expediente rechazado y devuelto al funcionario ' .
+                ($expediente->funcionarioAsignado->name ?? 'asignado') . ' para corrección.');
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return back()->with('error', 'Error al rechazar expediente: ' . $e->getMessage());
+        }
     }
 
     public function reportes()
@@ -224,15 +264,22 @@ class JefeAreaController extends Controller
         return response()->json($data);
     }
 
-    public function validarExpediente(Request $request, Expediente $expediente)
+    /**
+     * Valida un expediente (aprobar o rechazar)
+     *
+     * REFACTORIZADO: Ahora usa ValidarExpedienteRequest
+     * ANTES: 26 líneas con validación inline y lógica de negocio
+     * DESPUÉS: 18 líneas con FormRequest
+     */
+    public function validarExpediente(ValidarExpedienteRequest $request, Expediente $expediente)
     {
         if ($expediente->id_area !== auth()->user()->id_area) {
             abort(403);
         }
-        
+
         $accion = $request->input('accion');
         $observaciones = $request->input('observaciones');
-        
+
         if ($accion === 'aprobar') {
             $expediente->update([
                 'estado' => 'aprobado',
@@ -247,7 +294,7 @@ class JefeAreaController extends Controller
             ]);
             $expediente->agregarHistorial('Expediente rechazado: ' . $observaciones, auth()->user()->id);
         }
-        
+
         return response()->json(['success' => true]);
     }
 
@@ -322,27 +369,25 @@ class JefeAreaController extends Controller
         return response()->json($data);
     }
 
-    public function extenderPlazo(Request $request, Expediente $expediente)
+    /**
+     * Extiende el plazo de un expediente
+     *
+     * REFACTORIZADO: Ahora usa ExtenderPlazoRequest y DerivacionService
+     * ANTES: 23 líneas con validación inline y lógica de negocio
+     * DESPUÉS: 11 líneas delegando al Service
+     */
+    public function extenderPlazo(ExtenderPlazoRequest $request, Expediente $expediente)
     {
         if ($expediente->id_area !== auth()->user()->id_area) {
             abort(403);
         }
-        
-        $diasAdicionales = $request->input('dias_adicionales');
-        $motivo = $request->input('motivo');
-        
-        $derivacion = $expediente->derivaciones->first();
-        if ($derivacion) {
-            $derivacion->update([
-                'fecha_limite' => $derivacion->fecha_limite->addDays($diasAdicionales)
-            ]);
-        }
-        
-        $expediente->agregarHistorial(
-            "Plazo extendido {$diasAdicionales} días. Motivo: {$motivo}", 
-            auth()->user()->id
+
+        $this->derivacionService->extenderPlazo(
+            $expediente,
+            $request->input('dias_adicionales'),
+            $request->input('motivo')
         );
-        
+
         return response()->json(['success' => true]);
     }
 

@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Deshabilitar eager loading automático para evitar conflictos
+        \Illuminate\Database\Eloquent\Model::preventLazyLoading(false);
     }
 }

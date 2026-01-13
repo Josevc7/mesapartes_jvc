@@ -12,10 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('derivacions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_expediente')->constrained('expedientes');
-            $table->foreignId('id_origen_area')->nullable()->constrained('areas');
-            $table->foreignId('id_destino_area')->constrained('areas');
+            $table->id('id_derivacion');
+            $table->unsignedBigInteger('id_expediente');
+            $table->foreign('id_expediente')->references('id_expediente')->on('expedientes');
+            $table->unsignedBigInteger('id_origen_area')->nullable();
+            $table->foreign('id_origen_area')->references('id_area')->on('areas');
+            $table->unsignedBigInteger('id_destino_area');
+            $table->foreign('id_destino_area')->references('id_area')->on('areas');
             $table->foreignId('id_funcionario_asignado')->nullable()->constrained('users');
             $table->date('fecha_derivacion');
             $table->date('fecha_recepcion')->nullable();

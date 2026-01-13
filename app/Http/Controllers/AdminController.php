@@ -17,7 +17,7 @@ class AdminController extends Controller
     // Gestión de Usuarios
     public function usuarios()
     {
-        $usuarios = User::with(['role', 'area'])->paginate(10);
+        $usuarios = User::paginate(10);
         return view('admin.usuarios.index', compact('usuarios'));
     }
 
@@ -56,7 +56,7 @@ class AdminController extends Controller
 
     public function showUsuario($id_user)
     {
-        $usuario = User::with(['role', 'area', 'expedientesComoCiudadano', 'expedientesAsignados'])->findOrFail($id_user);
+        $usuario = User::findOrFail($id_user);
         return view('admin.usuarios.show', compact('usuario'));
     }
 
@@ -366,7 +366,7 @@ class AdminController extends Controller
     // Matriz de Control
     public function matrizControl()
     {
-        $usuarios = User::with(['role', 'area'])->get();
+        $usuarios = User::all();
         $roles = Role::all();
         $areas = Area::all();
         

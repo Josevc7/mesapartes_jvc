@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Derivacion extends Model
 {
-    protected $table = 'derivacions';
+    protected $table = 'derivaciones';
     protected $primaryKey = 'id_derivacion';
     
     protected $fillable = [
@@ -41,6 +41,12 @@ class Derivacion extends Model
     }
 
     public function areaDestino()
+    {
+        return $this->belongsTo(Area::class, 'id_area_destino', 'id_area');
+    }
+
+    // Alias para compatibilidad - apunta a areaDestino
+    public function area()
     {
         return $this->belongsTo(Area::class, 'id_area_destino', 'id_area');
     }

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\TipoTramite;
 use App\Models\Documento;
+use App\Models\Observacion;
 use App\Services\NumeracionService;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,7 +19,7 @@ class CiudadanoController extends Controller
     public function dashboard()
     {
         // Obtener el ID del usuario autenticado (ciudadano logueado)
-        $ciudadanoId = auth()->user()->id_user;
+        $ciudadanoId = auth()->user()->id;
         
         // Calcular estadísticas de expedientes del ciudadano
         $stats = [
@@ -54,7 +55,7 @@ class CiudadanoController extends Controller
 
     public function misExpedientes()
     {
-        $expedientes = Expediente::where('id_ciudadano', auth()->user()->id_user)
+        $expedientes = Expediente::where('id_ciudadano', auth()->user()->id)
             ->with(['tipoTramite', 'area', 'documentos'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -65,7 +66,7 @@ class CiudadanoController extends Controller
     public function seguimiento($codigo)
     {
         $expediente = Expediente::where('codigo_expediente', $codigo)
-            ->where('id_ciudadano', auth()->user()->id_user)
+            ->where('id_ciudadano', auth()->user()->id)
             ->with(['tipoTramite', 'area', 'documentos', 'historial.usuario', 'derivaciones'])
             ->firstOrFail();
             
@@ -127,7 +128,45 @@ class CiudadanoController extends Controller
             // === VALIDACIONES DE DATOS DEL SOLICITANTE ===
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',              // Solo personas naturales o jurídicas
             'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',        // Tipos de documento válidos
-            'numero_documento' => 'required|string|max:20',                // Número de documento obligatorio
+
+            // Validación dinámica según tipo de documento
+            'numero_documento' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) use ($request) {
+                    $tipoDoc = $request->input('tipo_documento');
+
+                    switch ($tipoDoc) {
+                        case 'DNI':
+                            // DNI: Exactamente 8 dígitos numéricos
+                            if (!preg_match('/^\d{8}$/', $value)) {
+                                $fail('El DNI debe contener exactamente 8 dígitos numéricos.');
+                            }
+                            break;
+
+                        case 'RUC':
+                            // RUC: Exactamente 11 dígitos numéricos
+                            if (!preg_match('/^\d{11}$/', $value)) {
+                                $fail('El RUC debe contener exactamente 11 dígitos numéricos.');
+                            }
+                            break;
+
+                        case 'CE':
+                            // Carnet de Extranjería: 9 o 12 caracteres alfanuméricos
+                            if (!preg_match('/^[A-Z0-9]{9}$|^[A-Z0-9]{12}$/', strtoupper($value))) {
+                                $fail('El Carnet de Extranjería debe contener 9 o 12 caracteres alfanuméricos.');
+                            }
+                            break;
+
+                        case 'PASAPORTE':
+                            // Pasaporte: 7 a 12 caracteres alfanuméricos
+                            if (!preg_match('/^[A-Z0-9]{7,12}$/', strtoupper($value))) {
+                                $fail('El Pasaporte debe contener entre 7 y 12 caracteres alfanuméricos.');
+                            }
+                            break;
+                    }
+                },
+            ],
             
             // Campos requeridos solo para personas naturales
             'nombres' => 'required_if:tipo_persona,NATURAL|nullable|string|max:100',
@@ -153,9 +192,14 @@ class CiudadanoController extends Controller
             'documentos_adicionales.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // Archivos opcionales, máx 5MB c/u
             
             // === VALIDACIONES ADICIONALES ===
-            'prioridad' => 'in:baja,media,alta,urgente',                  // Prioridades válidas
+            'prioridad' => 'in:baja,normal,alta,urgente',                  // Prioridades válidas
             'acepta_terminos' => 'required|accepted'                      // Debe aceptar términos
         ]);
+
+        // Normalizar número de documento (convertir a mayúsculas si es CE o PASAPORTE)
+        $numeroDocumento = in_array($request->tipo_documento, ['CE', 'PASAPORTE'])
+            ? strtoupper($request->numero_documento)
+            : $request->numero_documento;
 
         // === CREAR O BUSCAR PERSONA EN LA BASE DE DATOS ===
         // firstOrCreate: busca por tipo y número de documento, si no existe lo crea
@@ -163,7 +207,7 @@ class CiudadanoController extends Controller
             [
                 // Criterios de búsqueda: tipo y número de documento (deben ser únicos)
                 'tipo_documento' => $request->tipo_documento,
-                'numero_documento' => $request->numero_documento
+                'numero_documento' => $numeroDocumento
             ],
             [
                 // Datos para crear si no existe la persona
@@ -189,13 +233,13 @@ class CiudadanoController extends Controller
             'asunto' => $request->asunto,                               // Motivo del trámite
             'descripcion' => $request->descripcion,                     // Descripción detallada (opcional)
             'id_tipo_tramite' => $request->id_tipo_tramite,             // Tipo de trámite seleccionado
-            'id_ciudadano' => auth()->user()->id_user,                     // Usuario autenticado que crea el expediente
+            'id_ciudadano' => auth()->user()->id,                     // Usuario autenticado que crea el expediente
             'id_persona' => $persona->id_persona,                               // Referencia a la persona (solicitante)
             'remitente' => $persona->nombre_completo,                   // Nombre completo para búsquedas rápidas
             'dni_remitente' => $persona->numero_documento,              // Documento para búsquedas rápidas
             'fecha_registro' => now(),                                  // Fecha y hora actual de registro
             'estado' => 'recepcionado',                                 // Estado inicial del expediente
-            'prioridad' => $request->prioridad ?? 'media',              // Prioridad por defecto
+            'prioridad' => $request->prioridad ?? 'normal',              // Prioridad por defecto
             'canal' => 'virtual'                                        // Canal de ingreso (virtual/presencial)
         ]);
 
@@ -333,5 +377,107 @@ class CiudadanoController extends Controller
         $expediente->delete();
         
         return response()->json(['success' => "Expediente {$codigo} eliminado correctamente"]);
+    }
+
+    /**
+     * Muestra las observaciones pendientes del ciudadano
+     */
+    public function observaciones()
+    {
+        $ciudadanoId = auth()->user()->id;
+
+        // Obtener expedientes con observaciones pendientes del ciudadano
+        $expedientes = Expediente::where('id_ciudadano', $ciudadanoId)
+            ->where('estado', 'observado')
+            ->with(['observaciones' => function($query) {
+                $query->where('estado', 'pendiente')
+                      ->orderBy('created_at', 'desc');
+            }, 'tipoTramite', 'area'])
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return view('ciudadano.observaciones', compact('expedientes'));
+    }
+
+    /**
+     * Muestra el detalle de una observación específica
+     */
+    public function verObservacion(Expediente $expediente)
+    {
+        // Verificar que el expediente pertenece al ciudadano
+        if ($expediente->id_ciudadano != auth()->user()->id) {
+            abort(403, 'No tiene permisos para ver esta observación');
+        }
+
+        // Cargar observaciones pendientes
+        $expediente->load(['observaciones' => function($query) {
+            $query->where('estado', 'pendiente')
+                  ->orderBy('created_at', 'desc');
+        }, 'tipoTramite', 'area', 'documentos']);
+
+        return view('ciudadano.ver-observacion', compact('expediente'));
+    }
+
+    /**
+     * Responde a una observación con documentos adjuntos
+     */
+    public function responderObservacion(Request $request, Expediente $expediente)
+    {
+        // Verificar que el expediente pertenece al ciudadano
+        if ($expediente->id_ciudadano != auth()->user()->id) {
+            return redirect()->back()->with('error', 'No tiene permisos para responder esta observación');
+        }
+
+        // Validar datos
+        $request->validate([
+            'respuesta' => 'required|string|max:1000',
+            'documentos.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120'
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            // Actualizar todas las observaciones pendientes con la respuesta
+            foreach ($expediente->observaciones()->where('estado', 'pendiente')->get() as $observacion) {
+                $observacion->update([
+                    'respuesta' => $request->respuesta,
+                    'fecha_respuesta' => now(),
+                    'estado' => 'respondido'
+                ]);
+            }
+
+            // Adjuntar documentos de subsanación si existen
+            if ($request->hasFile('documentos')) {
+                foreach ($request->file('documentos') as $index => $archivo) {
+                    $nombreArchivo = 'subsanacion_' . time() . '_' . $index . '.' . $archivo->getClientOriginalExtension();
+                    $ruta = $archivo->storeAs('documentos/subsanaciones/' . $expediente->id_expediente, $nombreArchivo, 'public');
+
+                    Documento::create([
+                        'id_expediente' => $expediente->id_expediente,
+                        'nombre' => 'Subsanación ' . ($index + 1),
+                        'tipo' => 'subsanacion',
+                        'ruta_pdf' => $ruta
+                    ]);
+                }
+            }
+
+            // Cambiar estado del expediente a "en_proceso" para que el funcionario lo revise
+            $expediente->update(['estado' => 'en_proceso']);
+
+            // Registrar en historial
+            $expediente->agregarHistorial(
+                'Ciudadano respondió observación con documentos de subsanación',
+                auth()->id()
+            );
+
+            \DB::commit();
+
+            return redirect()->route('ciudadano.observaciones')
+                ->with('success', 'Respuesta enviada correctamente. El funcionario revisará su subsanación.');
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->back()->with('error', 'Error al enviar respuesta: ' . $e->getMessage());
+        }
     }
 }

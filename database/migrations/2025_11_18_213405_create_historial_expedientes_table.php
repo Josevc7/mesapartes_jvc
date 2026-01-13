@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('historial_expedientes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_expediente')->constrained('expedientes');
+            $table->id('id_historial');
+            $table->unsignedBigInteger('id_expediente');
+            $table->foreign('id_expediente')->references('id_expediente')->on('expedientes');
             $table->text('descripcion');
             $table->foreignId('id_usuario')->constrained('users');
             $table->timestamp('fecha');
