@@ -218,7 +218,7 @@ class MesaPartesController extends Controller
 
     public function acuseRecibo(Expediente $expediente)
     {
-        return view('mesa-partes.acuse-recibo', compact('expediente'));
+        return view('mesa-partes.cargo', compact('expediente'));
     }
 
     /**

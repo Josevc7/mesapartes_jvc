@@ -82,8 +82,8 @@
                                                    class="btn btn-outline-primary">
                                                     <i class="fas fa-eye"></i> Ver
                                                 </a>
-                                                <a href="{{ route('ciudadano.acuse-recibo', $expediente->codigo_expediente) }}" 
-                                                   class="btn btn-outline-info" title="Descargar Comprobante">
+                                                <a href="{{ route('ciudadano.acuse-recibo', $expediente->codigo_expediente) }}"
+                                                   class="btn btn-outline-info" title="DESCARGAR CARGO">
                                                     <i class="fas fa-download"></i>
                                                 </a>
                                                 @if($expediente->documentos->where('tipo', 'Respuesta')->count() > 0)

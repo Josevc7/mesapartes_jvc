@@ -78,8 +78,8 @@ class CiudadanoController extends Controller
         $expediente = Expediente::where('codigo_expediente', $codigo)
             ->where('id_ciudadano', auth()->id())
             ->firstOrFail();
-            
-        return view('ciudadano.acuse-recibo', compact('expediente'));
+
+        return view('ciudadano.cargo', compact('expediente'));
     }
 
     public function descargarDocumento($id_documento)
@@ -290,8 +290,8 @@ class CiudadanoController extends Controller
             ->where('id_ciudadano', auth()->id())
             ->with(['tipoTramite', 'area', 'documentos', 'ciudadano'])
             ->firstOrFail();
-            
-        return view('ciudadano.acuse-recibo', compact('expediente'));
+
+        return view('ciudadano.cargo', compact('expediente'));
     }
 
     public function consultaPublica($codigo)

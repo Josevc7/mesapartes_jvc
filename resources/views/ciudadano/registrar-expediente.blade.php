@@ -36,7 +36,7 @@
                                 @if(session('codigo_expediente'))
                                     <div class="mt-2">
                                         <small class="d-block mb-2">Código de expediente: <strong>{{ session('codigo_expediente') }}</strong></small>
-                                        <a href="{{ route('ciudadano.acuse-recibo', session('codigo_expediente') }}"
+                                        <a href="{{ route('ciudadano.acuse-recibo', session('codigo_expediente')) }}"
                                            class="btn-modern btn-modern-success btn-modern-sm"
                                            target="_blank">
                                             <i class="fas fa-download"></i> Descargar Cargo

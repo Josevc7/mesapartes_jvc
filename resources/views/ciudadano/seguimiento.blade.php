@@ -157,9 +157,9 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('ciudadano.descargar-acuse', $expediente->codigo_expediente) }}" 
+                        <a href="{{ route('ciudadano.descargar-acuse', $expediente->codigo_expediente) }}"
                            class="btn btn-info">
-                            <i class="fas fa-download"></i> Descargar Comprobante
+                            <i class="fas fa-download"></i> DESCARGAR CARGO
                         </a>
                         @if($expediente->documentos->where('tipo', 'Respuesta')->count() > 0)
                             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#respuestasModal">

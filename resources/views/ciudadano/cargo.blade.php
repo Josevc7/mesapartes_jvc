@@ -8,7 +8,7 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header text-center bg-primary text-white">
-                    <h4><i class="fas fa-certificate"></i> COMPROBANTE CARGO</h4>
+                    <h4><i class="fas fa-certificate"></i> CARGO</h4>
                     <small>Mesa de Partes Digital</small>
                 </div>
                 <div class="card-body" id="acuse-content">
@@ -120,7 +120,7 @@
                     <div class="alert alert-info">
                         <h6><i class="fas fa-info-circle"></i> Información Importante:</h6>
                         <ul class="mb-0">
-                            <li><strong>Conserve este cargo comprobante</strong> para futuras consultas</li>
+                            <li><strong>Conserve este cargo</strong> para futuras consultas</li>
                             <li>Puede consultar el estado de su trámite en cualquier momento usando el código: <strong>{{ $expediente->codigo_expediente }}</strong></li>
                             <li>Recibirá notificaciones por email sobre el avance de su expediente</li>
                             <li>El plazo de atención se cuenta desde la fecha de registro</li>
