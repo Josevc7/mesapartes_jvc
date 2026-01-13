@@ -223,7 +223,7 @@ small {
                                             </a>
                                             
                                             <!-- Descargar Cargo -->
-                                            <a href="{{ route('mesa-partes.cargo-recepcion', $expediente) }}"
+                                            <a href="{{ route('mesa-partes.cargo', $expediente) }}"
                                                class="btn btn-success btn-sm"
                                                data-bs-toggle="tooltip"
                                                title="Cargo">

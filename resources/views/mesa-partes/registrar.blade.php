@@ -26,7 +26,7 @@
 
         <!-- CUERPO DEL FORMULARIO -->
         <div class="modern-form-body">
-                    @if(session('success'))
+                    @if(session('success') && !session('codigo_expediente'))
                         <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
                             <div class="d-flex align-items-center">
                                 <div class="bg-success bg-opacity-20 rounded-circle p-2 me-3">
@@ -42,7 +42,7 @@
                                         <div class="mt-2">
                                             <small class="d-block mb-2">Código de expediente: <strong class="text-success">{{ session('codigo_expediente') }}</strong></small>
                                             @if($expediente)
-                                                <a href="{{ route('mesa-partes.cargo-recepcion', $expediente->id_expediente) }}"
+                                                <a href="{{ route('mesa-partes.cargo', $expediente->id_expediente) }}"
                                                    class="btn btn-sm btn-success"
                                                    target="_blank">
                                                     <i class="fas fa-print me-1"></i> Imprimir Cargo
@@ -541,6 +541,47 @@
     </div>
 </div>
 
+<!-- Modal de confirmación de registro exitoso -->
+@if(session('codigo_expediente'))
+    @php
+        $expediente = \App\Models\Expediente::where('codigo_expediente', session('codigo_expediente'))->first();
+    @endphp
+    @if($expediente)
+        <div class="modal fade" id="modalCargoExitoso" tabindex="-1" aria-labelledby="modalCargoExitosoLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-success text-white border-0">
+                        <h5 class="modal-title" id="modalCargoExitosoLabel">
+                            <i class="fas fa-check-circle me-2"></i>¡Registro Exitoso!
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <div class="mb-4">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
+                                <i class="fas fa-file-alt fa-3x text-success"></i>
+                            </div>
+                            <h4 class="mb-3">Expediente Registrado Correctamente</h4>
+                            <div class="alert alert-info border-0 mb-3">
+                                <p class="mb-1"><strong>Código de Expediente:</strong></p>
+                                <h3 class="text-primary mb-0">{{ session('codigo_expediente') }}</h3>
+                            </div>
+                            <p class="text-muted mb-0">El expediente ha sido registrado, clasificado y derivado exitosamente.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 justify-content-center pb-4">
+                        <button type="button" class="btn btn-success btn-lg px-4" onclick="imprimirCargo()">
+                            <i class="fas fa-print me-2"></i>Imprimir Cargo
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+@endif
+
 @section('scripts')
 <script>
 let personaEncontrada = null;
@@ -1002,5 +1043,42 @@ function limpiarFormularioCompleto() {
 
 <!-- Script de validación de documentos (DNI, RUC, CE, PASAPORTE) -->
 <script src="{{ asset('js/validacion-documentos.js') }}"></script>
+
+<!-- Script para mostrar modal de confirmación y función de impresión -->
+@if(session('codigo_expediente'))
+    @php
+        $expediente = \App\Models\Expediente::where('codigo_expediente', session('codigo_expediente'))->first();
+    @endphp
+    @if($expediente)
+        <script>
+            // Mostrar modal automáticamente al cargar la página
+            window.addEventListener('DOMContentLoaded', function() {
+                const modal = new bootstrap.Modal(document.getElementById('modalCargoExitoso'));
+                modal.show();
+            });
+
+            // Función para imprimir cargo
+            function imprimirCargo() {
+                const cargoUrl = "{{ route('mesa-partes.cargo', $expediente->id_expediente) }}";
+                const width = 900;
+                const height = 700;
+                const left = (screen.width - width) / 2;
+                const top = (screen.height - height) / 2;
+
+                window.open(
+                    cargoUrl,
+                    'CargoPrint',
+                    `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+                );
+
+                // Cerrar el modal después de abrir la ventana de impresión
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCargoExitoso'));
+                if (modal) {
+                    modal.hide();
+                }
+            }
+        </script>
+    @endif
+@endif
 @endsection
 @endsection

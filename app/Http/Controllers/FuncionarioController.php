@@ -6,9 +6,16 @@ use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\Derivacion;
 use App\Models\Documento;
+use App\Services\DerivacionService;
 
 class FuncionarioController extends Controller
 {
+    protected DerivacionService $derivacionService;
+
+    public function __construct(DerivacionService $derivacionService)
+    {
+        $this->derivacionService = $derivacionService;
+    }
     public function index(Request $request)
     {
         $query = Expediente::where('id_funcionario_asignado', auth()->user()->id)
@@ -50,9 +57,7 @@ class FuncionarioController extends Controller
 
     public function show(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
+        $this->authorize('process', $expediente);
         
         $expediente->load(['documentos', 'derivaciones', 'historial', 'tipoTramite', 'area', 'persona']);
         return view('funcionario.show', compact('expediente'));
@@ -61,10 +66,8 @@ class FuncionarioController extends Controller
     public function recibir(Expediente $expediente)
     {
         try {
-            // Verificar que el funcionario tenga acceso
-            if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-                return response()->json(['error' => 'No tienes acceso a este expediente'], 403);
-            }
+            // Verificar permisos
+            $this->authorize('process', $expediente);
             
             // Verificar que el expediente esté en estado derivado
             if ($expediente->estado !== 'derivado') {
@@ -191,9 +194,7 @@ class FuncionarioController extends Controller
 
     public function historial(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
+        $this->authorize('process', $expediente);
         
         $expediente->load(['historial.usuario', 'observaciones']);
         return view('funcionario.historial', compact('expediente'));
@@ -201,9 +202,7 @@ class FuncionarioController extends Controller
 
     public function documentos(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
+        $this->authorize('process', $expediente);
         
         $expediente->load(['documentos.usuario']);
         return view('funcionario.documentos', compact('expediente'));
@@ -275,18 +274,14 @@ class FuncionarioController extends Controller
 
     public function solicitarInfoForm(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
+        $this->authorize('process', $expediente);
         
         return view('funcionario.solicitar-info', compact('expediente'));
     }
     
     public function derivarForm(Expediente $expediente)
     {
-        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-            abort(403, 'No tienes acceso a este expediente');
-        }
+        $this->authorize('process', $expediente);
         
         $areas = \App\Models\Area::where('activo', true)
             ->where('id_area', '!=', auth()->user()->id_area)
@@ -295,6 +290,10 @@ class FuncionarioController extends Controller
         return view('funcionario.derivar', compact('expediente', 'areas'));
     }
     
+    /**
+     * Derivar expediente a otra área
+     * REFACTORIZADO: Usa DerivacionService para evitar duplicación de código
+     */
     public function derivar(Request $request, Expediente $expediente)
     {
         $request->validate([
@@ -303,41 +302,27 @@ class FuncionarioController extends Controller
             'observaciones' => 'required|string|max:500',
             'plazo_dias' => 'required|integer|min:1|max:30'
         ]);
-        
-        if ($expediente->id_funcionario_asignado !== auth()->user()->id) {
-            abort(403, 'No tienes acceso a este expediente');
+
+        // Verificar permisos
+        $this->authorize('process', $expediente);
+
+        try {
+            // Usar el servicio de derivación
+            $derivacion = $this->derivacionService->derivarExpediente(
+                $expediente,
+                $request->id_area_destino,
+                $request->id_funcionario_destino,
+                $request->observaciones,
+                $request->plazo_dias
+            );
+
+            $area_destino = \App\Models\Area::find($request->id_area_destino);
+
+            return redirect()->route('funcionario.index')
+                ->with('success', 'Expediente derivado correctamente a ' . $area_destino->nombre);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al derivar expediente: ' . $e->getMessage());
         }
-        
-        // Crear derivación
-        \App\Models\Derivacion::create([
-            'id_expediente' => $expediente->id_expediente,
-            'id_area_origen' => auth()->user()->id_area,
-            'id_area_destino' => $request->id_area_destino,
-            'id_funcionario_origen' => auth()->user()->id,
-            'id_funcionario_destino' => $request->id_funcionario_destino,
-            'id_funcionario_asignado' => $request->id_funcionario_destino,
-            'fecha_derivacion' => now(),
-            'fecha_limite' => now()->addDays($request->plazo_dias),
-            'plazo_dias' => $request->plazo_dias,
-            'observaciones' => $request->observaciones,
-            'estado' => 'pendiente'
-        ]);
-        
-        // Actualizar expediente
-        $expediente->update([
-            'id_area' => $request->id_area_destino,
-            'id_funcionario_asignado' => $request->id_funcionario_destino,
-            'estado' => 'derivado'
-        ]);
-        
-        // Registrar en historial
-        $area_destino = \App\Models\Area::find($request->id_area_destino);
-        $expediente->agregarHistorial(
-            "Derivado a {$area_destino->nombre}: {$request->observaciones}",
-            auth()->user()->id
-        );
-        
-        return redirect()->route('funcionario.index')
-            ->with('success', 'Expediente derivado correctamente a ' . $area_destino->nombre);
     }
 }

@@ -167,7 +167,7 @@ use Illuminate\Support\Facades\Storage;
                         <div class="card-body">
                             <h6>Acciones Disponibles</h6>
                             <div class="btn-group" role="group">
-                                <a href="{{ route('mesa-partes.cargo-recepcion', $expediente) }}" class="btn btn-success">
+                                <a href="{{ route('mesa-partes.cargo', $expediente) }}" class="btn btn-success">
                                     <i class="fas fa-download"></i> Descargar Cargo
                                 </a>
                                 @if($expediente->estado == 'pendiente')

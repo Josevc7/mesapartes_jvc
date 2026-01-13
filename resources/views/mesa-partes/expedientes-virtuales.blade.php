@@ -140,4 +140,72 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmación de clasificación exitosa -->
+@if(session('id_expediente') && session('codigo_expediente'))
+    <div class="modal fade" id="modalCargoExitoso" tabindex="-1" aria-labelledby="modalCargoExitosoLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white border-0">
+                    <h5 class="modal-title" id="modalCargoExitosoLabel">
+                        <i class="fas fa-check-circle me-2"></i>¡Clasificación Exitosa!
+                    </h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-4">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="fas fa-file-alt fa-3x text-success"></i>
+                        </div>
+                        <h4 class="mb-3">Expediente Clasificado y Derivado</h4>
+                        <div class="alert alert-info border-0 mb-3">
+                            <p class="mb-1"><strong>Código de Expediente:</strong></p>
+                            <h3 class="text-primary mb-0">{{ session('codigo_expediente') }}</h3>
+                        </div>
+                        <p class="text-muted mb-0">El expediente virtual ha sido clasificado y derivado exitosamente.</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="button" class="btn btn-success btn-lg px-4" onclick="imprimirCargoVirtual()">
+                        <i class="fas fa-print me-2"></i>Imprimir Cargo
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
+<!-- Script para mostrar modal de confirmación y función de impresión -->
+@if(session('id_expediente'))
+    <script>
+        // Mostrar modal automáticamente al cargar la página
+        window.addEventListener('DOMContentLoaded', function() {
+            const modal = new bootstrap.Modal(document.getElementById('modalCargoExitoso'));
+            modal.show();
+        });
+
+        // Función para imprimir cargo
+        function imprimirCargoVirtual() {
+            const cargoUrl = "{{ route('mesa-partes.cargo', session('id_expediente')) }}";
+            const width = 900;
+            const height = 700;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+
+            window.open(
+                cargoUrl,
+                'CargoPrint',
+                `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+            );
+
+            // Cerrar el modal después de abrir la ventana de impresión
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalCargoExitoso'));
+            if (modal) {
+                modal.hide();
+            }
+        }
+    </script>
+@endif
 @endsection

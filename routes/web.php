@@ -42,11 +42,27 @@ Route::prefix('ciudadano')->middleware(['auth', 'role:Ciudadano,Administrador'])
     Route::get('/dashboard', [CiudadanoController::class, 'dashboard'])->name('ciudadano.dashboard');
     Route::get('/mis-expedientes', [CiudadanoController::class, 'misExpedientes'])->name('ciudadano.mis-expedientes');
     Route::get('/seguimiento/{codigo}', [CiudadanoController::class, 'seguimiento'])->name('ciudadano.seguimiento');
-    Route::get('/acuse-recibo/{codigo}', [CiudadanoController::class, 'acuseRecibo'])->name('ciudadano.acuse-recibo');
-    Route::get('/descargar-acuse/{codigo}', [CiudadanoController::class, 'descargarAcuse'])->name('ciudadano.descargar-acuse');
+
+    // CARGO DE RECEPCIÓN (Acuse de Recibo)
+    // Ruta principal unificada para descargar/ver cargo
+    Route::get('/cargo/{codigo}', [CiudadanoController::class, 'acuseRecibo'])->name('ciudadano.cargo');
+
+    // Rutas legacy mantenidas por compatibilidad (redirigen a la principal)
+    Route::get('/acuse-recibo/{codigo}', function($codigo) {
+        return redirect()->route('ciudadano.cargo', $codigo);
+    })->name('ciudadano.acuse-recibo');
+
+    Route::get('/descargar-acuse/{codigo}', function($codigo) {
+        return redirect()->route('ciudadano.cargo', $codigo);
+    })->name('ciudadano.descargar-acuse');
+
+    Route::get('/expedientes/{codigo}/acuse', function($codigo) {
+        return redirect()->route('ciudadano.cargo', $codigo);
+    })->name('ciudadano.acuse-expediente');
+
     Route::get('/documento/{id_documento}/descargar', [CiudadanoController::class, 'descargarDocumento'])->name('ciudadano.descargar-documento');
     Route::get('/notificaciones', [CiudadanoController::class, 'notificaciones'])->name('ciudadano.notificaciones');
-    
+
     // Registrar expedientes
     Route::get('/registrar-expediente', [CiudadanoController::class, 'registrarExpediente'])->name('ciudadano.registrar-expediente');
     Route::post('/enviar-tramite', [CiudadanoController::class, 'storeExpediente'])->name('ciudadano.enviar-tramite');
@@ -56,7 +72,6 @@ Route::prefix('ciudadano')->middleware(['auth', 'role:Ciudadano,Administrador'])
     Route::get('/expediente-guardado', function() {
         return redirect()->route('ciudadano.dashboard')->with('success', session('mensaje_expediente'));
     })->name('ciudadano.expediente-guardado');
-    Route::get('/expedientes/{codigo}/acuse', [CiudadanoController::class, 'acuseRecibo'])->name('ciudadano.acuse-expediente');
     
     // Notificaciones
     Route::post('/notificaciones/{id}/marcar-leida', [CiudadanoController::class, 'marcarNotificacionLeida'])->name('ciudadano.marcar-notificacion-leida');
@@ -114,8 +129,16 @@ Route::prefix('mesa-partes')->middleware(['auth', 'role:Mesa de Partes,Administr
     // Monitoreo y control
     Route::get('/dashboard', [MesaPartesController::class, 'dashboard'])->name('mesa-partes.dashboard');
     Route::get('/monitoreo', [MesaPartesController::class, 'monitoreo'])->name('mesa-partes.monitoreo');
-    Route::get('/expedientes/{expediente}/acuse-recibo', [MesaPartesController::class, 'acuseRecibo'])->name('mesa-partes.acuse-recibo');
-    Route::get('/expedientes/{expediente}/cargo', [MesaPartesController::class, 'cargoRecepcion'])->name('mesa-partes.cargo-recepcion');
+
+    // CARGO DE RECEPCIÓN
+    // Ruta principal unificada
+    Route::get('/expedientes/{expediente}/cargo', [MesaPartesController::class, 'acuseRecibo'])->name('mesa-partes.cargo');
+
+    // Ruta legacy mantenida por compatibilidad (redirige a la principal)
+    Route::get('/expedientes/{expediente}/acuse-recibo', function($expediente) {
+        return redirect()->route('mesa-partes.cargo', $expediente);
+    })->name('mesa-partes.acuse-recibo');
+
     Route::get('/estadisticas', [MesaPartesController::class, 'estadisticas'])->name('mesa-partes.estadisticas');
     Route::get('/numeracion', [MesaPartesController::class, 'numeracion'])->name('mesa-partes.numeracion');
     Route::post('/numeracion/verificar', [MesaPartesController::class, 'verificarNumeracion'])->name('mesa-partes.verificar-numeracion');

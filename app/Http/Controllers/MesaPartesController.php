@@ -96,7 +96,8 @@ class MesaPartesController extends Controller
             return redirect()
                 ->route('mesa-partes.registrar')
                 ->with('success', 'Expediente registrado, clasificado y derivado correctamente en un solo paso')
-                ->with('codigo_expediente', $expediente->codigo_expediente);
+                ->with('codigo_expediente', $expediente->codigo_expediente)
+                ->with('id_expediente', $expediente->id_expediente);
 
         } catch (\Exception $e) {
             \DB::rollBack();
@@ -337,14 +338,16 @@ class MesaPartesController extends Controller
         }
     }
     
-    public function cargoRecepcion(Expediente $expediente)
-    {
-        $expediente->load(['documentos', 'tipoTramite', 'persona']);
-
-        $pdf = \PDF::loadView('pdf.cargo-recepcion', compact('expediente'));
-
-        return $pdf->download('CARGO_' . $expediente->codigo_expediente . '.pdf');
-    }
+    /**
+     * MÉTODO DEPRECADO - Usar acuseRecibo() en su lugar
+     * Mantenido por compatibilidad, pero ya no se usa en rutas
+     */
+    // public function cargoRecepcion(Expediente $expediente)
+    // {
+    //     $expediente->load(['documentos', 'tipoTramite', 'persona']);
+    //     $pdf = \PDF::loadView('pdf.cargo-recepcion', compact('expediente'));
+    //     return $pdf->download('CARGO_' . $expediente->codigo_expediente . '.pdf');
+    // }
 
     /**
      * Lista los expedientes virtuales pendientes de clasificación
@@ -433,7 +436,9 @@ class MesaPartesController extends Controller
 
             return redirect()
                 ->route('mesa-partes.expedientes-virtuales')
-                ->with('success', "Expediente virtual {$expediente->codigo_expediente} clasificado y derivado correctamente");
+                ->with('success', "Expediente virtual {$expediente->codigo_expediente} clasificado y derivado correctamente")
+                ->with('codigo_expediente', $expediente->codigo_expediente)
+                ->with('id_expediente', $expediente->id_expediente);
 
         } catch (\Exception $e) {
             \DB::rollBack();

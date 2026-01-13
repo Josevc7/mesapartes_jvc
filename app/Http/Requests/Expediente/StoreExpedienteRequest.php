@@ -105,6 +105,8 @@ class StoreExpedienteRequest extends FormRequest
             'prioridad_derivacion' => 'required|in:baja,normal,alta,urgente',
             'observaciones_derivacion' => 'nullable|string|max:1000',
         ];
+
+        return $rules;
     }
 
     /**

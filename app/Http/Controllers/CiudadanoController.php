@@ -73,14 +73,17 @@ class CiudadanoController extends Controller
         return view('ciudadano.seguimiento', compact('expediente'));
     }
 
-    public function descargarAcuse($codigo)
-    {
-        $expediente = Expediente::where('codigo_expediente', $codigo)
-            ->where('id_ciudadano', auth()->id())
-            ->firstOrFail();
-
-        return view('ciudadano.cargo', compact('expediente'));
-    }
+    /**
+     * MÉTODO DEPRECADO - Ahora se usa redirección a acuseRecibo()
+     * Mantenido por compatibilidad, pero ya no se usa directamente en rutas
+     */
+    // public function descargarAcuse($codigo)
+    // {
+    //     $expediente = Expediente::where('codigo_expediente', $codigo)
+    //         ->where('id_ciudadano', auth()->id())
+    //         ->firstOrFail();
+    //     return view('ciudadano.cargo', compact('expediente'));
+    // }
 
     public function descargarDocumento($id_documento)
     {

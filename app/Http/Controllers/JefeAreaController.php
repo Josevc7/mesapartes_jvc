@@ -319,13 +319,19 @@ class JefeAreaController extends Controller
             ->get()
             ->map(function($exp) {
                 $derivacion = $exp->derivaciones->first();
+
+                // Verificar si está vencido
                 if ($derivacion && $derivacion->fecha_limite && $derivacion->fecha_limite->isPast()) {
                     $exp->tipo_conflicto = 'vencido';
                     $exp->dias_vencido = $derivacion->fecha_limite->diffInDays(now());
-                } elseif (false) {
+                }
+                // Verificar si requiere autorización especial (prioridad Urgente sin clasificar)
+                elseif ($exp->prioridad === 'Urgente' && $exp->estado === 'Registrado') {
                     $exp->tipo_conflicto = 'autorizacion';
                     $exp->dias_vencido = 0;
-                } else {
+                }
+                // Por defecto es observación
+                else {
                     $exp->tipo_conflicto = 'observacion';
                     $exp->dias_vencido = 0;
                 }
