@@ -327,14 +327,14 @@
                 <div class="logo-icon">
                     <img src="{{ asset('images/logo-drtc.png') }}" alt="Logo DRTC">
                 </div>
-                <h1 class="logo-title">Mesa de Partes DRTC</h1>
-                <p class="logo-subtitle">Sistema Digital de Tramites</p>
+                <h1 class="logo-title">Mesa de Partes DRTC-Apurimac</h1>
+                <p class="logo-subtitle"> Sistema de Trámite Documentario - DRTC Apurímac" </p>
 
                 <ul class="logo-features list-unstyled">
-                    <li><i class="fas fa-check-circle"></i> Registro de expedientes en linea</li>
+                    <li><i class="fas fa-check-circle"></i> Registro de expedientes por via virtual</li>
                     <li><i class="fas fa-check-circle"></i> Seguimiento en tiempo real</li>
                     <li><i class="fas fa-check-circle"></i> Notificaciones automaticas</li>
-                    <li><i class="fas fa-check-circle"></i> Gestion documental segura</li>
+                    <li><i class="fas fa-check-circle"></i> Gestion de expediente segura</li>
                 </ul>
             </div>
 
@@ -344,7 +344,7 @@
                     <small class="text-white opacity-90 fw-semibold">Acceso Seguro</small>
                 </div>
                 <small class="text-white opacity-75">
-                    © 2024 Direccion Regional de Transportes y Comunicaciones
+                    © 2026 Direccion Regional de Transportes y Comunicaciones Apurimac
                 </small>
             </div>
         </div>
