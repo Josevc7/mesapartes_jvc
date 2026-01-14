@@ -81,6 +81,67 @@
 small {
     font-size: 0.7rem;
 }
+
+/* Paginación muy compacta */
+.pagination {
+    margin-top: 0.3rem;
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    padding: 0.15rem 0.35rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6 !important;
+}
+
+.pagination .page-item {
+    margin: 0 2px;
+}
+
+.pagination .page-item:first-child .page-link,
+.pagination .page-item:last-child .page-link {
+    border-radius: 0.25rem;
+}
+
+.pagination .page-item.active .page-link {
+    font-weight: 600;
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    font-size: 0.7rem !important;
+}
+
+/* Reducir tamaño de iconos en paginación */
+.pagination .page-link i {
+    font-size: 0.7rem !important;
+}
+
+/* Forzar tamaño compacto en todos los estados */
+nav ul.pagination {
+    margin: 0.3rem 0 !important;
+}
+
+nav ul.pagination li {
+    font-size: 0.75rem !important;
+}
+
+/* Reducir espacio entre tabla y paginación */
+.table-responsive {
+    margin-bottom: 0.5rem !important;
+}
+
+.card-body {
+    padding-bottom: 0.5rem !important;
+}
 </style>
 @endsection
 

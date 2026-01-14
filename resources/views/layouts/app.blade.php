@@ -18,7 +18,7 @@
     <nav class="navbar navbar-dark fixed-top" style="background-color: #cc5500; height: 60px;">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
-                <img src="{{ asset('images/logo-drtc.png') }}" alt="Logo DRTC">
+                <img src="{{ asset('images/logo1.jpg') }}" alt="Logo DRTC">
                 <span class="fw-bold">Mesa de Partes DRTC</span>
             </a>
             

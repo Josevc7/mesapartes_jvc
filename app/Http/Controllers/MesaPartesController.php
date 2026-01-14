@@ -33,11 +33,17 @@ class MesaPartesController extends Controller
     }
     public function index()
     {
-        $expedientes = Expediente::with(['tipoTramite', 'ciudadano', 'area', 'persona'])
+        $expedientes = Expediente::with([
+                'tipoTramite',
+                'ciudadano',
+                'area',
+                'persona',
+                'derivaciones' => fn($q) => $q->latest()->limit(1) // Para estado_inteligente
+            ])
             ->whereIn('estado', ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-            
+
         return view('mesa-partes.index', compact('expedientes'));
     }
 
@@ -203,17 +209,37 @@ class MesaPartesController extends Controller
                 $q->where('fecha_limite', '<', now())
                   ->where('estado', 'Pendiente');
             })
-            ->with(['tipoTramite', 'area', 'funcionarioAsignado'])
-            ->get();
-            
+            ->with([
+                'tipoTramite',
+                'area',
+                'funcionarioAsignado',
+                'derivaciones' => function($q) {
+                    $q->where('fecha_limite', '<', now())
+                      ->where('estado', 'Pendiente')
+                      ->orderBy('fecha_limite', 'asc');
+                }
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15, ['*'], 'vencidos_page');
+
         $porVencer = Expediente::whereIn('estado', ['derivado', 'en_proceso'])
             ->whereHas('derivaciones', function($q) {
                 $q->whereBetween('fecha_limite', [now(), now()->addDays(3)])
                   ->where('estado', 'Pendiente');
             })
-            ->with(['tipoTramite', 'area', 'funcionarioAsignado'])
-            ->get();
-            
+            ->with([
+                'tipoTramite',
+                'area',
+                'funcionarioAsignado',
+                'derivaciones' => function($q) {
+                    $q->whereBetween('fecha_limite', [now(), now()->addDays(3)])
+                      ->where('estado', 'Pendiente')
+                      ->orderBy('fecha_limite', 'asc');
+                }
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15, ['*'], 'por_vencer_page');
+
         return view('mesa-partes.monitoreo', compact('vencidos', 'porVencer'));
     }
 
@@ -252,11 +278,19 @@ class MesaPartesController extends Controller
 
     public function estadisticas()
     {
+        // Optimización: Una sola consulta para estadísticas de hoy
+        $hoy = today();
+        $estadisticasHoy = Expediente::selectRaw("
+            SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as registrados_hoy,
+            SUM(CASE WHEN DATE(updated_at) = ? AND estado = 'derivado' THEN 1 ELSE 0 END) as derivados_hoy,
+            SUM(CASE WHEN DATE(updated_at) = ? AND estado = 'archivado' THEN 1 ELSE 0 END) as archivados_hoy
+        ", [$hoy, $hoy, $hoy])->first();
+
         $estadisticas = [
-            'registrados_hoy' => Expediente::whereDate('created_at', today())->count(),
-            'clasificados_hoy' => Expediente::whereDate('updated_at', today())->where('estado', 'derivado')->count(),
-            'derivados_hoy' => Expediente::whereDate('updated_at', today())->where('estado', 'derivado')->count(),
-            'archivados_hoy' => Expediente::whereDate('updated_at', today())->where('estado', 'archivado')->count()
+            'registrados_hoy' => $estadisticasHoy->registrados_hoy ?? 0,
+            'clasificados_hoy' => $estadisticasHoy->derivados_hoy ?? 0,
+            'derivados_hoy' => $estadisticasHoy->derivados_hoy ?? 0,
+            'archivados_hoy' => $estadisticasHoy->archivados_hoy ?? 0
         ];
 
         $tiposTramiteFrecuentes = TipoTramite::withCount('expedientes')
@@ -269,15 +303,29 @@ class MesaPartesController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
+        // Optimización: Una sola consulta para los últimos 30 días en lugar de 60 consultas
+        $fechaInicio = now()->subDays(29)->startOfDay();
+        $datosGrafico = Expediente::selectRaw("
+            DATE(created_at) as fecha,
+            COUNT(*) as registrados,
+            SUM(CASE WHEN estado = 'derivado' THEN 1 ELSE 0 END) as derivados
+        ")
+            ->where('created_at', '>=', $fechaInicio)
+            ->groupBy(\DB::raw('DATE(created_at)'))
+            ->orderBy('fecha')
+            ->get()
+            ->keyBy('fecha');
+
         $graficoLabels = [];
         $graficoRegistrados = [];
         $graficoDerivados = [];
-        
+
         for ($i = 29; $i >= 0; $i--) {
             $fecha = now()->subDays($i);
+            $fechaStr = $fecha->format('Y-m-d');
             $graficoLabels[] = $fecha->format('d/m');
-            $graficoRegistrados[] = Expediente::whereDate('created_at', $fecha)->count();
-            $graficoDerivados[] = Expediente::whereDate('updated_at', $fecha)->where('estado', 'derivado')->count();
+            $graficoRegistrados[] = $datosGrafico->get($fechaStr)->registrados ?? 0;
+            $graficoDerivados[] = $datosGrafico->get($fechaStr)->derivados ?? 0;
         }
 
         return view('mesa-partes.estadisticas', compact(

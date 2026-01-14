@@ -259,6 +259,11 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
     Route::get('/reportes/tramites-mes', [ReporteController::class, 'tramitesPorMes'])->name('reportes.tramites-mes');
     Route::get('/reportes/tiempos-atencion', [ReporteController::class, 'tiemposAtencion'])->name('reportes.tiempos-atencion');
+    Route::get('/reportes/por-fecha', [ReporteController::class, 'reportePorFecha'])->name('reportes.por-fecha');
+    Route::get('/reportes/por-tipo-tramite', [ReporteController::class, 'reportePorTipoTramite'])->name('reportes.por-tipo-tramite');
+    Route::get('/reportes/por-area', [ReporteController::class, 'reportePorArea'])->name('reportes.por-area');
+    Route::get('/reportes/por-remitente', [ReporteController::class, 'reportePorRemitente'])->name('reportes.por-remitente');
+    Route::get('/reportes/exportar', [ReporteController::class, 'exportarReporte'])->name('reportes.exportar');
     
     // Gestión de personas
     Route::get('/personas', [AdminController::class, 'personas'])->name('admin.personas');

@@ -15,7 +15,7 @@
         <div class="col-12">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
-                    <h5><i class="fas fa-exclamation-triangle"></i> Expedientes Vencidos ({{ $vencidos->count() }})</h5>
+                    <h5><i class="fas fa-exclamation-triangle"></i> Expedientes Vencidos ({{ $vencidos->total() }})</h5>
                 </div>
                 <div class="card-body">
                     @if($vencidos->count() > 0)
@@ -33,6 +33,12 @@
                                 </thead>
                                 <tbody>
                                     @foreach($vencidos as $expediente)
+                                    @php
+                                        $ultimaDerivacion = $expediente->derivaciones->first();
+                                        $diasVencido = $ultimaDerivacion && $ultimaDerivacion->fecha_limite
+                                            ? (int) now()->diffInDays($ultimaDerivacion->fecha_limite)
+                                            : 0;
+                                    @endphp
                                     <tr>
                                         <td>{{ $expediente->codigo_expediente }}</td>
                                         <td>{{ Str::limit($expediente->asunto, 40) }}</td>
@@ -40,7 +46,7 @@
                                         <td>{{ $expediente->funcionarioAsignado->name ?? 'Sin asignar' }}</td>
                                         <td>
                                             <span class="badge bg-danger">
-                                                {{ now()->diffInDays($expediente->derivaciones->first()->fecha_limite ?? now()) }} días
+                                                {{ $diasVencido }} días
                                             </span>
                                         </td>
                                         <td>
@@ -51,6 +57,9 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="d-flex justify-content-center mt-3">
+                            {{ $vencidos->links() }}
                         </div>
                     @else
                         <p class="text-muted">No hay expedientes vencidos</p>
@@ -65,7 +74,7 @@
         <div class="col-12">
             <div class="card border-warning">
                 <div class="card-header bg-warning text-dark">
-                    <h5><i class="fas fa-clock"></i> Por Vencer en 3 Días ({{ $porVencer->count() }})</h5>
+                    <h5><i class="fas fa-clock"></i> Por Vencer en 3 Días ({{ $porVencer->total() }})</h5>
                 </div>
                 <div class="card-body">
                     @if($porVencer->count() > 0)
@@ -83,6 +92,12 @@
                                 </thead>
                                 <tbody>
                                     @foreach($porVencer as $expediente)
+                                    @php
+                                        $ultimaDerivacion = $expediente->derivaciones->first();
+                                        $diasRestantes = $ultimaDerivacion && $ultimaDerivacion->fecha_limite
+                                            ? (int) $ultimaDerivacion->fecha_limite->diffInDays(now())
+                                            : 0;
+                                    @endphp
                                     <tr>
                                         <td>{{ $expediente->codigo_expediente }}</td>
                                         <td>{{ Str::limit($expediente->asunto, 40) }}</td>
@@ -90,7 +105,7 @@
                                         <td>{{ $expediente->funcionarioAsignado->name ?? 'Sin asignar' }}</td>
                                         <td>
                                             <span class="badge bg-warning">
-                                                {{ ($expediente->derivaciones->first()->fecha_limite ?? now())->diffInDays(now()) }} días
+                                                {{ $diasRestantes }} días
                                             </span>
                                         </td>
                                         <td>
@@ -100,6 +115,9 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="d-flex justify-content-center mt-3">
+                            {{ $porVencer->links() }}
                         </div>
                     @else
                         <p class="text-muted">No hay expedientes próximos a vencer</p>

@@ -8,20 +8,33 @@ use App\Models\Area;
 use App\Models\TipoTramite;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class EstadisticasService
 {
     /**
      * Obtiene estadísticas del dashboard de Mesa de Partes
+     * Con caché de 5 minutos para mejorar rendimiento
      */
     public function obtenerEstadisticasMesaPartes(): array
     {
-        return [
-            'registrados_hoy' => Expediente::whereDate('created_at', today())->count(),
-            'pendientes_clasificar' => Expediente::whereIn('estado', ['recepcionado', 'registrado'])->count(),
-            'pendientes_derivar' => Expediente::where('estado', 'clasificado')->count(),
-            'vencidos' => $this->contarExpedientesVencidos()
-        ];
+        return Cache::remember('estadisticas_mesa_partes', 300, function () {
+            $hoy = today();
+
+            // Una sola consulta optimizada para todas las estadísticas
+            $stats = Expediente::selectRaw("
+                SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as registrados_hoy,
+                SUM(CASE WHEN estado IN ('recepcionado', 'registrado') THEN 1 ELSE 0 END) as pendientes_clasificar,
+                SUM(CASE WHEN estado = 'clasificado' THEN 1 ELSE 0 END) as pendientes_derivar
+            ", [$hoy])->first();
+
+            return [
+                'registrados_hoy' => (int) ($stats->registrados_hoy ?? 0),
+                'pendientes_clasificar' => (int) ($stats->pendientes_clasificar ?? 0),
+                'pendientes_derivar' => (int) ($stats->pendientes_derivar ?? 0),
+                'vencidos' => $this->contarExpedientesVencidos()
+            ];
+        });
     }
 
     /**
@@ -179,35 +192,48 @@ class EstadisticasService
 
     /**
      * Obtiene serie temporal de expedientes registrados
+     * Optimizado: Una sola consulta en lugar de 60 consultas en loop
      */
     public function obtenerSerieTemporal(int $dias = 30, ?int $areaId = null): array
     {
-        $labels = [];
-        $registrados = [];
-        $derivados = [];
+        $cacheKey = "serie_temporal_{$dias}_" . ($areaId ?? 'all');
 
-        for ($i = $dias - 1; $i >= 0; $i--) {
-            $fecha = now()->subDays($i);
-            $labels[] = $fecha->format('d/m');
+        return Cache::remember($cacheKey, 300, function () use ($dias, $areaId) {
+            $fechaInicio = now()->subDays($dias - 1)->startOfDay();
 
-            $queryRegistrados = Expediente::whereDate('created_at', $fecha);
-            $queryDerivados = Expediente::whereDate('updated_at', $fecha)
-                ->where('estado', 'derivado');
+            $query = Expediente::selectRaw("
+                DATE(created_at) as fecha,
+                COUNT(*) as registrados,
+                SUM(CASE WHEN estado = 'derivado' THEN 1 ELSE 0 END) as derivados
+            ")->where('created_at', '>=', $fechaInicio);
 
             if ($areaId) {
-                $queryRegistrados->where('id_area', $areaId);
-                $queryDerivados->where('id_area', $areaId);
+                $query->where('id_area', $areaId);
             }
 
-            $registrados[] = $queryRegistrados->count();
-            $derivados[] = $queryDerivados->count();
-        }
+            $datosGrafico = $query->groupBy(DB::raw('DATE(created_at)'))
+                ->orderBy('fecha')
+                ->get()
+                ->keyBy('fecha');
 
-        return [
-            'labels' => $labels,
-            'registrados' => $registrados,
-            'derivados' => $derivados
-        ];
+            $labels = [];
+            $registrados = [];
+            $derivados = [];
+
+            for ($i = $dias - 1; $i >= 0; $i--) {
+                $fecha = now()->subDays($i);
+                $fechaStr = $fecha->format('Y-m-d');
+                $labels[] = $fecha->format('d/m');
+                $registrados[] = (int) ($datosGrafico->get($fechaStr)->registrados ?? 0);
+                $derivados[] = (int) ($datosGrafico->get($fechaStr)->derivados ?? 0);
+            }
+
+            return [
+                'labels' => $labels,
+                'registrados' => $registrados,
+                'derivados' => $derivados
+            ];
+        });
     }
 
     /**
