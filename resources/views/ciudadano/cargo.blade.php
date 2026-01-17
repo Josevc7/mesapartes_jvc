@@ -1,182 +1,341 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargo - {{ $expediente->codigo_expediente }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-@section('title', 'Acuse de Recibo')
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #333;
+            background: #fff;
+        }
 
-@section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header text-center bg-primary text-white">
-                    <h4><i class="fas fa-certificate"></i> CARGO</h4>
-                    <small>Mesa de Partes Digital</small>
-                </div>
-                <div class="card-body" id="acuse-content">
-                    <div class="text-center mb-4">
-                        <h5>DIRECCIÓN REGIONAL DE TRANSPORTES Y COMUNICACIONES DE APURÍMAC</h5>
-                        <p class="text-muted">Sistema de Mesa de Partes Digital</p>
-                        <hr>
-                    </div>
-                    
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="text-center">
-                                <h3 class="text-primary">{{ $expediente->codigo_expediente }}</h3>
-                                <small class="text-muted">Código del Expediente</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="text-center">
-                                <h5>{{ $expediente->created_at->format('d/m/Y H:i') }}</h5>
-                                <small class="text-muted">Fecha y Hora de Registro</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Solicitante:</strong><br>
-                            {{ $expediente->ciudadano->name }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>DNI:</strong><br>
-                            {{ $expediente->ciudadano->dni ?? 'No registrado' }}
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Email:</strong><br>
-                            {{ $expediente->ciudadano->email }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Teléfono:</strong><br>
-                            {{ $expediente->ciudadano->telefono ?? 'No registrado' }}
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <strong>Asunto:</strong><br>
-                        {{ $expediente->asunto }}
-                    </div>
-                    
-                    @if($expediente->tipoTramite)
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Tipo de Trámite:</strong><br>
-                            {{ $expediente->tipoTramite->nombre }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Plazo de Atención:</strong><br>
-                            {{ $expediente->tipoTramite->plazo_dias }} días hábiles
-                        </div>
-                    </div>
-                    @endif
-                    
-                    @if($expediente->area)
-                    <div class="mb-3">
-                        <strong>Área Responsable:</strong><br>
-                        {{ $expediente->area->nombre }}
-                    </div>
-                    @endif
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Estado Actual:</strong><br>
-                            <span class="badge bg-{{ 
-                                $expediente->estado == 'Registrado' ? 'secondary' : 
-                                ($expediente->estado == 'En Proceso' ? 'info' : 
-                                ($expediente->estado == 'Resuelto' ? 'success' : 'warning')) 
-                            }} fs-6">
-                                {{ $expediente->estado }}
-                            </span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Prioridad:</strong><br>
-                            <span class="badge bg-{{ 
-                                $expediente->prioridad == 'Urgente' ? 'danger' : 
-                                ($expediente->prioridad == 'Alta' ? 'warning' : 'secondary') 
-                            }} fs-6">
-                                {{ $expediente->prioridad }}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <strong>Documentos Adjuntos:</strong><br>
-                        @if($expediente->documentos->count() > 0)
-                            <ul class="list-unstyled">
-                                @foreach($expediente->documentos as $documento)
-                                <li><i class="fas fa-file-pdf text-danger"></i> {{ $documento->nombre }}</li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <span class="text-muted">Sin documentos adjuntos</span>
-                        @endif
-                    </div>
-                    
-                    <hr>
-                    
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle"></i> Información Importante:</h6>
-                        <ul class="mb-0">
-                            <li><strong>Conserve este cargo</strong> para futuras consultas</li>
-                            <li>Puede consultar el estado de su trámite en cualquier momento usando el código: <strong>{{ $expediente->codigo_expediente }}</strong></li>
-                            <li>Recibirá notificaciones por email sobre el avance de su expediente</li>
-                            <li>El plazo de atención se cuenta desde la fecha de registro</li>
-                            <li>Para consultas: <a href="{{ route('seguimiento.form') }}">Sistema de Seguimiento</a></li>
-                        </ul>
-                    </div>
-                    
-                    <!-- QR Code para consulta rápida -->
-                    <div class="text-center mt-4">
-                        <div class="d-inline-block p-3 border">
-                            <div id="qrcode"></div>
-                            <small class="d-block mt-2 text-muted">Escanee para consulta rápida</small>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center mt-4 no-print">
-                        <button onclick="window.print()" class="btn btn-primary me-2">
-                            <i class="fas fa-print"></i> Imprimir Cargo
-                        </button>
-                        <button onclick="descargarPDF()" class="btn btn-success me-2">
-                            <i class="fas fa-download"></i> Descargar PDF
-                        </button>
-                        <a href="{{ route('ciudadano.dashboard') }}" class="btn btn-secondary">
-                            <i class="fas fa-home"></i> Volver al Inicio
-                        </a>
-                    </div>
-                </div>
+        .cargo-container {
+            max-width: 500px;
+            margin: 10px auto;
+            padding: 15px;
+            border: 2px solid #333;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 9pt;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        .header p {
+            font-size: 8pt;
+            color: #555;
+        }
+
+        .header .logo {
+            max-width: 40px;
+            height: auto;
+            margin-top: -12px;
+            margin-bottom: 3px;
+        }
+
+        .titulo-cargo {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 6px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 4px;
+            padding: 3px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 130px;
+            flex-shrink: 0;
+            font-size: 8pt;
+        }
+
+        .info-value {
+            flex: 1;
+            font-size: 8pt;
+        }
+
+        .section {
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 9pt;
+            background: #e9e9e9;
+            padding: 3px 8px;
+            margin-bottom: 6px;
+            border-left: 3px solid #333;
+        }
+
+        .codigo-expediente {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #000;
+            background: #f0f0f0;
+            padding: 3px 8px;
+            display: inline-block;
+        }
+
+        .estado-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-weight: bold;
+            font-size: 8pt;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .estado-recepcionado { background: #e3f2fd; color: #1565c0; }
+        .estado-derivado { background: #d4edda; color: #155724; }
+        .estado-pendiente { background: #fff3cd; color: #856404; }
+        .estado-proceso { background: #cce5ff; color: #004085; }
+        .estado-finalizado { background: #d1ecf1; color: #0c5460; }
+
+        .disclaimer {
+            margin-top: 12px;
+            padding: 8px;
+            background: #fff8e1;
+            border: 1px solid #ffcc02;
+            font-size: 8pt;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .footer {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 7pt;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 8px;
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 6px 15px;
+            margin: 0 3px;
+            font-size: 9pt;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .cargo-container {
+                border: 2px solid #000;
+                margin: 0;
+                max-width: 100%;
+            }
+
+            .btn-container {
+                display: none !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cargo-container">
+        <!-- Encabezado -->
+        <div class="header">
+            <img src="{{ asset('images/logo-drtc.png') }}" alt="Logo DRTC" class="logo">
+            <h1>Dirección Regional de Transportes y Comunicaciones de Apurímac</h1>
+            <p>Mesa de Partes Digital - Ventanilla Virtual</p>
+        </div>
+
+        <div class="titulo-cargo">CARGO DE RECEPCIÓN</div>
+
+        <!-- Datos del Expediente -->
+        <div class="section">
+            <div class="section-title">DATOS DEL EXPEDIENTE</div>
+
+            <div class="info-row">
+                <span class="info-label">Código de Expediente:</span>
+                <span class="info-value codigo-expediente">{{ $expediente->codigo_expediente }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Fecha de Registro:</span>
+                <span class="info-value">{{ $expediente->created_at->format('d/m/Y H:i') }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Canal:</span>
+                <span class="info-value">Virtual</span>
             </div>
         </div>
+
+        <!-- Datos del Solicitante -->
+        <div class="section">
+            <div class="section-title">DATOS DEL SOLICITANTE</div>
+
+            <div class="info-row">
+                <span class="info-label">Solicitante:</span>
+                <span class="info-value">
+                    @if($expediente->persona)
+                        @if($expediente->persona->tipo_persona == 'NATURAL')
+                            {{ $expediente->persona->nombres }} {{ $expediente->persona->apellido_paterno }} {{ $expediente->persona->apellido_materno }}
+                        @else
+                            {{ $expediente->persona->razon_social }}
+                        @endif
+                    @else
+                        {{ $expediente->ciudadano->name ?? 'N/A' }}
+                    @endif
+                </span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Documento:</span>
+                <span class="info-value">{{ $expediente->dni_remitente ?? ($expediente->ciudadano->dni ?? 'N/A') }}</span>
+            </div>
+        </div>
+
+        <!-- Datos del Documento -->
+        <div class="section">
+            <div class="section-title">DATOS DEL DOCUMENTO</div>
+
+            <div class="info-row">
+                <span class="info-label">Tipo de Documento:</span>
+                <span class="info-value">{{ $expediente->tipo_documento_entrante ?? 'Solicitud' }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Asunto:</span>
+                <span class="info-value">{{ $expediente->asunto }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Folios:</span>
+                <span class="info-value">
+                    @php
+                        $folios = $expediente->folios ?? 1;
+                        $numerosEnLetras = [
+                            1 => 'una', 2 => 'dos', 3 => 'tres', 4 => 'cuatro', 5 => 'cinco',
+                            6 => 'seis', 7 => 'siete', 8 => 'ocho', 9 => 'nueve', 10 => 'diez',
+                            11 => 'once', 12 => 'doce', 13 => 'trece', 14 => 'catorce', 15 => 'quince',
+                            16 => 'dieciséis', 17 => 'diecisiete', 18 => 'dieciocho', 19 => 'diecinueve', 20 => 'veinte'
+                        ];
+                        $enLetras = $numerosEnLetras[$folios] ?? $folios;
+                        $unidad = $folios == 1 ? 'hoja' : 'hojas';
+                    @endphp
+                    {{ $folios }} ({{ $enLetras }}) {{ $unidad }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Clasificación -->
+        <div class="section">
+            <div class="section-title">CLASIFICACIÓN</div>
+
+            @if($expediente->tipoTramite)
+            <div class="info-row">
+                <span class="info-label">Tipo de Trámite:</span>
+                <span class="info-value">{{ $expediente->tipoTramite->nombre }}</span>
+            </div>
+            @endif
+
+            @if($expediente->area)
+            <div class="info-row">
+                <span class="info-label">Área Asignada:</span>
+                <span class="info-value">{{ $expediente->area->nombre }}</span>
+            </div>
+            @endif
+
+            <div class="info-row">
+                <span class="info-label">Estado:</span>
+                <span class="info-value">
+                    @php
+                        $estadoClass = 'estado-pendiente';
+                        if($expediente->estado == 'recepcionado') $estadoClass = 'estado-recepcionado';
+                        elseif($expediente->estado == 'Derivado') $estadoClass = 'estado-derivado';
+                        elseif($expediente->estado == 'En Proceso') $estadoClass = 'estado-proceso';
+                        elseif($expediente->estado == 'Finalizado') $estadoClass = 'estado-finalizado';
+                    @endphp
+                    <span class="estado-badge {{ $estadoClass }}">{{ ucfirst($expediente->estado) }}</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            Este cargo acredita la recepción del documento. Conserve este comprobante para consultas futuras.
+            Código de seguimiento: <strong>{{ $expediente->codigo_expediente }}</strong>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Documento generado el {{ now()->format('d/m/Y H:i:s') }}</p>
+            <p>Mesa de Partes Digital - DRTC Apurímac</p>
+        </div>
     </div>
-</div>
 
-<style>
-@media print {
-    .no-print { display: none !important; }
-    .card { border: none !important; box-shadow: none !important; }
-    .card-header { background: #007bff !important; -webkit-print-color-adjust: exact; }
-    body { font-size: 12px; }
-}
-
-.badge { font-size: 0.9em !important; }
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script>
-// Generar QR Code
-const qrText = `{{ route('seguimiento.consulta', $expediente->codigo_expediente) }}`;
-QRCode.toCanvas(document.getElementById('qrcode'), qrText, {
-    width: 120,
-    height: 120,
-    margin: 1
-});
-
-function descargarPDF() {
-    // Implementar descarga de PDF
-    window.print();
-}
-</script>
-@endsection
+    <!-- Botones (no se imprimen) -->
+    <div class="btn-container no-print">
+        <button onclick="window.print()" class="btn btn-primary">
+            Imprimir Cargo
+        </button>
+        <a href="{{ route('ciudadano.dashboard') }}" class="btn btn-secondary">
+            Volver al Inicio
+        </a>
+    </div>
+</body>
+</html>

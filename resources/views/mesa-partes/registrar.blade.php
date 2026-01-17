@@ -280,129 +280,74 @@
                             </div>
                         </div>
 
-                        <!-- Sección 4: Verificación de Documentos -->
+                        <!-- Sección 4: Datos del Documento -->
                         <div class="mb-5">
                             <div class="d-flex align-items-center mb-4">
                                 <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
-                                    <i class="fas fa-file-check text-warning fa-lg"></i>
+                                    <i class="fas fa-file-alt text-warning fa-lg"></i>
                                 </div>
                                 <div>
-                                    <h5 class="mb-1 text-warning fw-bold">4. Verificación de Documentos</h5>
-                                    <p class="text-muted mb-0 small">Confirme que el ciudadano presenta todos los documentos requeridos</p>
+                                    <h5 class="mb-1 text-warning fw-bold">4. Datos del Documento</h5>
+                                    <p class="text-muted mb-0 small">Registre el documento que ingresa</p>
                                 </div>
                             </div>
 
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="doc_dni" name="documentos_verificados[]" value="dni" required>
-                                    <label class="form-check-label" for="doc_dni">
-                                        <strong>Copia de DNI</strong>
+                            <div class="row g-4">
+                                <div class="col-md-4">
+                                    <label for="tipo_documento_entrante" class="form-label fw-semibold">
+                                        <i class="fas fa-file-invoice text-warning me-2"></i>Tipo de Documento *
                                     </label>
+                                    <select class="form-select form-select-lg @error('tipo_documento_entrante') is-invalid @enderror"
+                                            id="tipo_documento_entrante" name="tipo_documento_entrante" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="SOLICITUD" {{ old('tipo_documento_entrante') == 'SOLICITUD' ? 'selected' : '' }}>Solicitud</option>
+                                        <option value="FUT" {{ old('tipo_documento_entrante') == 'FUT' ? 'selected' : '' }}>FUT (Formulario Único de Trámite)</option>
+                                        <option value="OFICIO" {{ old('tipo_documento_entrante') == 'OFICIO' ? 'selected' : '' }}>Oficio</option>
+                                        <option value="INFORME" {{ old('tipo_documento_entrante') == 'INFORME' ? 'selected' : '' }}>Informe</option>
+                                        <option value="MEMORANDUM" {{ old('tipo_documento_entrante') == 'MEMORANDUM' ? 'selected' : '' }}>Memorándum</option>
+                                        <option value="CARTA" {{ old('tipo_documento_entrante') == 'CARTA' ? 'selected' : '' }}>Carta</option>
+                                        <option value="RESOLUCION" {{ old('tipo_documento_entrante') == 'RESOLUCION' ? 'selected' : '' }}>Resolución</option>
+                                    </select>
+                                    @error('tipo_documento_entrante')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="doc_fut" name="documentos_verificados[]" value="fut" required>
-                                    <label class="form-check-label" for="doc_fut">
-                                        <strong>FUT</strong>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="doc_pago" name="documentos_verificados[]" value="pago" required>
-                                    <label class="form-check-label" for="doc_pago">
-                                        <strong>Comprobante de Pago</strong>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
 
+                                <div class="col-md-5">
+                                    <label for="asunto_documento" class="form-label fw-semibold">
+                                        <i class="fas fa-align-left text-warning me-2"></i>Asunto *
+                                    </label>
+                                    <input type="text" class="form-control form-control-lg @error('asunto_documento') is-invalid @enderror"
+                                           id="asunto_documento" name="asunto_documento" value="{{ old('asunto_documento') }}"
+                                           placeholder="Resumen del contenido del documento" required>
+                                    @error('asunto_documento')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label for="folios" class="form-label fw-semibold">
+                                        <i class="fas fa-copy text-warning me-2"></i>Folios (N° de hojas) *
+                                    </label>
+                                    <input type="number" class="form-control form-control-lg @error('folios') is-invalid @enderror"
+                                           id="folios" name="folios" value="{{ old('folios', 1) }}"
+                                           min="1" max="9999" required>
+                                    @error('folios')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
                         
-                        <!-- Sección 5: Datos del Trámite -->
-                        <div class="form-section">
-                            <div class="form-section-header">
-                                <div class="form-section-icon">
-                                    <i class="fas fa-clipboard-list"></i>
-                                </div>
-                                <div class="form-section-title">
-                                    <h3>5. Datos del Trámite</h3>
-                                    <p>Información del expediente y documentos adjuntos</p>
-                                </div>
-                            </div>
-
-                            <!-- Primera fila: 3 campos (Tipo Trámite, Asunto, Documento PDF) -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="id_tipo_tramite" class="form-label">
-                                            <i class="fas fa-tasks text-primary"></i>
-                                            Tipo de Trámite
-                                            <span class="form-label-required">*</span>
-                                        </label>
-                                        <select class="form-select @error('id_tipo_tramite') is-invalid @enderror"
-                                                id="id_tipo_tramite" name="id_tipo_tramite" required>
-                                            <option value="">Seleccione...</option>
-                                            @foreach($tipoTramites as $tipoTramite)
-                                                <option value="{{ $tipoTramite->id_tipo_tramite }}" {{ old('id_tipo_tramite') == $tipoTramite->id_tipo_tramite ? 'selected' : '' }}>
-                                                    {{ $tipoTramite->nombre }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('id_tipo_tramite')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="asunto" class="form-label">
-                                            <i class="fas fa-align-left text-info"></i>
-                                            Asunto
-                                            <span class="form-label-required">*</span>
-                                        </label>
-                                        <input type="text" class="form-control @error('asunto') is-invalid @enderror"
-                                               id="asunto" name="asunto" value="{{ old('asunto') }}"
-                                               placeholder="Motivo del trámite" required>
-                                        @error('asunto')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="documento" class="form-label">
-                                            <i class="fas fa-file-pdf text-danger"></i>
-                                            Documento PDF
-                                            <span class="form-label-required">*</span>
-                                        </label>
-                                        <input type="file" class="form-control @error('documento') is-invalid @enderror"
-                                               id="documento" name="documento" accept=".pdf" required>
-                                        <div class="form-text">
-                                            <i class="fas fa-info-circle"></i>
-                                            Máximo 10MB
-                                        </div>
-                                        @error('documento')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sección 6: Clasificación del Expediente -->
+                        <!-- Sección 5: Clasificación y Tipo de Trámite -->
                         <div class="mb-5">
                             <div class="d-flex align-items-center mb-4">
                                 <div class="bg-success bg-opacity-10 rounded-circle p-3 me-3">
                                     <i class="fas fa-tags text-success fa-lg"></i>
                                 </div>
                                 <div>
-                                    <h5 class="mb-1 text-success fw-bold">6. Clasificación del Expediente</h5>
-                                    <p class="text-muted mb-0 small">Clasifique y asigne el área correspondiente</p>
+                                    <h5 class="mb-1 text-success fw-bold">5. Clasificación y Tipo de Trámite</h5>
+                                    <p class="text-muted mb-0 small">Seleccione el área de destino y el tipo de trámite correspondiente</p>
                                 </div>
                             </div>
 
@@ -426,6 +371,20 @@
                                 </div>
 
                                 <div class="col-md-4">
+                                    <label for="id_tipo_tramite" class="form-label fw-semibold">
+                                        <i class="fas fa-tasks text-success me-2"></i>Tipo de Trámite *
+                                    </label>
+                                    <select class="form-select form-select-lg @error('id_tipo_tramite') is-invalid @enderror"
+                                            id="id_tipo_tramite" name="id_tipo_tramite" required>
+                                        <option value="">Primero seleccione un área</option>
+                                    </select>
+                                    <div class="form-text">Se cargará según el área seleccionada</div>
+                                    @error('id_tipo_tramite')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-4">
                                     <label for="prioridad" class="form-label fw-semibold">
                                         <i class="fas fa-exclamation-circle text-success me-2"></i>Prioridad *
                                     </label>
@@ -440,15 +399,42 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección 6: Datos del Expediente -->
+                        <div class="mb-5">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
+                                    <i class="fas fa-clipboard-list text-info fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-info fw-bold">6. Datos del Expediente</h5>
+                                    <p class="text-muted mb-0 small">Información adicional y documento adjunto</p>
+                                </div>
+                            </div>
+
+                            <div class="row g-4">
+                                <div class="col-md-8">
+                                    <label for="asunto" class="form-label fw-semibold">
+                                        <i class="fas fa-align-left text-info me-2"></i>Asunto del Trámite *
+                                    </label>
+                                    <input type="text" class="form-control form-control-lg @error('asunto') is-invalid @enderror"
+                                           id="asunto" name="asunto" value="{{ old('asunto') }}"
+                                           placeholder="Describa el motivo del trámite" required>
+                                    @error('asunto')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
 
                                 <div class="col-md-4">
-                                    <label for="observaciones_clasificacion" class="form-label fw-semibold">
-                                        <i class="fas fa-comment text-success me-2"></i>Observaciones
+                                    <label for="documento" class="form-label fw-semibold">
+                                        <i class="fas fa-file-pdf text-info me-2"></i>Documento PDF
                                     </label>
-                                    <textarea class="form-control form-control-lg @error('observaciones_clasificacion') is-invalid @enderror"
-                                              id="observaciones_clasificacion" name="observaciones_clasificacion"
-                                              rows="1" placeholder="Observaciones de clasificación...">{{ old('observaciones_clasificacion') }}</textarea>
-                                    @error('observaciones_clasificacion')
+                                    <input type="file" class="form-control form-control-lg @error('documento') is-invalid @enderror"
+                                           id="documento" name="documento" accept=".pdf">
+                                    <div class="form-text">Opcional - Máximo 10MB</div>
+                                    @error('documento')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -489,24 +475,20 @@
                                     <input type="number" class="form-control form-control-lg @error('plazo_dias') is-invalid @enderror"
                                            id="plazo_dias" name="plazo_dias" value="{{ old('plazo_dias', 15) }}"
                                            min="1" max="365" required>
-                                    <div class="form-text">Días hábiles para atención</div>
+                                    <div class="form-text">Se actualiza según el tipo de trámite</div>
                                     @error('plazo_dias')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
 
                                 <div class="col-md-3">
-                                    <label for="prioridad_derivacion" class="form-label fw-semibold">
-                                        <i class="fas fa-flag text-warning me-2"></i>Prioridad Derivación *
+                                    <label for="observaciones_clasificacion" class="form-label fw-semibold">
+                                        <i class="fas fa-comment text-warning me-2"></i>Observaciones
                                     </label>
-                                    <select class="form-select form-select-lg @error('prioridad_derivacion') is-invalid @enderror"
-                                            id="prioridad_derivacion" name="prioridad_derivacion" required>
-                                        <option value="normal" {{ old('prioridad_derivacion', 'normal') == 'normal' ? 'selected' : '' }}>Normal</option>
-                                        <option value="baja" {{ old('prioridad_derivacion') == 'baja' ? 'selected' : '' }}>Baja</option>
-                                        <option value="alta" {{ old('prioridad_derivacion') == 'alta' ? 'selected' : '' }}>Alta</option>
-                                        <option value="urgente" {{ old('prioridad_derivacion') == 'urgente' ? 'selected' : '' }}>Urgente</option>
-                                    </select>
-                                    @error('prioridad_derivacion')
+                                    <textarea class="form-control form-control-lg @error('observaciones_clasificacion') is-invalid @enderror"
+                                              id="observaciones_clasificacion" name="observaciones_clasificacion"
+                                              rows="1" placeholder="Observaciones...">{{ old('observaciones_clasificacion') }}</textarea>
+                                    @error('observaciones_clasificacion')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -866,37 +848,89 @@ document.addEventListener('DOMContentLoaded', function() {
     const areaSelect = document.getElementById('id_area');
     const funcionarioSelect = document.getElementById('id_funcionario_asignado');
 
-    if (areaSelect && funcionarioSelect) {
+    const tipoTramiteSelect = document.getElementById('id_tipo_tramite');
+    const plazoDiasInput = document.getElementById('plazo_dias');
+
+    if (areaSelect) {
         areaSelect.addEventListener('change', function() {
             const areaId = this.value;
 
             // Limpiar select de funcionarios
-            funcionarioSelect.innerHTML = '<option value="">Cargando...</option>';
+            if (funcionarioSelect) {
+                funcionarioSelect.innerHTML = '<option value="">Cargando...</option>';
+            }
+
+            // Limpiar select de tipos de trámite
+            if (tipoTramiteSelect) {
+                tipoTramiteSelect.innerHTML = '<option value="">Cargando...</option>';
+            }
 
             if (!areaId) {
-                funcionarioSelect.innerHTML = '<option value="">Seleccione primero un área</option>';
+                if (funcionarioSelect) {
+                    funcionarioSelect.innerHTML = '<option value="">Seleccione primero un área</option>';
+                }
+                if (tipoTramiteSelect) {
+                    tipoTramiteSelect.innerHTML = '<option value="">Primero seleccione un área</option>';
+                }
                 return;
             }
 
             // Cargar funcionarios del área
-            fetch(`/api/areas/${areaId}/funcionarios`)
-                .then(response => response.json())
-                .then(data => {
-                    funcionarioSelect.innerHTML = '<option value="">Sin asignar (el jefe asignará después)</option>';
+            if (funcionarioSelect) {
+                fetch(`/api/areas/${areaId}/funcionarios`)
+                    .then(response => response.json())
+                    .then(data => {
+                        funcionarioSelect.innerHTML = '<option value="">Sin asignar (el jefe asignará después)</option>';
 
-                    if (data.funcionarios && data.funcionarios.length > 0) {
-                        data.funcionarios.forEach(funcionario => {
-                            const option = document.createElement('option');
-                            option.value = funcionario.id;
-                            option.textContent = funcionario.name;
-                            funcionarioSelect.appendChild(option);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al cargar funcionarios:', error);
-                    funcionarioSelect.innerHTML = '<option value="">Error al cargar funcionarios</option>';
-                });
+                        if (data.funcionarios && data.funcionarios.length > 0) {
+                            data.funcionarios.forEach(funcionario => {
+                                const option = document.createElement('option');
+                                option.value = funcionario.id;
+                                option.textContent = funcionario.name;
+                                funcionarioSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al cargar funcionarios:', error);
+                        funcionarioSelect.innerHTML = '<option value="">Error al cargar funcionarios</option>';
+                    });
+            }
+
+            // Cargar tipos de trámite del área
+            if (tipoTramiteSelect) {
+                fetch(`/api/areas/${areaId}/tipos-tramite`)
+                    .then(response => response.json())
+                    .then(data => {
+                        tipoTramiteSelect.innerHTML = '<option value="">Seleccione un tipo de trámite</option>';
+
+                        if (data.tipos_tramite && data.tipos_tramite.length > 0) {
+                            data.tipos_tramite.forEach(tipo => {
+                                const option = document.createElement('option');
+                                option.value = tipo.id_tipo_tramite;
+                                option.textContent = tipo.nombre;
+                                option.dataset.plazoDias = tipo.plazo_dias;
+                                tipoTramiteSelect.appendChild(option);
+                            });
+                        } else {
+                            tipoTramiteSelect.innerHTML = '<option value="">No hay trámites para esta área</option>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al cargar tipos de trámite:', error);
+                        tipoTramiteSelect.innerHTML = '<option value="">Error al cargar tipos de trámite</option>';
+                    });
+            }
+        });
+    }
+
+    // Actualizar plazo de días al seleccionar tipo de trámite
+    if (tipoTramiteSelect && plazoDiasInput) {
+        tipoTramiteSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.dataset.plazoDias) {
+                plazoDiasInput.value = selectedOption.dataset.plazoDias;
+            }
         });
     }
 });
@@ -973,29 +1007,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Validar que se marquen los 3 documentos básicos
-function validarDocumentosBasicos() {
-    const docsBasicos = ['doc_dni', 'doc_fut', 'doc_pago'];
-    const marcados = docsBasicos.filter(id => document.getElementById(id).checked);
-    
-    if (marcados.length < 3) {
-        alert('Debe verificar los 3 documentos básicos: DNI, FUT y Comprobante de Pago');
-        return false;
-    }
-    return true;
-}
-
 // Agregar validación al formulario
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (!validarDocumentosBasicos()) {
-                e.preventDefault();
-            }
-        });
-    }
-    
     // Limpiar formulario después de mensaje de éxito
     @if(session('success'))
         setTimeout(function() {
@@ -1011,20 +1024,22 @@ function limpiarFormularioCompleto() {
     document.getElementById('tipo_documento').value = 'DNI';
     document.getElementById('numero_documento').value = '';
     document.getElementById('tipo_persona').value = 'NATURAL';
-    
+
     limpiarCamposPersona();
-    
-    // Limpiar documentos verificados
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(cb => cb.checked = false);
-    
+
+    // Limpiar campos de datos del documento
+    const tipoDocEntrante = document.getElementById('tipo_documento_entrante');
+    const asuntoDoc = document.getElementById('asunto_documento');
+    const folios = document.getElementById('folios');
+    if (tipoDocEntrante) tipoDocEntrante.value = '';
+    if (asuntoDoc) asuntoDoc.value = '';
+    if (folios) folios.value = '1';
+
     // Limpiar campos de trámite
     document.getElementById('id_tipo_tramite').value = '';
     document.getElementById('asunto').value = '';
     document.getElementById('documento').value = '';
-    document.getElementById('observaciones').value = '';
-    document.getElementById('observaciones_documentos').value = '';
-    
+
     // Ocultar alertas
     document.getElementById('persona-encontrada').style.display = 'none';
 
@@ -1033,10 +1048,7 @@ function limpiarFormularioCompleto() {
 
     // Actualizar visibilidad de campos según tipo de persona
     togglePersonaFields();
-    
-    // Actualizar vista
-    togglePersonaFields();
-    
+
     personaEncontrada = null;
 }
 </script>

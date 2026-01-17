@@ -259,7 +259,7 @@
                             <div class="three-columns">
                                 <div class="adaptive-field">
                                     <label for="id_tipo_tramite" class="form-label">Tipo de Trámite *</label>
-                                    <select class="form-select @error('id_tipo_tramite') is-invalid @enderror" 
+                                    <select class="form-select @error('id_tipo_tramite') is-invalid @enderror"
                                             id="id_tipo_tramite" name="id_tipo_tramite" required>
                                         <option value="">Seleccionar tipo de trámite</option>
                                         @foreach($tipoTramites as $tipo)
@@ -275,7 +275,38 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                
+
+                                <div class="adaptive-field">
+                                    <label for="tipo_documento_entrante" class="form-label">Tipo de Documento *</label>
+                                    <select class="form-select @error('tipo_documento_entrante') is-invalid @enderror"
+                                            id="tipo_documento_entrante" name="tipo_documento_entrante" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="SOLICITUD" {{ old('tipo_documento_entrante') == 'SOLICITUD' ? 'selected' : '' }}>Solicitud</option>
+                                        <option value="FUT" {{ old('tipo_documento_entrante') == 'FUT' ? 'selected' : '' }}>FUT (Formulario Único de Trámite)</option>
+                                        <option value="OFICIO" {{ old('tipo_documento_entrante') == 'OFICIO' ? 'selected' : '' }}>Oficio</option>
+                                        <option value="INFORME" {{ old('tipo_documento_entrante') == 'INFORME' ? 'selected' : '' }}>Informe</option>
+                                        <option value="MEMORANDUM" {{ old('tipo_documento_entrante') == 'MEMORANDUM' ? 'selected' : '' }}>Memorándum</option>
+                                        <option value="CARTA" {{ old('tipo_documento_entrante') == 'CARTA' ? 'selected' : '' }}>Carta</option>
+                                        <option value="RESOLUCION" {{ old('tipo_documento_entrante') == 'RESOLUCION' ? 'selected' : '' }}>Resolución</option>
+                                    </select>
+                                    @error('tipo_documento_entrante')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="adaptive-field">
+                                    <label for="folios" class="form-label">Folios *</label>
+                                    <input type="number" class="form-control @error('folios') is-invalid @enderror"
+                                           id="folios" name="folios" value="{{ old('folios', 1) }}"
+                                           min="1" max="999" placeholder="Número de hojas" required>
+                                    <div class="form-text">Cantidad de hojas del documento</div>
+                                    @error('folios')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="three-columns mt-3">
                                 <div class="adaptive-field">
                                     <label for="prioridad" class="form-label">Prioridad</label>
                                     <select class="form-select" id="prioridad" name="prioridad">
@@ -285,31 +316,19 @@
                                         <option value="urgente" {{ old('prioridad') == 'urgente' ? 'selected' : '' }}>Urgente</option>
                                     </select>
                                 </div>
-                                
-                                <div class="adaptive-field">
-                                    <label for="asunto" class="form-label">Asunto del Expediente *</label>
-                                    <input type="text" class="form-control @error('asunto') is-invalid @enderror" 
-                                           id="asunto" name="asunto" value="{{ old('asunto') }}" 
+
+                                <div class="adaptive-field" style="grid-column: span 2;">
+                                    <label for="asunto" class="form-label">Asunto del Trámite *</label>
+                                    <input type="text" class="form-control @error('asunto') is-invalid @enderror"
+                                           id="asunto" name="asunto" value="{{ old('asunto') }}"
                                            placeholder="Describa brevemente el motivo de su trámite" required>
                                     @error('asunto')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
-                            
-                            <div class="adaptive-grid">
-                                <div class="adaptive-field full-width">
-                                    <label for="descripcion" class="form-label">Descripción Detallada</label>
-                                    <textarea class="form-control @error('descripcion') is-invalid @enderror" 
-                                              id="descripcion" name="descripcion" rows="4" 
-                                              placeholder="Proporcione detalles adicionales sobre su solicitud">{{ old('descripcion') }}</textarea>
-                                    @error('descripcion')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
                         </div>
-                        
+
                         <!-- Sección 5: Documentos -->
                         <div class="mb-4">
                             <h5 class="text-primary border-bottom pb-2 mb-3">

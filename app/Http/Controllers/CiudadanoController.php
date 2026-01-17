@@ -187,6 +187,8 @@ class CiudadanoController extends Controller
             
             // === VALIDACIONES DE DATOS DEL TRÁMITE ===
             'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',       // Debe existir en la tabla
+            'tipo_documento_entrante' => 'required|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION', // Tipo de documento
+            'folios' => 'required|integer|min:1|max:999',                 // Número de folios
             'asunto' => 'required|string|max:500',                        // Asunto obligatorio
             'descripcion' => 'nullable|string|max:2000',                  // Descripción opcional
             
@@ -236,6 +238,8 @@ class CiudadanoController extends Controller
             'asunto' => $request->asunto,                               // Motivo del trámite
             'descripcion' => $request->descripcion,                     // Descripción detallada (opcional)
             'id_tipo_tramite' => $request->id_tipo_tramite,             // Tipo de trámite seleccionado
+            'tipo_documento_entrante' => $request->tipo_documento_entrante, // Tipo de documento (Solicitud, FUT, etc.)
+            'folios' => $request->folios,                               // Número de folios del documento
             'id_ciudadano' => auth()->user()->id,                     // Usuario autenticado que crea el expediente
             'id_persona' => $persona->id_persona,                               // Referencia a la persona (solicitante)
             'remitente' => $persona->nombre_completo,                   // Nombre completo para búsquedas rápidas

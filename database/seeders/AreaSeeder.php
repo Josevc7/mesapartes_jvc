@@ -3,22 +3,25 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use App\Models\Area;
 
 class AreaSeeder extends Seeder
 {
     public function run(): void
     {
+        // Deshabilitar verificación de claves foráneas y limpiar tabla
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Area::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $areas = [
+            ['nombre' => 'Dirección de Administración', 'descripcion' => 'Gestión administrativa y recursos de la institución'],
+            ['nombre' => 'Dirección de Planificación y Presupuesto', 'descripcion' => 'Planificación estratégica y gestión presupuestaria'],
+            ['nombre' => 'Dirección de Asesoría Jurídica', 'descripcion' => 'Asesoramiento legal y normativo institucional'],
+            ['nombre' => 'Dirección de Caminos', 'descripcion' => 'Gestión y mantenimiento de infraestructura vial'],
+            ['nombre' => 'Dirección de Telecomunicaciones', 'descripcion' => 'Supervisión de servicios de telecomunicaciones'],
             ['nombre' => 'Dirección de Circulación Terrestre', 'descripcion' => 'Gestión de licencias de conducir y circulación vehicular'],
-            ['nombre' => 'Dirección de Transporte', 'descripcion' => 'Regulación y control del transporte público y privado'],
-            ['nombre' => 'Dirección de Comunicaciones', 'descripcion' => 'Supervisión de servicios de telecomunicaciones'],
-            ['nombre' => 'Oficina de Licencias de Conducir', 'descripcion' => 'Emisión y renovación de licencias de conducir'],
-            ['nombre' => 'Oficina de Inspecciones Técnicas', 'descripcion' => 'Inspecciones técnicas vehiculares y certificaciones'],
-            ['nombre' => 'Oficina de Transporte Público', 'descripcion' => 'Autorización y control de servicios de transporte público'],
-            ['nombre' => 'Oficina de Transporte de Carga', 'descripcion' => 'Permisos y control de transporte de mercancías'],
-            ['nombre' => 'Oficina de Infracciones y Sanciones', 'descripcion' => 'Procesamiento de infracciones de tránsito'],
-            ['nombre' => 'Administración General', 'descripcion' => 'Área de administración y gestión general']
         ];
 
         foreach ($areas as $area) {

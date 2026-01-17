@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\MesaPartesController;
 use App\Http\Controllers\FuncionarioController;
 use App\Http\Controllers\SeguimientoController;
@@ -21,11 +20,6 @@ use App\Http\Controllers\CiudadanoController;
 Route::get('/', function () {
     return view('auth.login');
 });
-
-// Ruta de ejemplo para formulario moderno (solo para desarrollo)
-Route::get('/ejemplo-formulario-moderno', function () {
-    return view('ejemplo-formulario-moderno');
-})->name('ejemplo.formulario');
 
 // Rutas de autenticación - con rate limiting
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -164,6 +158,16 @@ Route::get('/api/areas/{area}/funcionarios', function($areaId) {
         ->get(['id', 'name']);
 
     return response()->json(['funcionarios' => $funcionarios]);
+})->middleware('auth');
+
+// API para cargar tipos de trámite por área (usado en formulario de registro)
+Route::get('/api/areas/{area}/tipos-tramite', function($areaId) {
+    $tiposTramite = \App\Models\TipoTramite::where('id_area', $areaId)
+        ->where('activo', true)
+        ->orderBy('nombre')
+        ->get(['id_tipo_tramite', 'nombre', 'plazo_dias']);
+
+    return response()->json(['tipos_tramite' => $tiposTramite]);
 })->middleware('auth');
 
 // RUTAS DE JEFE DE ÁREA (Supervisión)
@@ -336,8 +340,8 @@ Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
     
     Route::get('/funcionarios/{area}', function($area) {
         // Validar que el área existe
-        $areaModel = App\Models\Area::findOrFail($area);
-        
+        App\Models\Area::findOrFail($area);
+
         return App\Models\User::where('id_rol', 4)
             ->where('id_area', $area)
             ->where('activo', true)

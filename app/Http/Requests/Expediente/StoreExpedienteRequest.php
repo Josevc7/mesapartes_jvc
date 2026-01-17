@@ -88,8 +88,8 @@ class StoreExpedienteRequest extends FormRequest
             'direccion' => 'nullable|string',
 
             // Documentos adjuntos
-            'documento' => 'required|file|mimes:pdf|max:10240', // 10MB
-            'documentos_verificados' => 'required|array|min:3',
+            'documento' => 'nullable|file|mimes:pdf|max:10240', // 10MB - Opcional
+            'documentos_verificados' => 'nullable|array',
             'documentos_verificados.*' => 'in:dni,fut,pago',
             'documentos_adicionales' => 'nullable|array',
             'observaciones_documentos' => 'nullable|string',
@@ -102,7 +102,7 @@ class StoreExpedienteRequest extends FormRequest
             // Campos de derivación
             'id_funcionario_asignado' => 'nullable|exists:users,id',
             'plazo_dias' => 'required|integer|min:1|max:365',
-            'prioridad_derivacion' => 'required|in:baja,normal,alta,urgente',
+            'prioridad_derivacion' => 'nullable|in:baja,normal,alta,urgente',
             'observaciones_derivacion' => 'nullable|string|max:1000',
         ];
 
@@ -123,14 +123,9 @@ class StoreExpedienteRequest extends FormRequest
             'id_tipo_tramite.required' => 'Debe seleccionar un tipo de trámite',
             'id_tipo_tramite.exists' => 'El tipo de trámite seleccionado no existe',
 
-            // Documento
-            'documento.required' => 'Debe adjuntar el documento principal en PDF',
+            // Documento (opcional)
             'documento.mimes' => 'El documento debe ser un archivo PDF',
             'documento.max' => 'El archivo no puede superar los 10MB',
-
-            // Verificación de documentos
-            'documentos_verificados.required' => 'Debe verificar todos los documentos obligatorios',
-            'documentos_verificados.min' => 'Debe marcar los 3 documentos básicos: DNI, FUT y Comprobante de Pago',
 
             // Persona
             'tipo_documento.required' => 'El tipo de documento es obligatorio',
@@ -159,7 +154,6 @@ class StoreExpedienteRequest extends FormRequest
             'plazo_dias.integer' => 'El plazo debe ser un número entero',
             'plazo_dias.min' => 'El plazo mínimo es 1 día',
             'plazo_dias.max' => 'El plazo máximo es 365 días',
-            'prioridad_derivacion.required' => 'Debe seleccionar una prioridad para la derivación',
             'prioridad_derivacion.in' => 'La prioridad de derivación debe ser: baja, normal, alta o urgente',
 
             // Validación de número de documento

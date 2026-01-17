@@ -226,25 +226,6 @@
             background: #cc5500;
             color: white;
         }
-        .credentials-info {
-            background: white;
-            border-radius: 15px;
-            padding: 1.25rem;
-            margin-top: 1.5rem;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-        .credential-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.4rem 0;
-            border-bottom: 1px solid #f1f3f4;
-            font-size: 0.85rem;
-        }
-        .credential-item:last-child {
-            border-bottom: none;
-        }
         .divider {
             display: flex;
             align-items: center;
@@ -414,32 +395,6 @@
                     </div>
                 </div>
 
-                <!-- Credenciales de Prueba -->
-                <div class="credentials-info">
-                    <h6 class="text-center mb-3" style="color: #cc5500;">
-                        <i class="fas fa-key me-2"></i>Credenciales de Prueba
-                    </h6>
-                    <div class="credential-item">
-                        <span class="fw-semibold">Administrador:</span>
-                        <small class="text-muted">admin@mesapartes.gob.pe / admin123</small>
-                    </div>
-                    <div class="credential-item">
-                        <span class="fw-semibold">Mesa de Partes:</span>
-                        <small class="text-muted">mesapartes@mesapartes.gob.pe / mesa123</small>
-                    </div>
-                    <div class="credential-item">
-                        <span class="fw-semibold">Jefe de Area:</span>
-                        <small class="text-muted">jefe@mesapartes.gob.pe / jefe123</small>
-                    </div>
-                    <div class="credential-item">
-                        <span class="fw-semibold">Funcionario:</span>
-                        <small class="text-muted">funcionario@mesapartes.gob.pe / func123</small>
-                    </div>
-                    <div class="credential-item">
-                        <span class="fw-semibold">Ciudadano:</span>
-                        <small class="text-muted">villafuerte@gmail.com / ciudadano123</small>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

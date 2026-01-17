@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\User;
 
@@ -28,7 +27,7 @@ class DashboardController extends Controller
             case 'Soporte':
                 return redirect()->route('soporte.dashboard');
             default:
-                return view('dashboard-simple');
+                return view('dashboard');
         }
     }
     
@@ -40,7 +39,7 @@ class DashboardController extends Controller
             'expedientes_proceso' => Expediente::where('estado', 'en_proceso')->count(),
             'total_usuarios' => User::where('activo', true)->count()
         ];
-        
-        return view('dashboard-simple', compact('stats'));
+
+        return view('dashboard', compact('stats'));
     }
 }
