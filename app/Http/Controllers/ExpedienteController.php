@@ -38,11 +38,19 @@ class ExpedienteController extends Controller
         ]);
 
         if ($request->hasFile('documento')) {
-            $path = $request->file('documento')->store('documentos', 'public');
-            
+            // Estructura: expedientes/{año}/{codigo_expediente}/
+            $año = now()->year;
+            $carpeta = "expedientes/{$año}/{$codigo}";
+
+            $archivo = $request->file('documento');
+            $nombreOriginal = $archivo->getClientOriginalName();
+            $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+            $path = $archivo->storeAs($carpeta, $nombreLimpio, 'public');
+
             Documento::create([
                 'id_expediente' => $expediente->id_expediente,
-                'nombre' => 'Documento Principal',
+                'nombre' => pathinfo($nombreOriginal, PATHINFO_FILENAME),
                 'ruta_archivo' => $path,
                 'tipo' => 'Principal',
                 'id_usuario' => auth()->user()->id_user

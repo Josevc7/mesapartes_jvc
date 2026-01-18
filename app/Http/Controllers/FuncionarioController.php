@@ -113,11 +113,19 @@ class FuncionarioController extends Controller
         ]);
 
         if ($request->hasFile('documento_respuesta')) {
-            $path = $request->file('documento_respuesta')->store('documentos', 'public');
-            
+            // Estructura: expedientes/{año}/{codigo_expediente}/
+            $año = $expediente->created_at->year;
+            $carpeta = "expedientes/{$año}/{$expediente->codigo_expediente}";
+
+            $archivo = $request->file('documento_respuesta');
+            $nombreOriginal = $archivo->getClientOriginalName();
+            $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+            $path = $archivo->storeAs($carpeta, $nombreLimpio, 'public');
+
             Documento::create([
                 'id_expediente' => $expediente->id_expediente,
-                'nombre' => $request->input('nombre_documento', 'Documento de Respuesta'),
+                'nombre' => $request->input('nombre_documento', pathinfo($nombreOriginal, PATHINFO_FILENAME)),
                 'ruta_pdf' => $path,
                 'tipo' => 'respuesta'
             ]);
@@ -197,8 +205,16 @@ class FuncionarioController extends Controller
             'tipo' => 'required|in:informe,respuesta'
         ]);
 
-        $path = $request->file('documento')->store('documentos', 'public');
-        
+        // Estructura: expedientes/{año}/{codigo_expediente}/
+        $año = $expediente->created_at->year;
+        $carpeta = "expedientes/{$año}/{$expediente->codigo_expediente}";
+
+        $archivo = $request->file('documento');
+        $nombreOriginal = $archivo->getClientOriginalName();
+        $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+        $path = $archivo->storeAs($carpeta, $nombreLimpio, 'public');
+
         Documento::create([
             'id_expediente' => $expediente->id_expediente,
             'nombre' => $request->nombre,

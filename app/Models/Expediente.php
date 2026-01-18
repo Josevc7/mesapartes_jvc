@@ -31,6 +31,8 @@ class Expediente extends Model
     protected $fillable = [
         'codigo_expediente',
         'asunto',
+        'asunto_documento',
+        'asunto_tramite',
         'descripcion',
         'id_tipo_tramite',
         'tipo_documento_entrante',

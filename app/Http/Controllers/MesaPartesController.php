@@ -116,7 +116,7 @@ class MesaPartesController extends Controller
 
     public function show(Expediente $expediente)
     {
-        $expediente->load(['documentos', 'derivaciones.funcionario', 'historial']);
+        $expediente->load(['documentos', 'derivaciones.funcionarioAsignado', 'derivaciones.areaDestino', 'historial.usuario']);
         return view('mesa-partes.show', compact('expediente'));
     }
 

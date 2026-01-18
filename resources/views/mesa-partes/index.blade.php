@@ -282,14 +282,18 @@ nav ul.pagination li {
                                                title="Ver detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                          
                                             
-                                            <!-- Descargar Cargo -->
-                                            <a href="{{ route('mesa-partes.cargo', $expediente) }}"
+                                            <!-- Imprimir Cargo (abre en popup) -->
+                                            <button type="button"
                                                class="btn btn-success btn-sm"
                                                data-bs-toggle="tooltip"
-                                               title="Cargo">
-                                                <i class="fas fa-download"></i>
-                                            </a>
+                                               title="Imprimir Cargo"
+                                               onclick="abrirCargo('{{ route('mesa-partes.cargo', $expediente) }}')">
+                                                <i class="fas fa-print"></i>
+                                            </button> 
+                                            
+                                              
                                             
                                             @php
                                                 $estadoInteligente = $expediente->estado_inteligente;
@@ -363,7 +367,9 @@ nav ul.pagination li {
         </div>
     </div>
 </div>
+@endsection
 
+@section('scripts')
 <script>
 // Inicializar tooltips
 document.addEventListener('DOMContentLoaded', function() {
@@ -373,6 +379,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Función para abrir cargo en ventana popup
+function abrirCargo(url) {
+    const width = 600;
+    const height = 700;
+    const left = (screen.width - width) / 2;
+    const top = (screen.height - height) / 2;
+
+    window.open(
+        url,
+        'CargoPrint',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+    );
+}
+
 // Función para archivar expediente
 function archivarExpediente(expedienteId) {
     if (confirm('¿Está seguro de archivar este expediente?')) {
@@ -380,19 +400,19 @@ function archivarExpediente(expedienteId) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/mesa-partes/expedientes/${expedienteId}/archivar`;
-        
+
         // Token CSRF
         const csrfToken = document.createElement('input');
         csrfToken.type = 'hidden';
         csrfToken.name = '_token';
         csrfToken.value = document.querySelector('meta[name="csrf-token"]').content;
-        
+
         // Método PUT
         const methodField = document.createElement('input');
         methodField.type = 'hidden';
         methodField.name = '_method';
         methodField.value = 'PUT';
-        
+
         form.appendChild(csrfToken);
         form.appendChild(methodField);
         document.body.appendChild(form);

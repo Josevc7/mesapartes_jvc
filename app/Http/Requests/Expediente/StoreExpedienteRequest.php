@@ -26,6 +26,9 @@ class StoreExpedienteRequest extends FormRequest
         $rules = [
             // Datos del expediente
             'asunto' => 'required|string|max:500',
+            'asunto_documento' => 'required|string|max:500',
+            'tipo_documento_entrante' => 'required|string|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION',
+            'folios' => 'required|integer|min:1|max:9999',
             'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
             'observaciones' => 'nullable|string',
 
@@ -120,6 +123,14 @@ class StoreExpedienteRequest extends FormRequest
             // Expediente
             'asunto.required' => 'El asunto del trámite es obligatorio',
             'asunto.max' => 'El asunto no puede exceder 500 caracteres',
+            'asunto_documento.required' => 'El asunto del documento es obligatorio',
+            'asunto_documento.max' => 'El asunto del documento no puede exceder 500 caracteres',
+            'tipo_documento_entrante.required' => 'Debe seleccionar el tipo de documento',
+            'tipo_documento_entrante.in' => 'El tipo de documento seleccionado no es válido',
+            'folios.required' => 'Debe indicar el número de folios',
+            'folios.integer' => 'El número de folios debe ser un número entero',
+            'folios.min' => 'El número de folios debe ser al menos 1',
+            'folios.max' => 'El número de folios no puede exceder 9999',
             'id_tipo_tramite.required' => 'Debe seleccionar un tipo de trámite',
             'id_tipo_tramite.exists' => 'El tipo de trámite seleccionado no existe',
 

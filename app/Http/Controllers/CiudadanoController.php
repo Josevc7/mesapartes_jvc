@@ -251,34 +251,44 @@ class CiudadanoController extends Controller
         ]);
 
         // === GUARDAR DOCUMENTO PRINCIPAL ===
+        // Estructura: expedientes/{año}/{codigo_expediente}/archivo.pdf
+        $año = now()->year;
+        $carpetaExpediente = "expedientes/{$año}/{$codigo}";
+
         // Verificar si se subió el archivo obligatorio
         if ($request->hasFile('documento_principal')) {
-            // Almacenar archivo en storage/app/public/documentos/
-            $path = $request->file('documento_principal')->store('documentos', 'public');
-            
+            $archivo = $request->file('documento_principal');
+            $nombreOriginal = $archivo->getClientOriginalName();
+            // Limpiar nombre de archivo (quitar caracteres especiales)
+            $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+            // Almacenar archivo en storage/app/public/expedientes/{año}/{codigo}/
+            $path = $archivo->storeAs($carpetaExpediente, $nombreLimpio, 'public');
+
             // Crear registro en tabla documentos
             Documento::create([
-                'id_expediente' => $expediente->id_expediente,    // Vincular con el expediente creado
-                'nombre' => 'Documento Principal',     // Nombre descriptivo
-                'ruta_pdf' => $path,                   // Ruta donde se guardó el archivo
-                'tipo' => 'entrada'                    // Tipo: documento de entrada al sistema
+                'id_expediente' => $expediente->id_expediente,
+                'nombre' => pathinfo($nombreOriginal, PATHINFO_FILENAME), // Nombre sin extensión
+                'ruta_pdf' => $path,
+                'tipo' => 'entrada'
             ]);
         }
 
         // === GUARDAR DOCUMENTOS ADICIONALES (OPCIONALES) ===
         // Verificar si se subieron archivos adicionales
         if ($request->hasFile('documentos_adicionales')) {
-            // Iterar sobre cada archivo subido
             foreach ($request->file('documentos_adicionales') as $index => $file) {
-                // Almacenar cada archivo por separado
-                $path = $file->store('documentos', 'public');
-                
-                // Crear registro individual para cada documento
+                $nombreOriginal = $file->getClientOriginalName();
+                $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+                // Almacenar en la misma carpeta del expediente
+                $path = $file->storeAs($carpetaExpediente, $nombreLimpio, 'public');
+
                 Documento::create([
-                    'id_expediente' => $expediente->id_expediente,                    // Mismo expediente
-                    'nombre' => 'Documento Adicional ' . ($index + 1),     // Nombre numerado
-                    'ruta_pdf' => $path,                                   // Ruta del archivo
-                    'tipo' => 'entrada'                                    // Tipo: documento de entrada
+                    'id_expediente' => $expediente->id_expediente,
+                    'nombre' => pathinfo($nombreOriginal, PATHINFO_FILENAME),
+                    'ruta_pdf' => $path,
+                    'tipo' => 'entrada'
                 ]);
             }
         }

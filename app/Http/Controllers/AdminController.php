@@ -402,31 +402,45 @@ class AdminController extends Controller
     // Dashboard Administrativo
     public function dashboard()
     {
+        // Estados válidos del sistema
+        $estadosActivos = ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso', 'observado'];
+        $estadosFinalizados = ['resuelto', 'notificado', 'archivado'];
+
         $metricas = [
             'total_expedientes' => \App\Models\Expediente::count(),
             'usuarios_activos' => User::where('activo', true)->count(),
-            'expedientes_pendientes' => \App\Models\Expediente::whereIn('estado', ['pendiente', 'derivado'])->count(),
+            'expedientes_pendientes' => \App\Models\Expediente::whereIn('estado', $estadosActivos)->count(),
             'expedientes_vencidos' => \App\Models\Expediente::whereIn('estado', ['derivado', 'en_proceso'])
                 ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now())->where('estado', 'Pendiente');
+                    $q->where('fecha_limite', '<', now())->where('estado', 'pendiente');
                 })->count()
         ];
 
-        $actividadReciente = \App\Models\Auditoria::with('usuario')
+        // Actividad reciente desde historial de expedientes
+        $actividadReciente = \App\Models\HistorialExpediente::with('usuario')
             ->orderBy('created_at', 'desc')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(function($item) {
+                return (object)[
+                    'accion' => 'Expediente',
+                    'descripcion' => $item->descripcion,
+                    'created_at' => $item->created_at
+                ];
+            });
 
         $alertas = [];
         if ($metricas['expedientes_vencidos'] > 0) {
             $alertas[] = ['tipo' => 'danger', 'titulo' => 'Expedientes Vencidos', 'mensaje' => "Hay {$metricas['expedientes_vencidos']} expedientes vencidos."];
         }
 
-        // Datos para gráficos
-        $validEstados = ['pendiente', 'derivado', 'en_proceso', 'completado', 'archivado', 'resuelto'];
+        $pendientesClasificar = \App\Models\Expediente::where('estado', 'recepcionado')->count();
+        if ($pendientesClasificar > 0) {
+            $alertas[] = ['tipo' => 'warning', 'titulo' => 'Pendientes de Clasificar', 'mensaje' => "Hay {$pendientesClasificar} expedientes pendientes de clasificar."];
+        }
+
+        // Datos para gráficos - últimos 6 meses
         $graficoMeses = ['labels' => [], 'data' => []];
-        $graficoEstados = ['labels' => ['Pendiente', 'Derivado', 'En Proceso', 'Completado', 'Archivado'], 'data' => []];
-        
         for ($i = 5; $i >= 0; $i--) {
             $fecha = now()->subMonths($i);
             $graficoMeses['labels'][] = $fecha->format('M Y');
@@ -434,33 +448,54 @@ class AdminController extends Controller
                 ->whereYear('created_at', $fecha->year)->count();
         }
 
-        foreach ($graficoEstados['labels'] as $estado) {
-            $estadoLower = strtolower($estado);
-            // Only query valid estados to prevent SQL injection
-            if (in_array($estadoLower, $validEstados)) {
-                $graficoEstados['data'][] = \App\Models\Expediente::where('estado', $estadoLower)->count();
+        // Gráfico por estados reales del sistema
+        $estadosGrafico = [
+            'Recepcionado' => 'recepcionado',
+            'Clasificado' => 'clasificado',
+            'Derivado' => 'derivado',
+            'En Proceso' => 'en_proceso',
+            'Observado' => 'observado',
+            'Resuelto' => 'resuelto',
+            'Archivado' => 'archivado'
+        ];
+
+        $graficoEstados = ['labels' => [], 'data' => []];
+        foreach ($estadosGrafico as $label => $estado) {
+            $count = \App\Models\Expediente::where('estado', $estado)->count();
+            if ($count > 0) {
+                $graficoEstados['labels'][] = $label;
+                $graficoEstados['data'][] = $count;
             }
         }
 
-        $rendimientoPorArea = \App\Models\Area::withCount(['expedientes'])
+        // Si no hay datos, agregar valores por defecto para evitar errores en gráficos
+        if (empty($graficoEstados['labels'])) {
+            $graficoEstados = ['labels' => ['Sin datos'], 'data' => [0]];
+        }
+
+        // Rendimiento por área
+        $rendimientoPorArea = \App\Models\Area::where('activo', true)
+            ->withCount(['expedientes'])
             ->get()
             ->map(function($area) {
                 $total = $area->expedientes_count;
-                $completados = \App\Models\Expediente::where('id_area', $area->id_area)->where('estado', 'completado')->count();
-                $pendientes = \App\Models\Expediente::where('id_area', $area->id_area)->whereIn('estado', ['pendiente', 'derivado', 'en_proceso'])->count();
+                $resueltos = \App\Models\Expediente::where('id_area', $area->id_area)
+                    ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+                $pendientes = \App\Models\Expediente::where('id_area', $area->id_area)
+                    ->whereIn('estado', ['derivado', 'en_proceso', 'clasificado'])->count();
                 $vencidos = \App\Models\Expediente::where('id_area', $area->id_area)
                     ->whereIn('estado', ['derivado', 'en_proceso'])
                     ->whereHas('derivaciones', function($q) {
                         $q->where('fecha_limite', '<', now());
                     })->count();
-                
+
                 return [
                     'nombre' => $area->nombre,
                     'total' => $total,
-                    'completados' => $completados,
+                    'completados' => $resueltos,
                     'pendientes' => $pendientes,
                     'vencidos' => $vencidos,
-                    'eficiencia' => $total > 0 ? round(($completados / $total) * 100) : 0
+                    'eficiencia' => $total > 0 ? round(($resueltos / $total) * 100) : 0
                 ];
             });
 
@@ -560,40 +595,132 @@ class AdminController extends Controller
     {
         $fechaInicio = $request->fecha_inicio ?? now()->startOfMonth()->toDateString();
         $fechaFin = $request->fecha_fin ?? now()->toDateString();
-        
-        $expedientes = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin]);
-        
+
+        // KPIs con consultas separadas para evitar problemas de query builder
+        $totalExpedientes = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])->count();
+        $resueltos = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+        $enProceso = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->whereIn('estado', ['derivado', 'en_proceso', 'clasificado'])->count();
+        $vencidos = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->whereHas('derivaciones', function($q) {
+                $q->where('fecha_limite', '<', now());
+            })->count();
+
+        // Calcular tiempo promedio real
+        $tiempoPromedio = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
+            ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])
+            ->whereNotNull('fecha_resolucion')
+            ->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as promedio')
+            ->value('promedio') ?? 0;
+
+        // Calcular eficiencia real
+        $eficiencia = $totalExpedientes > 0 ? round(($resueltos / $totalExpedientes) * 100) : 0;
+
         $kpis = [
-            'total_expedientes' => $expedientes->count(),
-            'completados' => $expedientes->where('estado', 'completado')->count(),
-            'en_proceso' => $expedientes->whereIn('estado', ['derivado', 'en_proceso'])->count(),
-            'vencidos' => $expedientes->whereIn('estado', ['derivado', 'en_proceso'])
-                ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now());
-                })->count(),
-            'tiempo_promedio' => 15.5, // Calcular promedio real
-            'eficiencia' => 85 // Calcular eficiencia real
+            'total_expedientes' => $totalExpedientes,
+            'completados' => $resueltos,
+            'en_proceso' => $enProceso,
+            'vencidos' => $vencidos,
+            'tiempo_promedio' => round($tiempoPromedio, 1),
+            'eficiencia' => $eficiencia
         ];
-        
-        // Datos para gráficos
+
+        // Gráfico de tendencia - últimos 7 días
         $graficoTendencia = ['labels' => [], 'registrados' => [], 'completados' => []];
-        $graficoEstados = ['labels' => ['Pendiente', 'Derivado', 'En Proceso', 'Completado'], 'data' => []];
-        $graficoAreas = ['labels' => [], 'data' => []];
-        $graficoTiposTramite = ['labels' => [], 'data' => []];
-        
-        // Llenar datos de gráficos (simplificado)
         for ($i = 6; $i >= 0; $i--) {
             $fecha = now()->subDays($i);
             $graficoTendencia['labels'][] = $fecha->format('d/m');
             $graficoTendencia['registrados'][] = \App\Models\Expediente::whereDate('created_at', $fecha)->count();
-            $graficoTendencia['completados'][] = \App\Models\Expediente::whereDate('updated_at', $fecha)->where('estado', 'completado')->count();
+            $graficoTendencia['completados'][] = \App\Models\Expediente::whereDate('updated_at', $fecha)
+                ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
         }
-        
-        $rendimientoUsuarios = [];
-        $analisisTiempos = [];
-        
+
+        // Gráfico por estados reales
+        $estadosGrafico = [
+            'Recepcionado' => 'recepcionado',
+            'Derivado' => 'derivado',
+            'En Proceso' => 'en_proceso',
+            'Observado' => 'observado',
+            'Resuelto' => 'resuelto',
+            'Archivado' => 'archivado'
+        ];
+
+        $graficoEstados = ['labels' => [], 'data' => []];
+        foreach ($estadosGrafico as $label => $estado) {
+            $count = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
+                ->where('estado', $estado)->count();
+            $graficoEstados['labels'][] = $label;
+            $graficoEstados['data'][] = $count;
+        }
+
+        // Gráfico por áreas
+        $graficoAreas = ['labels' => [], 'data' => []];
+        $areas = \App\Models\Area::where('activo', true)->withCount(['expedientes' => function($q) use ($fechaInicio, $fechaFin) {
+            $q->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+        }])->get();
+        foreach ($areas as $area) {
+            $graficoAreas['labels'][] = $area->nombre;
+            $graficoAreas['data'][] = $area->expedientes_count;
+        }
+
+        // Gráfico por tipos de trámite
+        $graficoTiposTramite = ['labels' => [], 'data' => []];
+        $tiposTramite = \App\Models\TipoTramite::where('activo', true)
+            ->withCount(['expedientes' => function($q) use ($fechaInicio, $fechaFin) {
+                $q->whereBetween('created_at', [$fechaInicio, $fechaFin]);
+            }])
+            ->orderBy('expedientes_count', 'desc')
+            ->limit(10)
+            ->get();
+        foreach ($tiposTramite as $tipo) {
+            $graficoTiposTramite['labels'][] = $tipo->nombre;
+            $graficoTiposTramite['data'][] = $tipo->expedientes_count;
+        }
+
+        // Rendimiento por usuarios (funcionarios)
+        $rendimientoUsuarios = User::where('id_rol', 4) // Funcionarios
+            ->where('activo', true)
+            ->get()
+            ->map(function($usuario) use ($fechaInicio, $fechaFin) {
+                $asignados = \App\Models\Expediente::where('id_funcionario_asignado', $usuario->id)
+                    ->whereBetween('created_at', [$fechaInicio, $fechaFin])->count();
+                $completados = \App\Models\Expediente::where('id_funcionario_asignado', $usuario->id)
+                    ->whereBetween('created_at', [$fechaInicio, $fechaFin])
+                    ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+
+                return [
+                    'nombre' => $usuario->name,
+                    'asignados' => $asignados,
+                    'completados' => $completados,
+                    'eficiencia' => $asignados > 0 ? round(($completados / $asignados) * 100) : 0
+                ];
+            })
+            ->filter(fn($u) => $u['asignados'] > 0)
+            ->values();
+
+        // Análisis de tiempos por tipo de trámite
+        $analisisTiempos = \App\Models\TipoTramite::where('activo', true)->get()->map(function($tipo) use ($fechaInicio, $fechaFin) {
+            $expedientes = \App\Models\Expediente::where('id_tipo_tramite', $tipo->id_tipo_tramite)
+                ->whereBetween('created_at', [$fechaInicio, $fechaFin])
+                ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])
+                ->whereNotNull('fecha_resolucion');
+
+            $promedio = $expedientes->clone()->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as prom')->value('prom') ?? 0;
+            $total = $expedientes->count();
+            $dentroDelPlazo = $expedientes->clone()->whereRaw('DATEDIFF(fecha_resolucion, created_at) <= ?', [$tipo->plazo_dias])->count();
+
+            return [
+                'tipo' => $tipo->nombre,
+                'plazo' => $tipo->plazo_dias,
+                'promedio' => round($promedio, 1),
+                'cumplimiento' => $total > 0 ? round(($dentroDelPlazo / $total) * 100) : 0
+            ];
+        })->filter(fn($t) => $t['promedio'] > 0)->values();
+
         return view('admin.estadisticas', compact(
-            'fechaInicio', 'fechaFin', 'kpis', 'graficoTendencia', 'graficoEstados', 
+            'fechaInicio', 'fechaFin', 'kpis', 'graficoTendencia', 'graficoEstados',
             'graficoAreas', 'graficoTiposTramite', 'rendimientoUsuarios', 'analisisTiempos'
         ));
     }

@@ -41,100 +41,100 @@
     </div>
 
     <!-- KPIs Principales -->
-    <div class="row mb-4">
-        <div class="col-md-2">
+    <div class="row mb-3">
+        <div class="col-md-2 col-6">
             <div class="card text-center bg-primary text-white">
-                <div class="card-body">
-                    <h3>{{ $kpis['total_expedientes'] }}</h3>
-                    <p class="mb-0">Total Expedientes</p>
+                <div class="card-body py-2 px-1">
+                    <h4 class="mb-0">{{ $kpis['total_expedientes'] }}</h4>
+                    <small>Total Expedientes</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-6">
             <div class="card text-center bg-success text-white">
-                <div class="card-body">
-                    <h3>{{ $kpis['completados'] }}</h3>
-                    <p class="mb-0">Completados</p>
+                <div class="card-body py-2 px-1">
+                    <h4 class="mb-0">{{ $kpis['completados'] }}</h4>
+                    <small>Completados</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-6">
             <div class="card text-center bg-warning text-white">
-                <div class="card-body">
-                    <h3>{{ $kpis['en_proceso'] }}</h3>
-                    <p class="mb-0">En Proceso</p>
+                <div class="card-body py-2 px-1">
+                    <h4 class="mb-0">{{ $kpis['en_proceso'] }}</h4>
+                    <small>En Proceso</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-6">
             <div class="card text-center bg-danger text-white">
-                <div class="card-body">
-                    <h3>{{ $kpis['vencidos'] }}</h3>
-                    <p class="mb-0">Vencidos</p>
+                <div class="card-body py-2 px-1">
+                    <h4 class="mb-0">{{ $kpis['vencidos'] }}</h4>
+                    <small>Vencidos</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-6">
             <div class="card text-center bg-info text-white">
-                <div class="card-body">
-                    <h3>{{ number_format($kpis['tiempo_promedio'], 1) }}</h3>
-                    <p class="mb-0">Días Promedio</p>
+                <div class="card-body py-2 px-1">
+                    <h4 class="mb-0">{{ number_format($kpis['tiempo_promedio'], 1) }}</h4>
+                    <small>Días Promedio</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 col-6">
             <div class="card text-center bg-secondary text-white">
-                <div class="card-body">
-                    <h3>{{ $kpis['eficiencia'] }}%</h3>
-                    <p class="mb-0">Eficiencia</p>
+                <div class="card-body py-2 px-1">
+                    <h4 class="mb-0">{{ $kpis['eficiencia'] }}%</h4>
+                    <small>Eficiencia</small>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Gráficos Principales -->
-    <div class="row mb-4">
-        <div class="col-md-8">
+    <div class="row mb-3">
+        <div class="col-md-7">
             <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-chart-line"></i> Tendencia de Expedientes</h5>
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-chart-line"></i> Tendencia de Expedientes</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="graficoTendencia" height="100"></canvas>
+                <div class="card-body py-2" style="height: 180px;">
+                    <canvas id="graficoTendencia"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-5">
             <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-chart-pie"></i> Distribución por Estado</h5>
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie"></i> Distribución por Estado</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="graficoEstados" height="200"></canvas>
+                <div class="card-body py-2" style="height: 180px;">
+                    <canvas id="graficoEstados"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Análisis por Área y Tipo de Trámite -->
-    <div class="row mb-4">
+    <div class="row mb-3">
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-building"></i> Rendimiento por Área</h5>
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-building"></i> Rendimiento por Área</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="graficoAreas" height="150"></canvas>
+                <div class="card-body py-2" style="height: 160px;">
+                    <canvas id="graficoAreas"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-tags"></i> Top Tipos de Trámite</h5>
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-tags"></i> Top Tipos de Trámite</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="graficoTiposTramite" height="150"></canvas>
+                <div class="card-body py-2" style="height: 160px;">
+                    <canvas id="graficoTiposTramite"></canvas>
                 </div>
             </div>
         </div>
@@ -279,10 +279,10 @@ new Chart(ctxAreas, {
     }
 });
 
-// Gráfico de Tipos de Trámite
+// Gráfico de Tipos de Trámite (bar horizontal en Chart.js 3+)
 const ctxTipos = document.getElementById('graficoTiposTramite').getContext('2d');
 new Chart(ctxTipos, {
-    type: 'horizontalBar',
+    type: 'bar',
     data: {
         labels: {!! json_encode($graficoTiposTramite['labels']) !!},
         datasets: [{
@@ -292,6 +292,7 @@ new Chart(ctxTipos, {
         }]
     },
     options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false
     }

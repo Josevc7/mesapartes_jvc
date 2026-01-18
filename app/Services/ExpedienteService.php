@@ -40,6 +40,10 @@ class ExpedienteService
             $expediente = Expediente::create([
                 'codigo_expediente' => $codigo,
                 'asunto' => $data['asunto'],
+                'asunto_documento' => $data['asunto_documento'] ?? null,
+                'asunto_tramite' => $data['asunto'] ?? null, // El campo "asunto" del form es el asunto del trámite
+                'tipo_documento_entrante' => $data['tipo_documento_entrante'] ?? null,
+                'folios' => $data['folios'] ?? 1,
                 'id_persona' => $persona->id_persona,
                 'remitente' => $this->personaService->obtenerNombreCompleto($persona),
                 'dni_remitente' => $persona->numero_documento,
@@ -98,15 +102,29 @@ class ExpedienteService
     }
 
     /**
+     * Genera la carpeta de almacenamiento para un expediente
+     * Estructura: expedientes/{año}/{codigo_expediente}/
+     */
+    protected function getCarpetaExpediente(Expediente $expediente): string
+    {
+        $año = $expediente->created_at->year;
+        return "expedientes/{$año}/{$expediente->codigo_expediente}";
+    }
+
+    /**
      * Adjunta el documento principal al expediente
      */
     protected function adjuntarDocumentoPrincipal(Expediente $expediente, UploadedFile $archivo): Documento
     {
-        $path = $archivo->store('documentos', 'public');
+        $carpeta = $this->getCarpetaExpediente($expediente);
+        $nombreOriginal = $archivo->getClientOriginalName();
+        $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+        $path = $archivo->storeAs($carpeta, $nombreLimpio, 'public');
 
         return Documento::create([
             'id_expediente' => $expediente->id_expediente,
-            'nombre' => 'Documento Principal',
+            'nombre' => pathinfo($nombreOriginal, PATHINFO_FILENAME),
             'ruta_pdf' => $path,
             'tipo' => 'entrada',
         ]);
@@ -121,18 +139,22 @@ class ExpedienteService
         string $nombre,
         string $tipo = 'entrada'
     ): Documento {
-        $path = $archivo->store('documentos', 'public');
+        $carpeta = $this->getCarpetaExpediente($expediente);
+        $nombreOriginal = $archivo->getClientOriginalName();
+        $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+
+        $path = $archivo->storeAs($carpeta, $nombreLimpio, 'public');
 
         $documento = Documento::create([
             'id_expediente' => $expediente->id_expediente,
-            'nombre' => $nombre,
+            'nombre' => $nombre ?: pathinfo($nombreOriginal, PATHINFO_FILENAME),
             'ruta_pdf' => $path,
             'tipo' => $tipo,
         ]);
 
         // Registrar en historial
         $expediente->agregarHistorial(
-            "Documento adjuntado: {$nombre}",
+            "Documento adjuntado: {$documento->nombre}",
             auth()->id()
         );
 
