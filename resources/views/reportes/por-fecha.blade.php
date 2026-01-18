@@ -290,7 +290,7 @@
 
                     @if($expedientes->hasPages())
                     <div class="d-flex justify-content-center mt-3">
-                        {{ $expedientes->appends(request()->query())->links() }}
+                         {{ $expedientes->appends(request()->query())->links('pagination::bootstrap-5') }}
                     </div>
                     @endif
                 </div>

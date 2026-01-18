@@ -360,3 +360,49 @@ main {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
 }
+
+
+/* ===== FIX: evitar cruce sidebar vs contenido (PC) ===== */
+:root{
+    --sidebar-width: 260px; /* ajusta si tu sidebar tiene otro ancho */
+}
+
+/* Asegura que el contenido pueda encoger y no se monte */
+main{
+    min-width: 0;
+}
+
+/* En pantallas grandes: deja espacio al sidebar */
+@media (min-width: 992px){
+    .sidebar{
+        width: var(--sidebar-width) !important;
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        height: 100vh !important;
+        overflow-y: auto;
+        z-index: 1030;
+    }
+
+    main{
+        margin-left: var(--sidebar-width) !important;
+        width: calc(100% - var(--sidebar-width)) !important;
+    }
+}
+
+
+/* ===== FIX: sidebar debajo del navbar (evitar que el logo lo tape) ===== */
+:root{
+  --navbar-height: 70px; /* ajusta según tu header real */
+}
+
+@media (min-width: 992px){
+  .sidebar{
+    top: var(--navbar-height) !important;
+    height: calc(100vh - var(--navbar-height)) !important;
+  }
+
+  main{
+    padding-top: var(--navbar-height) !important; /* opcional si tu header tapa contenido */
+  }
+}

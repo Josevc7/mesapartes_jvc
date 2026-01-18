@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\User;
+use App\Models\Area;
+use App\Models\Derivacion;
+use App\Models\TipoTramite;
 use App\Services\EstadisticasService;
 use App\Services\DerivacionService;
 use App\Http\Requests\Derivacion\ExtenderPlazoRequest;
 use App\Http\Requests\Expediente\ValidarExpedienteRequest;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class JefeAreaController extends Controller
 {
@@ -25,41 +29,330 @@ class JefeAreaController extends Controller
     }
 
     /**
-     * Dashboard del Jefe de Área
-     *
-     * REFACTORIZADO: Ahora usa EstadisticasService
-     * ANTES: 17 líneas con queries inline
-     * DESPUÉS: 4 líneas delegando al Service
+     * Dashboard del Jefe de Área con estadísticas completas
      */
     public function dashboard()
     {
         $areaId = auth()->user()->id_area;
         $stats = $this->estadisticasService->obtenerEstadisticasJefeArea($areaId);
 
-        return view('jefe-area.dashboard', compact('stats'));
+        // Estadísticas adicionales para el dashboard
+        $stats['por_aprobar'] = Expediente::where('id_area', $areaId)
+            ->where('estado', 'resuelto')
+            ->count();
+
+        $stats['sin_asignar'] = Expediente::where('id_area', $areaId)
+            ->whereNull('id_funcionario_asignado')
+            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->count();
+
+        // Expedientes urgentes
+        $stats['urgentes'] = Expediente::where('id_area', $areaId)
+            ->where('prioridad', 'urgente')
+            ->whereNotIn('estado', ['archivado', 'resuelto', 'aprobado'])
+            ->count();
+
+        // Expedientes críticos (vencidos o por vencer)
+        $expedientesCriticos = Expediente::where('id_area', $areaId)
+            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->with(['funcionarioAsignado', 'derivaciones' => function($q) {
+                $q->where('estado', 'pendiente')->latest();
+            }])
+            ->get()
+            ->map(function($exp) {
+                $derivacion = $exp->derivaciones->first();
+                if ($derivacion && $derivacion->fecha_limite) {
+                    $exp->dias_vencido = $derivacion->fecha_limite->isPast()
+                        ? (int) $derivacion->fecha_limite->diffInDays(now())
+                        : 0;
+                    $exp->dias_restantes = $derivacion->fecha_limite->isFuture()
+                        ? (int) now()->diffInDays($derivacion->fecha_limite)
+                        : 0;
+                    $exp->fecha_limite = $derivacion->fecha_limite;
+                } else {
+                    $exp->dias_vencido = 0;
+                    $exp->dias_restantes = 999;
+                }
+                return $exp;
+            })
+            ->filter(function($exp) {
+                return $exp->dias_vencido > 0 || $exp->dias_restantes <= 3;
+            })
+            ->sortByDesc('dias_vencido')
+            ->take(5);
+
+        // Funcionarios del área con carga de trabajo
+        $funcionarios = User::where('id_area', $areaId)
+            ->where('id_rol', 4)
+            ->where('activo', true)
+            ->withCount([
+                'expedientesAsignados as pendientes' => function($q) {
+                    $q->whereIn('estado', ['derivado', 'en_proceso']);
+                }
+            ])
+            ->get();
+
+        return view('jefe-area.dashboard', compact('stats', 'expedientesCriticos', 'funcionarios'));
     }
 
+    /**
+     * Lista de expedientes del área con filtros avanzados
+     */
     public function expedientes(Request $request)
     {
         $areaId = auth()->user()->id_area;
-        
-        $query = Expediente::where('id_area', $areaId)
-            ->with(['tipoTramite', 'ciudadano', 'funcionarioAsignado', 'derivaciones']);
 
+        $query = Expediente::where('id_area', $areaId)
+            ->with(['tipoTramite', 'ciudadano', 'funcionarioAsignado', 'derivaciones' => function($q) {
+                $q->where('estado', 'pendiente')->latest();
+            }, 'persona']);
+
+        // Filtro por estado
         if ($request->estado) {
             $query->where('estado', $request->estado);
         }
 
+        // Filtro por funcionario
         if ($request->funcionario) {
-            $query->where('id_funcionario_asignado', $request->funcionario);
+            if ($request->funcionario === 'sin_asignar') {
+                $query->whereNull('id_funcionario_asignado');
+            } else {
+                $query->where('id_funcionario_asignado', $request->funcionario);
+            }
+        }
+
+        // Filtro por prioridad
+        if ($request->prioridad) {
+            $query->where('prioridad', $request->prioridad);
+        }
+
+        // Filtro por tipo de trámite
+        if ($request->tipo_tramite) {
+            $query->where('id_tipo_tramite', $request->tipo_tramite);
+        }
+
+        // Filtro por fecha
+        if ($request->fecha_desde) {
+            $query->whereDate('created_at', '>=', $request->fecha_desde);
+        }
+        if ($request->fecha_hasta) {
+            $query->whereDate('created_at', '<=', $request->fecha_hasta);
+        }
+
+        // Filtro por vencidos
+        if ($request->vencidos) {
+            $query->whereHas('derivaciones', function($q) {
+                $q->where('estado', 'pendiente')
+                  ->where('fecha_limite', '<', now());
+            });
+        }
+
+        // Filtro por próximos a vencer
+        if ($request->por_vencer) {
+            $query->whereHas('derivaciones', function($q) {
+                $q->where('estado', 'pendiente')
+                  ->whereBetween('fecha_limite', [now(), now()->addDays(3)]);
+            });
+        }
+
+        // Búsqueda por código o asunto
+        if ($request->buscar) {
+            $buscar = $request->buscar;
+            $query->where(function($q) use ($buscar) {
+                $q->where('codigo_expediente', 'like', "%{$buscar}%")
+                  ->orWhere('asunto', 'like', "%{$buscar}%");
+            });
         }
 
         $expedientes = $query->orderBy('created_at', 'desc')->paginate(15);
-        
+
+        // Agregar información de plazos a cada expediente
+        $expedientes->getCollection()->transform(function($exp) {
+            $derivacion = $exp->derivaciones->first();
+            if ($derivacion && $derivacion->fecha_limite) {
+                $exp->dias_vencido = $derivacion->fecha_limite->isPast()
+                    ? (int) $derivacion->fecha_limite->diffInDays(now())
+                    : 0;
+                $exp->dias_restantes = $derivacion->fecha_limite->isFuture()
+                    ? (int) now()->diffInDays($derivacion->fecha_limite)
+                    : 0;
+                $exp->fecha_limite = $derivacion->fecha_limite;
+            } else {
+                $exp->dias_vencido = 0;
+                $exp->dias_restantes = null;
+                $exp->fecha_limite = null;
+            }
+            return $exp;
+        });
+
+        // Funcionarios del área para filtros y asignación
         $funcionarios = User::where('id_area', $areaId)
-            ->where('id_rol', 4)->get();
-            
-        return view('jefe-area.expedientes', compact('expedientes', 'funcionarios'));
+            ->where('id_rol', 4)
+            ->where('activo', true)
+            ->withCount([
+                'expedientesAsignados as carga_trabajo' => function($q) {
+                    $q->whereIn('estado', ['derivado', 'en_proceso']);
+                }
+            ])
+            ->orderBy('name')
+            ->get();
+
+        // Tipos de trámite del área
+        $tiposTramite = TipoTramite::where('id_area', $areaId)
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        // Estadísticas rápidas
+        $estadisticas = [
+            'total' => Expediente::where('id_area', $areaId)->count(),
+            'pendientes' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+            'resueltos' => Expediente::where('id_area', $areaId)
+                ->where('estado', 'resuelto')->count(),
+            'sin_asignar' => Expediente::where('id_area', $areaId)
+                ->whereNull('id_funcionario_asignado')
+                ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+        ];
+
+        return view('jefe-area.expedientes', compact('expedientes', 'funcionarios', 'tiposTramite', 'estadisticas'));
+    }
+
+    /**
+     * Ver detalle de un expediente
+     */
+    public function showExpediente(Expediente $expediente)
+    {
+        $this->authorize('view', $expediente);
+
+        $expediente->load([
+            'tipoTramite',
+            'ciudadano',
+            'funcionarioAsignado',
+            'derivaciones.funcionarioAsignado',
+            'derivaciones.areaDestino',
+            'documentos',
+            'historial.usuario',
+            'observaciones',
+            'persona'
+        ]);
+
+        $funcionarios = User::where('id_area', auth()->user()->id_area)
+            ->where('id_rol', 4)
+            ->where('activo', true)
+            ->get();
+
+        return view('jefe-area.show-expediente', compact('expediente', 'funcionarios'));
+    }
+
+    /**
+     * Asignar expediente a un funcionario
+     */
+    public function asignarExpediente(Request $request, Expediente $expediente)
+    {
+        $this->authorize('update', $expediente);
+
+        $request->validate([
+            'funcionario_id' => 'required|exists:users,id',
+            'observaciones' => 'nullable|string|max:500'
+        ]);
+
+        $funcionario = User::findOrFail($request->funcionario_id);
+
+        // Verificar que el funcionario pertenece al área
+        if ($funcionario->id_area !== auth()->user()->id_area) {
+            return back()->with('error', 'El funcionario no pertenece a esta área.');
+        }
+
+        $funcionarioAnterior = $expediente->funcionarioAsignado?->name ?? 'Sin asignar';
+
+        DB::transaction(function() use ($expediente, $funcionario, $request, $funcionarioAnterior) {
+            $expediente->update([
+                'id_funcionario_asignado' => $funcionario->id
+            ]);
+
+            // Actualizar la derivación activa
+            $derivacionActiva = $expediente->derivaciones()
+                ->where('estado', 'pendiente')
+                ->latest()
+                ->first();
+
+            if ($derivacionActiva) {
+                $derivacionActiva->update([
+                    'id_funcionario_asignado' => $funcionario->id
+                ]);
+            }
+
+            $mensaje = "Asignado a {$funcionario->name} por Jefe de Área.";
+            if ($funcionarioAnterior !== 'Sin asignar') {
+                $mensaje = "Reasignado de {$funcionarioAnterior} a {$funcionario->name}.";
+            }
+            if ($request->observaciones) {
+                $mensaje .= " Motivo: {$request->observaciones}";
+            }
+
+            $expediente->agregarHistorial($mensaje, auth()->id());
+        });
+
+        return back()->with('success', "Expediente asignado correctamente a {$funcionario->name}.");
+    }
+
+    /**
+     * Reasignar múltiples expedientes (asignación masiva)
+     */
+    public function asignacionMasiva(Request $request)
+    {
+        $request->validate([
+            'expedientes' => 'required|array|min:1',
+            'expedientes.*' => 'exists:expedientes,id_expediente',
+            'funcionario_id' => 'required|exists:users,id',
+            'motivo' => 'required|string|min:5|max:500'
+        ]);
+
+        $funcionario = User::findOrFail($request->funcionario_id);
+        $areaId = auth()->user()->id_area;
+
+        // Verificar que el funcionario pertenece al área
+        if ($funcionario->id_area !== $areaId) {
+            return back()->with('error', 'El funcionario no pertenece a esta área.');
+        }
+
+        $count = 0;
+        DB::transaction(function() use ($request, $funcionario, $areaId, &$count) {
+            foreach ($request->expedientes as $expedienteId) {
+                $expediente = Expediente::where('id_expediente', $expedienteId)
+                    ->where('id_area', $areaId)
+                    ->first();
+
+                if ($expediente) {
+                    $funcionarioAnterior = $expediente->funcionarioAsignado?->name ?? 'Sin asignar';
+
+                    $expediente->update([
+                        'id_funcionario_asignado' => $funcionario->id
+                    ]);
+
+                    $derivacionActiva = $expediente->derivaciones()
+                        ->where('estado', 'pendiente')
+                        ->latest()
+                        ->first();
+
+                    if ($derivacionActiva) {
+                        $derivacionActiva->update([
+                            'id_funcionario_asignado' => $funcionario->id
+                        ]);
+                    }
+
+                    $expediente->agregarHistorial(
+                        "Asignación masiva: de {$funcionarioAnterior} a {$funcionario->name}. Motivo: {$request->motivo}",
+                        auth()->id()
+                    );
+
+                    $count++;
+                }
+            }
+        });
+
+        return back()->with('success', "{$count} expediente(s) asignado(s) correctamente a {$funcionario->name}.");
     }
 
     public function aprobar(Expediente $expediente)
@@ -124,97 +417,392 @@ class JefeAreaController extends Controller
         }
     }
 
-    public function reportes()
+    /**
+     * Reportes del área con estadísticas completas
+     */
+    public function reportes(Request $request)
     {
         $areaId = auth()->user()->id_area;
-        
+        $año = $request->get('año', now()->year);
+        $mes = $request->get('mes');
+
+        // Expedientes por mes
+        $expedientesPorMes = Expediente::where('id_area', $areaId)
+            ->selectRaw('MONTH(created_at) as mes, COUNT(*) as total')
+            ->whereYear('created_at', $año)
+            ->groupBy('mes')
+            ->get()
+            ->keyBy('mes');
+
+        // Expedientes resueltos por mes
+        $resueltosPorMes = Expediente::where('id_area', $areaId)
+            ->selectRaw('MONTH(updated_at) as mes, COUNT(*) as total')
+            ->where('estado', 'resuelto')
+            ->whereYear('updated_at', $año)
+            ->groupBy('mes')
+            ->get()
+            ->keyBy('mes');
+
+        // Rendimiento por funcionario
+        $funcionariosRendimiento = User::where('id_area', $areaId)
+            ->where('id_rol', 4)
+            ->where('activo', true)
+            ->withCount([
+                'expedientesAsignados as total_asignados',
+                'expedientesAsignados as resueltos' => function($q) {
+                    $q->whereIn('estado', ['resuelto', 'aprobado', 'archivado']);
+                },
+                'expedientesAsignados as pendientes' => function($q) {
+                    $q->whereIn('estado', ['derivado', 'en_proceso']);
+                },
+                'expedientesAsignados as vencidos' => function($q) {
+                    $q->whereHas('derivaciones', function($d) {
+                        $d->where('estado', 'pendiente')
+                          ->where('fecha_limite', '<', now());
+                    });
+                }
+            ])
+            ->get()
+            ->map(function($func) {
+                $func->efectividad = $func->total_asignados > 0
+                    ? round(($func->resueltos / $func->total_asignados) * 100, 1)
+                    : 0;
+
+                // Calcular tiempo promedio de atención
+                $tiempoPromedio = Expediente::where('id_funcionario_asignado', $func->id)
+                    ->whereIn('estado', ['resuelto', 'aprobado'])
+                    ->whereNotNull('fecha_resolucion')
+                    ->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as promedio')
+                    ->first();
+                $func->tiempo_promedio = round($tiempoPromedio->promedio ?? 0, 1);
+
+                return $func;
+            });
+
+        // Estadísticas por tipo de trámite
+        $porTipoTramite = Expediente::where('id_area', $areaId)
+            ->whereYear('created_at', $año)
+            ->with('tipoTramite')
+            ->selectRaw('id_tipo_tramite, COUNT(*) as total')
+            ->groupBy('id_tipo_tramite')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'nombre' => $item->tipoTramite->nombre ?? 'Sin tipo',
+                    'total' => $item->total
+                ];
+            });
+
+        // Estadísticas por prioridad
+        $porPrioridad = Expediente::where('id_area', $areaId)
+            ->whereYear('created_at', $año)
+            ->selectRaw('prioridad, COUNT(*) as total')
+            ->groupBy('prioridad')
+            ->get()
+            ->keyBy('prioridad');
+
+        // Tiempos promedio generales
+        $tiemposPromedio = Expediente::where('id_area', $areaId)
+            ->whereIn('estado', ['resuelto', 'aprobado'])
+            ->whereNotNull('fecha_resolucion')
+            ->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as promedio_dias')
+            ->first();
+
+        // Cumplimiento de plazos
+        $totalConPlazo = Expediente::where('id_area', $areaId)
+            ->whereHas('derivaciones', function($q) {
+                $q->whereNotNull('fecha_limite');
+            })->count();
+
+        $cumplidosEnPlazo = Expediente::where('id_area', $areaId)
+            ->whereIn('estado', ['resuelto', 'aprobado', 'archivado'])
+            ->whereHas('derivaciones', function($q) {
+                $q->whereNotNull('fecha_limite')
+                  ->whereRaw('fecha_resolucion <= fecha_limite');
+            })->count();
+
+        $cumplimientoPorcentaje = $totalConPlazo > 0
+            ? round(($cumplidosEnPlazo / $totalConPlazo) * 100, 1)
+            : 100;
+
         $reportes = [
-            'expedientes_por_mes' => Expediente::where('id_area', $areaId)
-                ->selectRaw('MONTH(created_at) as mes, COUNT(*) as total')
-                ->whereYear('created_at', now()->year)
-                ->groupBy('mes')->get(),
-            'funcionarios_rendimiento' => User::where('id_area', $areaId)
-                ->where('id_rol', 4)
-                ->withCount(['expedientesAsignados as total', 
-                    'expedientesAsignados as resueltos' => function($q) {
-                        $q->where('estado', 'Resuelto');
-                    }])->get(),
-            'tiempos_promedio' => Expediente::where('id_area', $areaId)
-                ->where('estado', 'Resuelto')
-                ->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as promedio_dias')
-                ->first()
+            'expedientes_por_mes' => $expedientesPorMes,
+            'resueltos_por_mes' => $resueltosPorMes,
+            'funcionarios_rendimiento' => $funcionariosRendimiento,
+            'por_tipo_tramite' => $porTipoTramite,
+            'por_prioridad' => $porPrioridad,
+            'tiempos_promedio' => $tiemposPromedio,
+            'cumplimiento_porcentaje' => $cumplimientoPorcentaje,
+            'año_actual' => $año,
+            'total_expedientes' => Expediente::where('id_area', $areaId)->whereYear('created_at', $año)->count(),
+            'total_resueltos' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['resuelto', 'aprobado', 'archivado'])
+                ->whereYear('updated_at', $año)->count(),
         ];
-        
+
         return view('jefe-area.reportes', compact('reportes'));
     }
 
+    /**
+     * Control de plazos con gestión avanzada
+     */
     public function controlPlazos()
     {
         $areaId = auth()->user()->id_area;
-        
+
+        // Estadísticas de plazos
         $stats = [
             'vencidos' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['derivado', 'en_proceso'])
                 ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now());
+                    $q->where('estado', 'pendiente')
+                      ->where('fecha_limite', '<', now());
                 })->count(),
             'por_vencer' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['derivado', 'en_proceso'])
                 ->whereHas('derivaciones', function($q) {
-                    $q->whereBetween('fecha_limite', [now(), now()->addDays(3)]);
+                    $q->where('estado', 'pendiente')
+                      ->whereBetween('fecha_limite', [now(), now()->addDays(3)]);
                 })->count(),
             'en_plazo' => Expediente::where('id_area', $areaId)
-                ->whereIn('estado', ['Derivado', 'En Proceso'])
+                ->whereIn('estado', ['derivado', 'en_proceso'])
                 ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '>', now()->addDays(3));
+                    $q->where('estado', 'pendiente')
+                      ->where('fecha_limite', '>', now()->addDays(3));
                 })->count(),
             'sin_asignar' => Expediente::where('id_area', $areaId)
-                ->whereNull('id_funcionario_asignado')->count(),
+                ->whereNull('id_funcionario_asignado')
+                ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
             'por_aprobar' => Expediente::where('id_area', $areaId)
-                ->where('estado', 'Resuelto')->count()
+                ->where('estado', 'resuelto')->count()
         ];
-        
-        $expedientes_criticos = Expediente::where('id_area', $areaId)
-            ->whereIn('estado', ['Derivado', 'En Proceso'])
-            ->with(['funcionarioAsignado', 'derivaciones'])
+
+        // Expedientes críticos (vencidos y por vencer)
+        $expedientesCriticos = Expediente::where('id_area', $areaId)
+            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->with(['funcionarioAsignado', 'tipoTramite', 'derivaciones' => function($q) {
+                $q->where('estado', 'pendiente')->latest();
+            }])
             ->get()
             ->map(function($exp) {
                 $derivacion = $exp->derivaciones->first();
                 if ($derivacion && $derivacion->fecha_limite) {
-                    $exp->dias_vencido = $derivacion->fecha_limite->isPast() ? (int) $derivacion->fecha_limite->diffInDays(now()) : 0;
-                    $exp->dias_restantes = $derivacion->fecha_limite->isFuture() ? (int) now()->diffInDays($derivacion->fecha_limite) : 0;
+                    $exp->dias_vencido = $derivacion->fecha_limite->isPast()
+                        ? (int) $derivacion->fecha_limite->diffInDays(now())
+                        : 0;
+                    $exp->dias_restantes = $derivacion->fecha_limite->isFuture()
+                        ? (int) now()->diffInDays($derivacion->fecha_limite)
+                        : 0;
+                    $exp->fecha_limite = $derivacion->fecha_limite;
+                    $exp->plazo_original = $derivacion->plazo_dias;
+                } else {
+                    $exp->dias_vencido = 0;
+                    $exp->dias_restantes = null;
+                    $exp->fecha_limite = null;
+                    $exp->plazo_original = null;
                 }
                 return $exp;
             })
             ->filter(function($exp) {
-                return $exp->dias_vencido > 0 || $exp->dias_restantes <= 3;
+                return $exp->dias_vencido > 0 || ($exp->dias_restantes !== null && $exp->dias_restantes <= 3);
+            })
+            ->sortByDesc('dias_vencido');
+
+        // Expedientes sin asignar
+        $expedientesSinAsignar = Expediente::where('id_area', $areaId)
+            ->whereNull('id_funcionario_asignado')
+            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->with(['tipoTramite', 'derivaciones' => function($q) {
+                $q->where('estado', 'pendiente')->latest();
+            }])
+            ->get()
+            ->map(function($exp) {
+                $derivacion = $exp->derivaciones->first();
+                if ($derivacion && $derivacion->fecha_limite) {
+                    $exp->dias_restantes = $derivacion->fecha_limite->isFuture()
+                        ? (int) now()->diffInDays($derivacion->fecha_limite)
+                        : -1 * (int) $derivacion->fecha_limite->diffInDays(now());
+                    $exp->fecha_limite = $derivacion->fecha_limite;
+                }
+                return $exp;
             });
-        
-        return view('jefe-area.control-plazos', compact('stats', 'expedientes_criticos'));
+
+        // Funcionarios disponibles para reasignación
+        $funcionarios = User::where('id_area', $areaId)
+            ->where('id_rol', 4)
+            ->where('activo', true)
+            ->withCount([
+                'expedientesAsignados as carga_trabajo' => function($q) {
+                    $q->whereIn('estado', ['derivado', 'en_proceso']);
+                }
+            ])
+            ->orderBy('carga_trabajo')
+            ->get();
+
+        // Análisis de cumplimiento
+        $totalExpedientes = Expediente::where('id_area', $areaId)
+            ->whereIn('estado', ['resuelto', 'aprobado', 'archivado'])
+            ->count();
+
+        $resueltosEnPlazo = Expediente::where('id_area', $areaId)
+            ->whereIn('estado', ['resuelto', 'aprobado', 'archivado'])
+            ->whereHas('derivaciones', function($q) {
+                $q->whereColumn('fecha_limite', '>=', 'expedientes.fecha_resolucion');
+            })->count();
+
+        $cumplimiento = [
+            'porcentaje' => $totalExpedientes > 0
+                ? round(($resueltosEnPlazo / $totalExpedientes) * 100, 1)
+                : 100,
+            'total' => $totalExpedientes,
+            'en_plazo' => $resueltosEnPlazo
+        ];
+
+        return view('jefe-area.control-plazos', compact(
+            'stats',
+            'expedientesCriticos',
+            'expedientesSinAsignar',
+            'funcionarios',
+            'cumplimiento'
+        ));
     }
 
+    /**
+     * Supervisión avanzada de funcionarios
+     */
     public function supervision()
     {
         $areaId = auth()->user()->id_area;
-        
+
+        // Funcionarios con estadísticas completas
         $funcionarios = User::where('id_area', $areaId)
             ->where('id_rol', 4)
+            ->where('activo', true)
             ->withCount([
-                'expedientesAsignados as asignados',
+                'expedientesAsignados as total_asignados',
                 'expedientesAsignados as resueltos' => function($q) {
-                    $q->where('estado', 'Resuelto');
+                    $q->whereIn('estado', ['resuelto', 'aprobado', 'archivado']);
                 },
                 'expedientesAsignados as pendientes' => function($q) {
-                    $q->whereIn('estado', ['Derivado', 'En Proceso']);
+                    $q->whereIn('estado', ['derivado', 'en_proceso']);
+                },
+                'expedientesAsignados as vencidos' => function($q) {
+                    $q->whereHas('derivaciones', function($d) {
+                        $d->where('estado', 'pendiente')
+                          ->where('fecha_limite', '<', now());
+                    });
+                },
+                'expedientesAsignados as resueltos_mes' => function($q) {
+                    $q->whereIn('estado', ['resuelto', 'aprobado'])
+                      ->whereMonth('updated_at', now()->month);
                 }
             ])
             ->get()
             ->map(function($funcionario) {
                 $funcionario->carga_trabajo = $funcionario->pendientes;
-                $funcionario->efectividad = $funcionario->asignados > 0 ? 
-                    round(($funcionario->resueltos / $funcionario->asignados) * 100) : 0;
+                $funcionario->efectividad = $funcionario->total_asignados > 0
+                    ? round(($funcionario->resueltos / $funcionario->total_asignados) * 100, 1)
+                    : 0;
+
+                // Calcular tiempo promedio de atención
+                $tiempoPromedio = Expediente::where('id_funcionario_asignado', $funcionario->id)
+                    ->whereIn('estado', ['resuelto', 'aprobado'])
+                    ->whereNotNull('fecha_resolucion')
+                    ->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as promedio')
+                    ->first();
+                $funcionario->tiempo_promedio = round($tiempoPromedio->promedio ?? 0, 1);
+
+                // Expedientes actuales del funcionario
+                $funcionario->expedientes_actuales = Expediente::where('id_funcionario_asignado', $funcionario->id)
+                    ->whereIn('estado', ['derivado', 'en_proceso', 'resuelto'])
+                    ->with(['tipoTramite', 'derivaciones' => function($q) {
+                        $q->where('estado', 'pendiente')->latest();
+                    }])
+                    ->orderBy('created_at', 'desc')
+                    ->take(10)
+                    ->get()
+                    ->map(function($exp) {
+                        $derivacion = $exp->derivaciones->first();
+                        if ($derivacion && $derivacion->fecha_limite) {
+                            $exp->dias_restantes = $derivacion->fecha_limite->isFuture()
+                                ? (int) now()->diffInDays($derivacion->fecha_limite)
+                                : -1 * (int) $derivacion->fecha_limite->diffInDays(now());
+                            $exp->vencido = $derivacion->fecha_limite->isPast();
+                        } else {
+                            $exp->dias_restantes = null;
+                            $exp->vencido = false;
+                        }
+                        return $exp;
+                    });
+
                 return $funcionario;
-            });
-        
-        return view('jefe-area.supervision', compact('funcionarios'));
+            })
+            ->sortByDesc('carga_trabajo');
+
+        // Estadísticas generales del área
+        $estadisticasArea = [
+            'total_pendientes' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+            'total_vencidos' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['derivado', 'en_proceso'])
+                ->whereHas('derivaciones', function($q) {
+                    $q->where('estado', 'pendiente')
+                      ->where('fecha_limite', '<', now());
+                })->count(),
+            'resueltos_mes' => Expediente::where('id_area', $areaId)
+                ->whereIn('estado', ['resuelto', 'aprobado'])
+                ->whereMonth('updated_at', now()->month)->count(),
+            'promedio_carga' => $funcionarios->avg('carga_trabajo'),
+            'funcionario_mas_cargado' => $funcionarios->sortByDesc('carga_trabajo')->first(),
+            'funcionario_menos_cargado' => $funcionarios->sortBy('carga_trabajo')->first(),
+        ];
+
+        // Procesos que requieren autorización especial
+        $procesosEspeciales = Expediente::where('id_area', $areaId)
+            ->where('estado', 'resuelto')
+            ->with(['funcionarioAsignado', 'tipoTramite'])
+            ->orderBy('fecha_resolucion', 'asc')
+            ->take(10)
+            ->get();
+
+        // Alertas del sistema
+        $alertas = collect();
+
+        // Funcionarios sobrecargados (más de 10 pendientes)
+        $sobrecargados = $funcionarios->filter(fn($f) => $f->carga_trabajo > 10);
+        foreach ($sobrecargados as $func) {
+            $alertas->push([
+                'tipo' => 'danger',
+                'mensaje' => "{$func->name} tiene {$func->carga_trabajo} expedientes pendientes (sobrecargado)",
+                'icono' => 'exclamation-triangle'
+            ]);
+        }
+
+        // Expedientes vencidos
+        if ($estadisticasArea['total_vencidos'] > 0) {
+            $alertas->push([
+                'tipo' => 'danger',
+                'mensaje' => "{$estadisticasArea['total_vencidos']} expediente(s) vencido(s) requieren atención",
+                'icono' => 'clock'
+            ]);
+        }
+
+        // Expedientes por aprobar
+        $porAprobar = Expediente::where('id_area', $areaId)->where('estado', 'resuelto')->count();
+        if ($porAprobar > 0) {
+            $alertas->push([
+                'tipo' => 'info',
+                'mensaje' => "{$porAprobar} expediente(s) listo(s) para aprobar",
+                'icono' => 'check-circle'
+            ]);
+        }
+
+        return view('jefe-area.supervision', compact(
+            'funcionarios',
+            'estadisticasArea',
+            'procesosEspeciales',
+            'alertas'
+        ));
     }
 
     public function validarDocumentos()

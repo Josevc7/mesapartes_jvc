@@ -3,39 +3,104 @@
 @section('title', 'Reportes del Área')
 
 @section('content')
-<div class="container">
-    <div class="row">
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Reportes del Área</h2>
-                <span class="badge bg-info">{{ auth()->user()->area->nombre ?? 'N/A' }}</span>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Reportes del Área</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-building me-1"></i>
+                        {{ auth()->user()->area->nombre ?? 'N/A' }} - Año {{ $reportes['año_actual'] ?? now()->year }}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ route('jefe-area.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Métricas Generales -->
+    <!-- Métricas Principales -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body text-center">
-                    <h3>{{ $reportes['tiempos_promedio']->promedio_dias ?? 0 }}</h3>
-                    <p>Días Promedio de Atención</p>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ $reportes['total_expedientes'] ?? 0 }}</h3>
+                            <p class="mb-0">Total Expedientes</p>
+                        </div>
+                        <i class="fas fa-folder fa-2x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-success text-white">
-                <div class="card-body text-center">
-                    <h3>{{ $reportes['funcionarios_rendimiento']->sum('resueltos') }}</h3>
-                    <p>Expedientes Resueltos</p>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ $reportes['total_resueltos'] ?? 0 }}</h3>
+                            <p class="mb-0">Resueltos</p>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-white">
-                <div class="card-body text-center">
-                    <h3>{{ $reportes['funcionarios_rendimiento']->count() }}</h3>
-                    <p>Funcionarios Activos</p>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ round($reportes['tiempos_promedio']->promedio_dias ?? 0, 1) }}</h3>
+                            <p class="mb-0">Días Promedio</p>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ $reportes['cumplimiento_porcentaje'] ?? 0 }}%</h3>
+                            <p class="mb-0">Cumplimiento</p>
+                        </div>
+                        <i class="fas fa-chart-pie fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gráfico de Expedientes por Mes -->
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Expedientes por Mes ({{ $reportes['año_actual'] ?? now()->year }})</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartExpedientesMes" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribución por Prioridad -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Por Prioridad</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartPrioridad" height="250"></canvas>
                 </div>
             </div>
         </div>
@@ -46,41 +111,67 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5>Rendimiento por Funcionario</h5>
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Rendimiento por Funcionario</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
                                     <th>Funcionario</th>
-                                    <th>Total Asignados</th>
-                                    <th>Resueltos</th>
-                                    <th>% Efectividad</th>
-                                    <th>Estado</th>
+                                    <th class="text-center">Total Asignados</th>
+                                    <th class="text-center">Resueltos</th>
+                                    <th class="text-center">Pendientes</th>
+                                    <th class="text-center">Vencidos</th>
+                                    <th class="text-center">Tiempo Prom.</th>
+                                    <th>Efectividad</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($reportes['funcionarios_rendimiento'] as $funcionario)
+                                @foreach($reportes['funcionarios_rendimiento'] ?? [] as $funcionario)
                                 <tr>
-                                    <td>{{ $funcionario->name }}</td>
-                                    <td>{{ $funcionario->total }}</td>
-                                    <td>{{ $funcionario->resueltos }}</td>
                                     <td>
-                                        @php
-                                            $efectividad = $funcionario->total > 0 ? ($funcionario->resueltos / $funcionario->total) * 100 : 0;
-                                        @endphp
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar bg-{{ $efectividad >= 80 ? 'success' : ($efectividad >= 60 ? 'warning' : 'danger') }}" 
-                                                 style="width: {{ $efectividad }}%">
-                                                {{ number_format($efectividad, 1) }}%
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar bg-primary text-white rounded-circle me-2"
+                                                 style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                                {{ substr($funcionario->name, 0, 1) }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ $funcionario->name }}</strong>
+                                                <br><small class="text-muted">{{ $funcionario->email }}</small>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-{{ $funcionario->activo ? 'success' : 'secondary' }}">
-                                            {{ $funcionario->activo ? 'Activo' : 'Inactivo' }}
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ $funcionario->total_asignados }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ $funcionario->resueltos }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning text-dark">{{ $funcionario->pendientes }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ $funcionario->vencidos > 0 ? 'danger' : 'secondary' }}">
+                                            {{ $funcionario->vencidos }}
                                         </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {{ $funcionario->tiempo_promedio }} días
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                                @php
+                                                    $efectividad = $funcionario->efectividad;
+                                                    $colorEfect = $efectividad >= 80 ? 'success' : ($efectividad >= 60 ? 'warning' : 'danger');
+                                                @endphp
+                                                <div class="progress-bar bg-{{ $colorEfect }}"
+                                                     style="width: {{ $efectividad }}%">
+                                                    {{ $efectividad }}%
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -92,99 +183,147 @@
         </div>
     </div>
 
-    <!-- Expedientes por Mes -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Expedientes por Mes ({{ now()->year }})</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="expedientesPorMes" width="400" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Cumplimiento de Plazos</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <h6>Análisis de Cumplimiento</h6>
-                        <ul class="mb-0">
-                            <li>Expedientes en plazo: <strong>85%</strong></li>
-                            <li>Expedientes vencidos: <strong>15%</strong></li>
-                            <li>Tiempo promedio: <strong>{{ $reportes['tiempos_promedio']->promedio_dias ?? 0 }} días</strong></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Acciones de Mejora -->
     <div class="row">
-        <div class="col-12">
-            <div class="card">
+        <!-- Expedientes por Tipo de Trámite -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
                 <div class="card-header">
-                    <h5>Recomendaciones de Mejora</h5>
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Por Tipo de Trámite</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @foreach($reportes['por_tipo_tramite'] ?? [] as $tipo)
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ $tipo['nombre'] }}
+                            <span class="badge bg-primary rounded-pill">{{ $tipo['total'] }}</span>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análisis y Recomendaciones -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Análisis del Área</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="alert alert-warning">
-                                <h6><i class="fas fa-exclamation-triangle"></i> Atención Requerida</h6>
-                                <ul class="mb-0">
-                                    <li>Funcionarios con baja efectividad</li>
-                                    <li>Expedientes próximos a vencer</li>
-                                    <li>Procesos que exceden tiempo promedio</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="alert alert-success">
-                                <h6><i class="fas fa-check-circle"></i> Fortalezas</h6>
-                                <ul class="mb-0">
-                                    <li>Alto porcentaje de resolución</li>
-                                    <li>Cumplimiento de plazos legales</li>
-                                    <li>Equipo de trabajo estable</li>
-                                </ul>
-                            </div>
-                        </div>
+                    @php
+                        $cumplimiento = $reportes['cumplimiento_porcentaje'] ?? 0;
+                        $tiempoPromedio = $reportes['tiempos_promedio']->promedio_dias ?? 0;
+                    @endphp
+
+                    @if($cumplimiento >= 80)
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check-circle me-1"></i> Excelente Cumplimiento</h6>
+                        <p class="mb-0">El área mantiene un {{ $cumplimiento }}% de cumplimiento en plazos. Continuar con las buenas prácticas.</p>
                     </div>
+                    @elseif($cumplimiento >= 60)
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-1"></i> Cumplimiento Regular</h6>
+                        <p class="mb-0">El {{ 100 - $cumplimiento }}% de expedientes no cumplen plazos. Se recomienda revisar la distribución de carga.</p>
+                    </div>
+                    @else
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-times-circle me-1"></i> Cumplimiento Bajo</h6>
+                        <p class="mb-0">Solo {{ $cumplimiento }}% de expedientes cumplen plazos. Requiere atención urgente.</p>
+                    </div>
+                    @endif
+
+                    @if($tiempoPromedio <= 15)
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-clock me-1"></i> Tiempo de Atención Óptimo</h6>
+                        <p class="mb-0">Promedio de {{ round($tiempoPromedio, 1) }} días está dentro del rango esperado.</p>
+                    </div>
+                    @elseif($tiempoPromedio <= 25)
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-clock me-1"></i> Tiempo de Atención Alto</h6>
+                        <p class="mb-0">Promedio de {{ round($tiempoPromedio, 1) }} días. Considerar optimizar procesos.</p>
+                    </div>
+                    @else
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-clock me-1"></i> Tiempo de Atención Crítico</h6>
+                        <p class="mb-0">Promedio de {{ round($tiempoPromedio, 1) }} días excede lo permitido. Revisión urgente.</p>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('expedientesPorMes').getContext('2d');
-const expedientesPorMes = new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-        datasets: [{
-            label: 'Expedientes',
-            data: [
-                @foreach(range(1, 12) as $mes)
-                    {{ $reportes['expedientes_por_mes']->where('mes', $mes)->first()->total ?? 0 }},
-                @endforeach
-            ],
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Expedientes por Mes
+    const ctxMes = document.getElementById('chartExpedientesMes').getContext('2d');
+    new Chart(ctxMes, {
+        type: 'bar',
+        data: {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [{
+                label: 'Recibidos',
+                data: [
+                    @for($i = 1; $i <= 12; $i++)
+                        {{ $reportes['expedientes_por_mes'][$i]->total ?? 0 }},
+                    @endfor
+                ],
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Resueltos',
+                data: [
+                    @for($i = 1; $i <= 12; $i++)
+                        {{ $reportes['resueltos_por_mes'][$i]->total ?? 0 }},
+                    @endfor
+                ],
+                backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
-    }
+    });
+
+    // Gráfico de Prioridad
+    const ctxPrioridad = document.getElementById('chartPrioridad').getContext('2d');
+    new Chart(ctxPrioridad, {
+        type: 'doughnut',
+        data: {
+            labels: ['Urgente', 'Alta', 'Normal', 'Baja'],
+            datasets: [{
+                data: [
+                    {{ $reportes['por_prioridad']['urgente']->total ?? 0 }},
+                    {{ $reportes['por_prioridad']['alta']->total ?? 0 }},
+                    {{ $reportes['por_prioridad']['normal']->total ?? 0 }},
+                    {{ $reportes['por_prioridad']['baja']->total ?? 0 }}
+                ],
+                backgroundColor: [
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(13, 202, 240, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
 });
 </script>
+@endpush
 @endsection

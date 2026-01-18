@@ -172,21 +172,37 @@ Route::get('/api/areas/{area}/tipos-tramite', function($areaId) {
 
 // RUTAS DE JEFE DE ÁREA (Supervisión)
 Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrador'])->group(function () {
+    // Dashboard principal
     Route::get('/dashboard', [JefeAreaController::class, 'dashboard'])->name('jefe-area.dashboard');
+
+    // Gestión de Expedientes
     Route::get('/expedientes', [JefeAreaController::class, 'expedientes'])->name('jefe-area.expedientes');
+    Route::get('/expedientes/{expediente}', [JefeAreaController::class, 'showExpediente'])->name('jefe-area.show-expediente');
     Route::post('/expedientes/{expediente}/aprobar', [JefeAreaController::class, 'aprobar'])->name('jefe-area.aprobar');
     Route::post('/expedientes/{expediente}/rechazar', [JefeAreaController::class, 'rechazar'])->name('jefe-area.rechazar');
+
+    // Asignación y Reasignación de expedientes
+    Route::post('/expedientes/{expediente}/asignar', [JefeAreaController::class, 'asignarExpediente'])->name('jefe-area.asignar-expediente');
+    Route::post('/asignacion-masiva', [JefeAreaController::class, 'asignacionMasiva'])->name('jefe-area.asignacion-masiva');
+
+    // Reportes del área
     Route::get('/reportes', [JefeAreaController::class, 'reportes'])->name('jefe-area.reportes');
+
+    // Control de plazos
     Route::get('/control-plazos', [JefeAreaController::class, 'controlPlazos'])->name('jefe-area.control-plazos');
+
+    // Supervisión avanzada
     Route::get('/supervision', [JefeAreaController::class, 'supervision'])->name('jefe-area.supervision');
+
+    // Metas y KPIs
     Route::get('/metas', [JefeAreaController::class, 'metas'])->name('jefe-area.metas');
     Route::post('/metas', [JefeAreaController::class, 'storeMeta'])->name('jefe-area.metas.store');
-    
+
     // Validación de documentos
     Route::get('/validar-documentos', [JefeAreaController::class, 'validarDocumentos'])->name('jefe-area.validar-documentos');
     Route::get('/expedientes/{expediente}/detalle-validacion', [JefeAreaController::class, 'detalleValidacion'])->name('jefe-area.detalle-validacion');
     Route::post('/expedientes/{expediente}/validar', [JefeAreaController::class, 'validarExpediente'])->name('jefe-area.validar-expediente');
-    
+
     // Resolución de conflictos
     Route::get('/conflictos', [JefeAreaController::class, 'conflictos'])->name('jefe-area.conflictos');
     Route::get('/conflictos/{expediente}/detalle', [JefeAreaController::class, 'detalleConflicto'])->name('jefe-area.detalle-conflicto');

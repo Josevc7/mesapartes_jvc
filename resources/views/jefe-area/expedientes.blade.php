@@ -3,173 +3,529 @@
 @section('title', 'Supervisión de Expedientes')
 
 @section('content')
-<div class="container">
-    <div class="row">
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Supervisión de Expedientes</h2>
-                <span class="badge bg-info">Área: {{ auth()->user()->area->nombre ?? 'N/A' }}</span>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Supervisión de Expedientes</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-building me-1"></i>
+                        Área: <strong>{{ auth()->user()->area->nombre ?? 'N/A' }}</strong>
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ route('jefe-area.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">{{ $estadisticas['total'] ?? 0 }}</h4>
+                            <small>Total</small>
+                        </div>
+                        <i class="fas fa-folder fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">{{ $estadisticas['pendientes'] ?? 0 }}</h4>
+                            <small>Pendientes</small>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card bg-success text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">{{ $estadisticas['resueltos'] ?? 0 }}</h4>
+                            <small>Resueltos</small>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">{{ $estadisticas['sin_asignar'] ?? 0 }}</h4>
+                            <small>Sin Asignar</small>
+                        </div>
+                        <i class="fas fa-user-slash fa-2x opacity-50"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Filtros -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <form method="GET" class="row g-3">
-                        <div class="col-md-3">
-                            <select name="estado" class="form-select">
-                                <option value="">Todos los estados</option>
-                                <option value="Derivado" {{ request('estado') == 'Derivado' ? 'selected' : '' }}>Derivado</option>
-                                <option value="En Proceso" {{ request('estado') == 'En Proceso' ? 'selected' : '' }}>En Proceso</option>
-                                <option value="Resuelto" {{ request('estado') == 'Resuelto' ? 'selected' : '' }}>Resuelto</option>
-                                <option value="Aprobado" {{ request('estado') == 'Aprobado' ? 'selected' : '' }}>Aprobado</option>
-                            </select>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros de Búsqueda</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('jefe-area.expedientes') }}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" name="buscar" class="form-control" placeholder="Código o asunto..."
+                               value="{{ request('buscar') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Estado</label>
+                        <select name="estado" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="derivado" {{ request('estado') == 'derivado' ? 'selected' : '' }}>Derivado</option>
+                            <option value="en_proceso" {{ request('estado') == 'en_proceso' ? 'selected' : '' }}>En Proceso</option>
+                            <option value="resuelto" {{ request('estado') == 'resuelto' ? 'selected' : '' }}>Resuelto</option>
+                            <option value="aprobado" {{ request('estado') == 'aprobado' ? 'selected' : '' }}>Aprobado</option>
+                            <option value="observado" {{ request('estado') == 'observado' ? 'selected' : '' }}>Observado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Funcionario</label>
+                        <select name="funcionario" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="sin_asignar" {{ request('funcionario') == 'sin_asignar' ? 'selected' : '' }}>Sin Asignar</option>
+                            @foreach($funcionarios as $funcionario)
+                                <option value="{{ $funcionario->id }}" {{ request('funcionario') == $funcionario->id ? 'selected' : '' }}>
+                                    {{ $funcionario->name }} ({{ $funcionario->carga_trabajo }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Prioridad</label>
+                        <select name="prioridad" class="form-select">
+                            <option value="">Todas</option>
+                            <option value="urgente" {{ request('prioridad') == 'urgente' ? 'selected' : '' }}>Urgente</option>
+                            <option value="alta" {{ request('prioridad') == 'alta' ? 'selected' : '' }}>Alta</option>
+                            <option value="normal" {{ request('prioridad') == 'normal' ? 'selected' : '' }}>Normal</option>
+                            <option value="baja" {{ request('prioridad') == 'baja' ? 'selected' : '' }}>Baja</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo Trámite</label>
+                        <select name="tipo_tramite" class="form-select">
+                            <option value="">Todos</option>
+                            @foreach($tiposTramite ?? [] as $tipo)
+                                <option value="{{ $tipo->id_tipo_tramite }}" {{ request('tipo_tramite') == $tipo->id_tipo_tramite ? 'selected' : '' }}>
+                                    {{ $tipo->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <div class="btn-group w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <a href="{{ route('jefe-area.expedientes') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
                         </div>
-                        <div class="col-md-3">
-                            <select name="funcionario" class="form-select">
-                                <option value="">Todos los funcionarios</option>
-                                @foreach($funcionarios as $funcionario)
-                                    <option value="{{ $funcionario->id }}" {{ request('funcionario') == $funcionario->id ? 'selected' : '' }}>
-                                        {{ $funcionario->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary">Filtrar</button>
-                            <a href="{{ route('jefe-area.expedientes') }}" class="btn btn-secondary">Limpiar</a>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-2">
+                        <label class="form-label">Desde</label>
+                        <input type="date" name="fecha_desde" class="form-control" value="{{ request('fecha_desde') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Hasta</label>
+                        <input type="date" name="fecha_hasta" class="form-control" value="{{ request('fecha_hasta') }}">
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end">
+                        <div class="form-check me-3">
+                            <input class="form-check-input" type="checkbox" name="vencidos" value="1" id="vencidos"
+                                   {{ request('vencidos') ? 'checked' : '' }}>
+                            <label class="form-check-label text-danger" for="vencidos">
+                                <i class="fas fa-exclamation-triangle"></i> Solo vencidos
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="por_vencer" value="1" id="por_vencer"
+                                   {{ request('por_vencer') ? 'checked' : '' }}>
+                            <label class="form-check-label text-warning" for="por_vencer">
+                                <i class="fas fa-clock"></i> Por vencer (3 días)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Lista de Expedientes -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Expedientes del Área ({{ $expedientes->total() }})</h5>
+    <!-- Asignación masiva -->
+    <form id="formAsignacionMasiva" method="POST" action="{{ route('jefe-area.asignacion-masiva') }}">
+        @csrf
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Expedientes del Área
+                    <span class="badge bg-primary ms-2">{{ $expedientes->total() }}</span>
+                </h5>
+                <div>
+                    <button type="button" class="btn btn-warning btn-sm" id="btnAsignacionMasiva" disabled
+                            data-bs-toggle="modal" data-bs-target="#modalAsignacionMasiva">
+                        <i class="fas fa-users"></i> Asignación Masiva (<span id="countSeleccionados">0</span>)
+                    </button>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Asunto</th>
-                                    <th>Funcionario</th>
-                                    <th>Estado</th>
-                                    <th>Días Transcurridos</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($expedientes as $expediente)
-                                <tr class="{{ floor($expediente->created_at->diffInDays()) > 15 ? 'table-warning' : '' }}">
-                                    <td>
-                                        <strong>{{ $expediente->codigo_expediente }}</strong>
-                                        @if($expediente->prioridad == 'Urgente')
-                                            <span class="badge bg-danger">Urgente</span>
-                                        @endif
-                                    </td>
-                                    <td>{{ Str::limit($expediente->asunto, 40) }}</td>
-                                    <td>{{ $expediente->funcionarioAsignado->name ?? 'Sin asignar' }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ 
-                                            $expediente->estado == 'Resuelto' ? 'success' : 
-                                            ($expediente->estado == 'En Proceso' ? 'info' : 'warning') 
-                                        }}">
-                                            {{ $expediente->estado }}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" class="form-check-input" id="selectAll">
+                                </th>
+                                <th>Código</th>
+                                <th>Asunto</th>
+                                <th>Funcionario</th>
+                                <th>Estado</th>
+                                <th>Plazo</th>
+                                <th>Prioridad</th>
+                                <th width="200">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($expedientes as $expediente)
+                            @php
+                                $rowClass = '';
+                                if ($expediente->dias_vencido > 0) {
+                                    $rowClass = 'table-danger';
+                                } elseif ($expediente->dias_restantes !== null && $expediente->dias_restantes <= 3) {
+                                    $rowClass = 'table-warning';
+                                } elseif (!$expediente->funcionarioAsignado) {
+                                    $rowClass = 'table-secondary';
+                                }
+                            @endphp
+                            <tr class="{{ $rowClass }}">
+                                <td>
+                                    <input type="checkbox" class="form-check-input expediente-checkbox"
+                                           name="expedientes[]" value="{{ $expediente->id_expediente }}">
+                                </td>
+                                <td>
+                                    <strong>{{ $expediente->codigo_expediente }}</strong>
+                                    @if($expediente->prioridad === 'urgente')
+                                        <br><span class="badge bg-danger">Urgente</span>
+                                    @elseif($expediente->prioridad === 'alta')
+                                        <br><span class="badge bg-warning text-dark">Alta</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span title="{{ $expediente->asunto }}">{{ Str::limit($expediente->asunto, 35) }}</span>
+                                    @if($expediente->tipoTramite)
+                                        <br><small class="text-muted">{{ $expediente->tipoTramite->nombre }}</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($expediente->funcionarioAsignado)
+                                        <span class="badge bg-info">{{ $expediente->funcionarioAsignado->name }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">Sin asignar</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php
+                                        $estadoColor = match($expediente->estado) {
+                                            'derivado' => 'primary',
+                                            'en_proceso' => 'info',
+                                            'resuelto' => 'success',
+                                            'aprobado' => 'success',
+                                            'observado' => 'warning',
+                                            default => 'secondary'
+                                        };
+                                    @endphp
+                                    <span class="badge bg-{{ $estadoColor }}">
+                                        {{ ucfirst(str_replace('_', ' ', $expediente->estado)) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($expediente->dias_vencido > 0)
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            {{ $expediente->dias_vencido }}d vencido
                                         </span>
-                                    </td>
-                                    <td>
-                                        {{ floor($expediente->created_at->diffInDays()) }} días
-                                        @if(floor($expediente->created_at->diffInDays()) > 15)
-                                            <i class="fas fa-exclamation-triangle text-warning"></i>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('funcionario.show', $expediente) }}" class="btn btn-sm btn-outline-primary">Ver</a>
-                                        
-                                        @if($expediente->estado == 'Resuelto')
-                                            <button type="button" class="btn btn-sm btn-success"
+                                    @elseif($expediente->dias_restantes !== null)
+                                        <span class="badge bg-{{ $expediente->dias_restantes <= 3 ? 'warning text-dark' : 'light text-dark' }}">
+                                            {{ $expediente->dias_restantes }}d restantes
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php
+                                        $prioridadColor = match($expediente->prioridad) {
+                                            'urgente' => 'danger',
+                                            'alta' => 'warning',
+                                            'normal' => 'info',
+                                            'baja' => 'secondary',
+                                            default => 'light'
+                                        };
+                                    @endphp
+                                    <span class="badge bg-{{ $prioridadColor }}">
+                                        {{ ucfirst($expediente->prioridad ?? 'Normal') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('jefe-area.show-expediente', $expediente) }}"
+                                           class="btn btn-outline-primary" title="Ver detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalAsignar{{ $expediente->id_expediente }}"
+                                                title="Asignar">
+                                            <i class="fas fa-user-plus"></i>
+                                        </button>
+                                        @if($expediente->estado === 'resuelto')
+                                            <button type="button" class="btn btn-outline-success"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#aprobarModal{{ $expediente->id_expediente }}">
-                                                Aprobar
+                                                    data-bs-target="#modalAprobar{{ $expediente->id_expediente }}"
+                                                    title="Aprobar">
+                                                <i class="fas fa-check"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-danger"
+                                            <button type="button" class="btn btn-outline-danger"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#rechazarModal{{ $expediente->id_expediente }}">
-                                                Rechazar
+                                                    data-bs-target="#modalRechazar{{ $expediente->id_expediente }}"
+                                                    title="Rechazar">
+                                                <i class="fas fa-times"></i>
                                             </button>
                                         @endif
-                                    </td>
-                                </tr>
+                                    </div>
+                                </td>
+                            </tr>
 
-                                <!-- Modal Aprobar -->
-                                <div class="modal fade" id="aprobarModal{{ $expediente->id_expediente }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
+                            <!-- Modal Asignar Individual -->
+                            <div class="modal fade" id="modalAsignar{{ $expediente->id_expediente }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="{{ route('jefe-area.asignar-expediente', $expediente) }}">
+                                            @csrf
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Aprobar Expediente</h5>
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-user-plus me-2"></i>
+                                                    Asignar Expediente
+                                                </h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
-                                                <p>¿Está seguro de aprobar el expediente <strong>{{ $expediente->codigo_expediente }}</strong>?</p>
+                                                <p><strong>Expediente:</strong> {{ $expediente->codigo_expediente }}</p>
+                                                <p><strong>Asunto:</strong> {{ Str::limit($expediente->asunto, 50) }}</p>
+                                                <p><strong>Asignado actual:</strong>
+                                                    {{ $expediente->funcionarioAsignado->name ?? 'Sin asignar' }}
+                                                </p>
+                                                <hr>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Seleccionar Funcionario</label>
+                                                    <select name="funcionario_id" class="form-select" required>
+                                                        <option value="">-- Seleccione --</option>
+                                                        @foreach($funcionarios as $func)
+                                                            <option value="{{ $func->id }}"
+                                                                    {{ $expediente->id_funcionario_asignado == $func->id ? 'selected' : '' }}>
+                                                                {{ $func->name }}
+                                                                (Carga: {{ $func->carga_trabajo }} expedientes)
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Observaciones (opcional)</label>
+                                                    <textarea name="observaciones" class="form-control" rows="2"
+                                                              placeholder="Motivo de la asignación..."></textarea>
+                                                </div>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                <form method="POST" action="{{ route('jefe-area.aprobar', $expediente) }}" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-success">Aprobar</button>
-                                                </form>
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save me-1"></i> Asignar
+                                                </button>
                                             </div>
-                                        </div>
+                                        </form>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Modal Rechazar -->
-                                <div class="modal fade" id="rechazarModal{{ $expediente->id_expediente }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Rechazar Expediente</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="POST" action="{{ route('jefe-area.rechazar', $expediente) }}">
+                            <!-- Modal Aprobar -->
+                            @if($expediente->estado === 'resuelto')
+                            <div class="modal fade" id="modalAprobar{{ $expediente->id_expediente }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-check-circle me-2"></i>
+                                                Aprobar Expediente
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>¿Está seguro de aprobar el expediente?</p>
+                                            <p><strong>{{ $expediente->codigo_expediente }}</strong></p>
+                                            <p>{{ Str::limit($expediente->asunto, 80) }}</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <form method="POST" action="{{ route('jefe-area.aprobar', $expediente) }}" class="d-inline">
                                                 @csrf
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Motivo del Rechazo</label>
-                                                        <textarea class="form-control" name="motivo_rechazo" rows="3" required></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                    <button type="submit" class="btn btn-danger">Rechazar</button>
-                                                </div>
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="fas fa-check me-1"></i> Aprobar
+                                                </button>
                                             </form>
                                         </div>
                                     </div>
                                 </div>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center">No hay expedientes en esta área</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                            </div>
+
+                            <!-- Modal Rechazar -->
+                            <div class="modal fade" id="modalRechazar{{ $expediente->id_expediente }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="{{ route('jefe-area.rechazar', $expediente) }}">
+                                            @csrf
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-times-circle me-2"></i>
+                                                    Rechazar Expediente
+                                                </h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Expediente:</strong> {{ $expediente->codigo_expediente }}</p>
+                                                <p><strong>Asunto:</strong> {{ Str::limit($expediente->asunto, 50) }}</p>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Motivo del Rechazo *</label>
+                                                    <textarea name="motivo_rechazo" class="form-control" rows="3"
+                                                              required minlength="10"
+                                                              placeholder="Explique el motivo del rechazo..."></textarea>
+                                                    <small class="text-muted">Mínimo 10 caracteres</small>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="fas fa-times me-1"></i> Rechazar
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-5">
+                                    <i class="fas fa-folder-open fa-3x text-muted mb-3 d-block"></i>
+                                    <p class="text-muted">No se encontraron expedientes con los filtros seleccionados</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                {{ $expedientes->withQueryString()->links() }}
+            </div>
+        </div>
+
+        <!-- Modal Asignación Masiva -->
+        <div class="modal fade" id="modalAsignacionMasiva" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">
+                            <i class="fas fa-users me-2"></i>
+                            Asignación Masiva
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    
-                    {{ $expedientes->withQueryString()->links() }}
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Se asignarán <strong><span id="countMasivo">0</span></strong> expedientes al funcionario seleccionado.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Funcionario Destino *</label>
+                            <select name="funcionario_id" class="form-select" required>
+                                <option value="">-- Seleccione --</option>
+                                @foreach($funcionarios as $func)
+                                    <option value="{{ $func->id }}">
+                                        {{ $func->name }} (Carga actual: {{ $func->carga_trabajo }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Motivo de la asignación *</label>
+                            <textarea name="motivo" class="form-control" rows="3" required minlength="5"
+                                      placeholder="Ej: Redistribución de carga de trabajo..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i> Asignar Seleccionados
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.expediente-checkbox');
+    const btnAsignacionMasiva = document.getElementById('btnAsignacionMasiva');
+    const countSeleccionados = document.getElementById('countSeleccionados');
+    const countMasivo = document.getElementById('countMasivo');
+
+    function updateCount() {
+        const checked = document.querySelectorAll('.expediente-checkbox:checked').length;
+        countSeleccionados.textContent = checked;
+        countMasivo.textContent = checked;
+        btnAsignacionMasiva.disabled = checked === 0;
+    }
+
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        updateCount();
+    });
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateCount);
+    });
+});
+</script>
+@endpush
 @endsection
