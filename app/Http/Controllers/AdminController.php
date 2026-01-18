@@ -10,7 +10,14 @@ use App\Models\TipoTramite;
 use App\Models\Configuracion;
 use App\Models\Auditoria;
 use App\Models\Persona;
+use App\Models\Modulo;
+use App\Models\Permiso;
+use App\Models\EstadoExpediente;
+use App\Models\TransicionEstado;
+use App\Models\Expediente;
+use App\Models\Numeracion;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -723,5 +730,442 @@ class AdminController extends Controller
             'fechaInicio', 'fechaFin', 'kpis', 'graficoTendencia', 'graficoEstados',
             'graficoAreas', 'graficoTiposTramite', 'rendimientoUsuarios', 'analisisTiempos'
         ));
+    }
+
+    // ==========================================
+    // GESTIÓN DE PERMISOS
+    // ==========================================
+
+    public function permisos()
+    {
+        $modulos = Modulo::with('permisos')->orderBy('orden')->get();
+        $roles = Role::withCount('users')->get();
+        return view('admin.permisos.index', compact('modulos', 'roles'));
+    }
+
+    public function editarPermisosRol($id_rol)
+    {
+        $rol = Role::with('permisos')->findOrFail($id_rol);
+        $modulos = Modulo::with('permisos')->activos()->orderBy('orden')->get();
+        $permisosRol = $rol->permisos->pluck('id_permiso')->toArray();
+
+        return view('admin.permisos.editar', compact('rol', 'modulos', 'permisosRol'));
+    }
+
+    public function actualizarPermisosRol(Request $request, $id_rol)
+    {
+        $rol = Role::findOrFail($id_rol);
+
+        // No permitir editar permisos del Administrador
+        if ($rol->nombre === 'Administrador') {
+            return redirect()->route('admin.permisos')->with('warning', 'El rol Administrador tiene todos los permisos por defecto.');
+        }
+
+        $permisos = $request->input('permisos', []);
+        $rol->sincronizarPermisos($permisos);
+
+        return redirect()->route('admin.permisos')->with('success', 'Permisos actualizados correctamente para el rol ' . $rol->nombre);
+    }
+
+    // ==========================================
+    // GESTIÓN DE ESTADOS DEL EXPEDIENTE
+    // ==========================================
+
+    public function estados()
+    {
+        $estados = EstadoExpediente::orderBy('orden')->get();
+        $transiciones = TransicionEstado::with(['estadoOrigen', 'estadoDestino'])->get();
+        $roles = Role::activos()->get();
+
+        return view('admin.estados.index', compact('estados', 'transiciones', 'roles'));
+    }
+
+    public function storeEstado(Request $request)
+    {
+        $request->validate([
+            'nombre' => 'required|string|max:50',
+            'slug' => 'required|string|max:50|unique:estados_expediente,slug',
+            'descripcion' => 'nullable|string',
+            'color' => 'required|string|max:20',
+            'icono' => 'nullable|string|max:50',
+            'orden' => 'required|integer|min:0',
+        ]);
+
+        EstadoExpediente::create($request->all());
+
+        return redirect()->route('admin.estados')->with('success', 'Estado creado correctamente');
+    }
+
+    public function updateEstado(Request $request, $id_estado)
+    {
+        $estado = EstadoExpediente::findOrFail($id_estado);
+
+        $request->validate([
+            'nombre' => 'required|string|max:50',
+            'slug' => 'required|string|max:50|unique:estados_expediente,slug,' . $id_estado . ',id_estado',
+            'descripcion' => 'nullable|string',
+            'color' => 'required|string|max:20',
+            'icono' => 'nullable|string|max:50',
+            'orden' => 'required|integer|min:0',
+        ]);
+
+        $estado->update($request->all());
+
+        return redirect()->route('admin.estados')->with('success', 'Estado actualizado correctamente');
+    }
+
+    public function toggleEstado($id_estado)
+    {
+        $estado = EstadoExpediente::findOrFail($id_estado);
+        $estado->update(['activo' => !$estado->activo]);
+
+        return redirect()->route('admin.estados')->with('success', 'Estado ' . ($estado->activo ? 'activado' : 'desactivado'));
+    }
+
+    public function storeTransicion(Request $request)
+    {
+        $request->validate([
+            'id_estado_origen' => 'required|exists:estados_expediente,id_estado',
+            'id_estado_destino' => 'required|exists:estados_expediente,id_estado|different:id_estado_origen',
+            'nombre_accion' => 'nullable|string|max:100',
+            'roles_permitidos' => 'nullable|array',
+        ]);
+
+        TransicionEstado::create([
+            'id_estado_origen' => $request->id_estado_origen,
+            'id_estado_destino' => $request->id_estado_destino,
+            'nombre_accion' => $request->nombre_accion,
+            'roles_permitidos' => $request->roles_permitidos,
+            'activo' => true,
+        ]);
+
+        return redirect()->route('admin.estados')->with('success', 'Transición creada correctamente');
+    }
+
+    public function destroyTransicion($id_transicion)
+    {
+        $transicion = TransicionEstado::findOrFail($id_transicion);
+        $transicion->delete();
+
+        return redirect()->route('admin.estados')->with('success', 'Transición eliminada correctamente');
+    }
+
+    // ==========================================
+    // GESTIÓN DE NUMERACIÓN
+    // ==========================================
+
+    public function numeracion()
+    {
+        $numeraciones = Numeracion::orderBy('año', 'desc')->get();
+        $configuraciones = Configuracion::all()->pluck('valor', 'clave');
+
+        return view('admin.numeracion.index', compact('numeraciones', 'configuraciones'));
+    }
+
+    public function storeNumeracion(Request $request)
+    {
+        $request->validate([
+            'año' => 'required|integer|min:2020|max:2100|unique:numeracion,año',
+            'ultimo_numero' => 'required|integer|min:0',
+            'prefijo' => 'nullable|string|max:20',
+        ]);
+
+        Numeracion::create($request->all());
+
+        return redirect()->route('admin.numeracion')->with('success', 'Numeración creada correctamente');
+    }
+
+    public function updateNumeracion(Request $request, $id_numeracion)
+    {
+        $numeracion = Numeracion::findOrFail($id_numeracion);
+
+        $request->validate([
+            'ultimo_numero' => 'required|integer|min:0',
+            'prefijo' => 'nullable|string|max:20',
+        ]);
+
+        $numeracion->update($request->only(['ultimo_numero', 'prefijo']));
+
+        return redirect()->route('admin.numeracion')->with('success', 'Numeración actualizada correctamente');
+    }
+
+    public function reiniciarNumeracion($id_numeracion)
+    {
+        $numeracion = Numeracion::findOrFail($id_numeracion);
+        $numeracion->update(['ultimo_numero' => 0]);
+
+        return redirect()->route('admin.numeracion')->with('success', 'Numeración reiniciada a 0');
+    }
+
+    // ==========================================
+    // REASIGNACIÓN DE EXPEDIENTES
+    // ==========================================
+
+    public function expedientes(Request $request)
+    {
+        $query = Expediente::with(['area', 'tipoTramite', 'funcionarioAsignado', 'persona']);
+
+        // Filtros
+        if ($request->estado) {
+            $query->where('estado', $request->estado);
+        }
+        if ($request->id_area) {
+            $query->where('id_area', $request->id_area);
+        }
+        if ($request->buscar) {
+            $query->where(function($q) use ($request) {
+                $q->where('codigo_expediente', 'like', '%' . $request->buscar . '%')
+                  ->orWhere('asunto', 'like', '%' . $request->buscar . '%')
+                  ->orWhere('remitente', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        $expedientes = $query->orderBy('created_at', 'desc')->paginate(20);
+        $areas = Area::activos()->get();
+        $estados = EstadoExpediente::activos()->get();
+
+        return view('admin.expedientes.index', compact('expedientes', 'areas', 'estados'));
+    }
+
+    public function showExpediente($id_expediente)
+    {
+        $expediente = Expediente::with([
+            'area', 'tipoTramite', 'funcionarioAsignado', 'persona',
+            'derivaciones.areaDestino', 'derivaciones.funcionarioDestino',
+            'historial.usuario', 'documentos', 'observaciones'
+        ])->findOrFail($id_expediente);
+
+        $areas = Area::activos()->get();
+        $funcionarios = User::where('id_rol', 4)->where('activo', true)->get();
+        $estados = EstadoExpediente::activos()->get();
+
+        return view('admin.expedientes.show', compact('expediente', 'areas', 'funcionarios', 'estados'));
+    }
+
+    public function cambiarEstadoExpediente(Request $request, $id_expediente)
+    {
+        $expediente = Expediente::findOrFail($id_expediente);
+
+        $request->validate([
+            'estado' => 'required|string',
+            'observacion' => 'nullable|string',
+        ]);
+
+        $estadoAnterior = $expediente->estado;
+        $expediente->update(['estado' => $request->estado]);
+
+        // Registrar en historial
+        $expediente->historial()->create([
+            'id_usuario' => auth()->id(),
+            'descripcion' => "Estado cambiado de '{$estadoAnterior}' a '{$request->estado}'" .
+                           ($request->observacion ? ". Observación: {$request->observacion}" : ''),
+            'fecha' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Estado del expediente actualizado correctamente');
+    }
+
+    public function reasignarExpediente(Request $request, $id_expediente)
+    {
+        $expediente = Expediente::findOrFail($id_expediente);
+
+        $request->validate([
+            'id_funcionario' => 'required|exists:users,id',
+            'id_area' => 'required|exists:areas,id_area',
+            'observacion' => 'nullable|string',
+        ]);
+
+        $funcionarioAnterior = $expediente->funcionarioAsignado?->name ?? 'Sin asignar';
+        $areaAnterior = $expediente->area?->nombre ?? 'Sin área';
+
+        $expediente->update([
+            'id_funcionario_asignado' => $request->id_funcionario,
+            'id_area' => $request->id_area,
+        ]);
+
+        $funcionarioNuevo = User::find($request->id_funcionario)->name;
+        $areaNueva = Area::find($request->id_area)->nombre;
+
+        // Registrar en historial
+        $expediente->historial()->create([
+            'id_usuario' => auth()->id(),
+            'descripcion' => "Reasignado de {$funcionarioAnterior} ({$areaAnterior}) a {$funcionarioNuevo} ({$areaNueva})" .
+                           ($request->observacion ? ". Motivo: {$request->observacion}" : ''),
+            'fecha' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Expediente reasignado correctamente');
+    }
+
+    // ==========================================
+    // SUPERVISIÓN MESA DE PARTES VIRTUAL
+    // ==========================================
+
+    public function mesaVirtual(Request $request)
+    {
+        $query = Expediente::with(['persona', 'tipoTramite', 'area', 'documentos'])
+            ->where('canal', 'virtual');
+
+        // Filtros
+        if ($request->estado) {
+            $query->where('estado', $request->estado);
+        }
+        if ($request->fecha_desde) {
+            $query->whereDate('created_at', '>=', $request->fecha_desde);
+        }
+        if ($request->fecha_hasta) {
+            $query->whereDate('created_at', '<=', $request->fecha_hasta);
+        }
+
+        $expedientesVirtuales = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        // Estadísticas de mesa virtual
+        $estadisticas = [
+            'total' => Expediente::where('canal', 'virtual')->count(),
+            'pendientes' => Expediente::where('canal', 'virtual')->whereIn('estado', ['recepcionado', 'registrado'])->count(),
+            'clasificados' => Expediente::where('canal', 'virtual')->where('estado', 'clasificado')->count(),
+            'en_proceso' => Expediente::where('canal', 'virtual')->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+            'resueltos' => Expediente::where('canal', 'virtual')->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count(),
+        ];
+
+        return view('admin.mesa-virtual.index', compact('expedientesVirtuales', 'estadisticas'));
+    }
+
+    public function validarExpedienteVirtual(Request $request, $id_expediente)
+    {
+        $expediente = Expediente::findOrFail($id_expediente);
+
+        $request->validate([
+            'accion' => 'required|in:validar,rechazar,observar',
+            'observacion' => 'required_if:accion,rechazar,observar|string',
+        ]);
+
+        switch ($request->accion) {
+            case 'validar':
+                $expediente->update(['estado' => 'clasificado']);
+                $mensaje = 'Expediente virtual validado y clasificado';
+                break;
+            case 'rechazar':
+                $expediente->update(['estado' => 'archivado']);
+                $mensaje = 'Expediente virtual rechazado';
+                break;
+            case 'observar':
+                $expediente->update(['estado' => 'observado']);
+                $mensaje = 'Expediente virtual marcado con observaciones';
+                break;
+        }
+
+        // Registrar en historial
+        $expediente->historial()->create([
+            'id_usuario' => auth()->id(),
+            'descripcion' => $mensaje . ($request->observacion ? ". {$request->observacion}" : ''),
+            'fecha' => now(),
+        ]);
+
+        return redirect()->back()->with('success', $mensaje);
+    }
+
+    // ==========================================
+    // AUDITORÍA MEJORADA
+    // ==========================================
+
+    public function auditoriaCompleta(Request $request)
+    {
+        $query = Auditoria::with('usuario');
+
+        // Filtros avanzados
+        if ($request->accion) {
+            $query->where('accion', $request->accion);
+        }
+        if ($request->id_usuario) {
+            $query->where('id_usuario', $request->id_usuario);
+        }
+        if ($request->tabla) {
+            $query->where('tabla', $request->tabla);
+        }
+        if ($request->fecha_desde) {
+            $query->whereDate('created_at', '>=', $request->fecha_desde);
+        }
+        if ($request->fecha_hasta) {
+            $query->whereDate('created_at', '<=', $request->fecha_hasta);
+        }
+        if ($request->ip) {
+            $query->where('ip', 'like', '%' . $request->ip . '%');
+        }
+
+        $auditorias = $query->orderBy('created_at', 'desc')->paginate(50);
+        $usuarios = User::select('id', 'name')->orderBy('name')->get();
+        $acciones = Auditoria::distinct()->pluck('accion');
+        $tablas = Auditoria::distinct()->pluck('tabla');
+
+        // Estadísticas de auditoría
+        $estadisticasAuditoria = [
+            'total_registros' => Auditoria::count(),
+            'hoy' => Auditoria::whereDate('created_at', today())->count(),
+            'esta_semana' => Auditoria::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'por_accion' => Auditoria::select('accion', DB::raw('count(*) as total'))
+                ->groupBy('accion')
+                ->pluck('total', 'accion')
+                ->toArray(),
+        ];
+
+        return view('admin.auditoria.completa', compact('auditorias', 'usuarios', 'acciones', 'tablas', 'estadisticasAuditoria'));
+    }
+
+    public function exportarAuditoria(Request $request)
+    {
+        $query = Auditoria::with('usuario');
+
+        if ($request->fecha_desde) {
+            $query->whereDate('created_at', '>=', $request->fecha_desde);
+        }
+        if ($request->fecha_hasta) {
+            $query->whereDate('created_at', '<=', $request->fecha_hasta);
+        }
+
+        $auditorias = $query->orderBy('created_at', 'desc')->get();
+
+        // Generar CSV
+        $filename = 'auditoria_' . now()->format('Y-m-d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function() use ($auditorias) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Usuario', 'Acción', 'Tabla', 'Registro ID', 'IP', 'Fecha']);
+
+            foreach ($auditorias as $auditoria) {
+                fputcsv($file, [
+                    $auditoria->id_auditoria,
+                    $auditoria->usuario?->name ?? 'N/A',
+                    $auditoria->accion,
+                    $auditoria->tabla,
+                    $auditoria->registro_id,
+                    $auditoria->ip,
+                    $auditoria->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // ==========================================
+    // API PARA FUNCIONARIOS POR ÁREA
+    // ==========================================
+
+    public function getFuncionariosPorArea($id_area)
+    {
+        $funcionarios = User::where('id_area', $id_area)
+            ->where('id_rol', 4)
+            ->where('activo', true)
+            ->select('id', 'name', 'email')
+            ->get();
+
+        return response()->json(['funcionarios' => $funcionarios]);
     }
 }

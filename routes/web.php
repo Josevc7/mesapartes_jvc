@@ -284,6 +284,8 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::get('/reportes/por-area', [ReporteController::class, 'reportePorArea'])->name('reportes.por-area');
     Route::get('/reportes/por-remitente', [ReporteController::class, 'reportePorRemitente'])->name('reportes.por-remitente');
     Route::get('/reportes/exportar', [ReporteController::class, 'exportarReporte'])->name('reportes.exportar');
+    Route::get('/reportes/exportar-pdf', [ReporteController::class, 'exportarPdf'])->name('reportes.exportar-pdf');
+    Route::get('/reportes/exportar-area-pdf', [ReporteController::class, 'exportarAreaPdf'])->name('reportes.exportar-area-pdf');
     
     // Gestión de personas
     Route::get('/personas', [AdminController::class, 'personas'])->name('admin.personas');
@@ -309,11 +311,47 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::get('/roles/{id_rol}', [AdminController::class, 'showRol'])->name('admin.roles.show');
     Route::put('/roles/{id_rol}', [AdminController::class, 'updateRol'])->name('admin.roles.update');
     Route::delete('/roles/{id_rol}', [AdminController::class, 'destroyRol'])->name('admin.roles.destroy');
-    
+
+    // Gestión de Permisos
+    Route::get('/permisos', [AdminController::class, 'permisos'])->name('admin.permisos');
+    Route::get('/permisos/rol/{id_rol}', [AdminController::class, 'editarPermisosRol'])->name('admin.permisos.editar');
+    Route::put('/permisos/rol/{id_rol}', [AdminController::class, 'actualizarPermisosRol'])->name('admin.permisos.actualizar');
+
+    // Gestión de Estados del Expediente
+    Route::get('/estados', [AdminController::class, 'estados'])->name('admin.estados');
+    Route::post('/estados', [AdminController::class, 'storeEstado'])->name('admin.estados.store');
+    Route::put('/estados/{id_estado}', [AdminController::class, 'updateEstado'])->name('admin.estados.update');
+    Route::put('/estados/{id_estado}/toggle', [AdminController::class, 'toggleEstado'])->name('admin.estados.toggle');
+    Route::post('/transiciones', [AdminController::class, 'storeTransicion'])->name('admin.transiciones.store');
+    Route::delete('/transiciones/{id_transicion}', [AdminController::class, 'destroyTransicion'])->name('admin.transiciones.destroy');
+
+    // Gestión de Numeración
+    Route::get('/numeracion', [AdminController::class, 'numeracion'])->name('admin.numeracion');
+    Route::post('/numeracion', [AdminController::class, 'storeNumeracion'])->name('admin.numeracion.store');
+    Route::put('/numeracion/{id_numeracion}', [AdminController::class, 'updateNumeracion'])->name('admin.numeracion.update');
+    Route::post('/numeracion/{id_numeracion}/reiniciar', [AdminController::class, 'reiniciarNumeracion'])->name('admin.numeracion.reiniciar');
+
+    // Gestión de Expedientes (Admin)
+    Route::get('/expedientes', [AdminController::class, 'expedientes'])->name('admin.expedientes');
+    Route::get('/expedientes/{id_expediente}', [AdminController::class, 'showExpediente'])->name('admin.expedientes.show');
+    Route::put('/expedientes/{id_expediente}/estado', [AdminController::class, 'cambiarEstadoExpediente'])->name('admin.expedientes.cambiar-estado');
+    Route::put('/expedientes/{id_expediente}/reasignar', [AdminController::class, 'reasignarExpediente'])->name('admin.expedientes.reasignar');
+
+    // Mesa de Partes Virtual (Supervisión)
+    Route::get('/mesa-virtual', [AdminController::class, 'mesaVirtual'])->name('admin.mesa-virtual');
+    Route::post('/mesa-virtual/{id_expediente}/validar', [AdminController::class, 'validarExpedienteVirtual'])->name('admin.mesa-virtual.validar');
+
+    // Auditoría Completa
+    Route::get('/auditoria-completa', [AdminController::class, 'auditoriaCompleta'])->name('admin.auditoria-completa');
+    Route::get('/auditoria/exportar', [AdminController::class, 'exportarAuditoria'])->name('admin.auditoria.exportar');
+
+    // API Funcionarios por Área
+    Route::get('/api/funcionarios/{id_area}', [AdminController::class, 'getFuncionariosPorArea'])->name('admin.api.funcionarios');
+
     // Logs del Sistema
     Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs');
     Route::get('/logs/{id}/detalles', [AdminController::class, 'logDetalles'])->name('admin.logs.detalles');
-    
+
     // Estadísticas Globales
     Route::get('/estadisticas', [AdminController::class, 'estadisticas'])->name('admin.estadisticas');
 });
@@ -348,12 +386,22 @@ Route::prefix('resoluciones')->middleware(['auth', 'role:Funcionario,Jefe de Ár
     Route::get('/{id_resolucion}/descargar', [App\Http\Controllers\ResolucionController::class, 'descargar'])->name('resoluciones.descargar');
 });
 
+// RUTAS DE DOCUMENTOS (con control de acceso)
+Route::prefix('documentos')->middleware('auth')->group(function () {
+    Route::get('/', [App\Http\Controllers\DocumentoController::class, 'index'])->name('documentos.index');
+    Route::get('/{id_documento}/descargar', [App\Http\Controllers\DocumentoController::class, 'show'])->name('documentos.descargar');
+    Route::get('/{id_documento}/visualizar', [App\Http\Controllers\DocumentoController::class, 'visualizar'])->name('documentos.visualizar');
+    Route::post('/expediente/{id_expediente}', [App\Http\Controllers\DocumentoController::class, 'store'])->name('documentos.store');
+    Route::delete('/{id_documento}', [App\Http\Controllers\DocumentoController::class, 'destroy'])->name('documentos.destroy');
+    Route::post('/{id_documento}/validar', [App\Http\Controllers\DocumentoController::class, 'validar'])->name('documentos.validar');
+});
+
 // API Routes para consultas AJAX - con validación y autorización
 Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/areas', function() {
         return App\Models\Area::where('activo', true)->select('id_area', 'nombre')->get();
     })->name('api.areas');
-    
+
     Route::get('/funcionarios/{area}', function($area) {
         // Validar que el área existe
         App\Models\Area::findOrFail($area);

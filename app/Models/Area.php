@@ -50,4 +50,9 @@ class Area extends Model
     {
         return $this->hasMany(Derivacion::class, 'id_area_destino', 'id_area');
     }
+
+    public function scopeActivos($query)
+    {
+        return $query->where('activo', true);
+    }
 }

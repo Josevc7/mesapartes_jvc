@@ -4,63 +4,35 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Métricas Principales -->
+    <!-- Accesos Rápidos de Administrador -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4>{{ $metricas['total_expedientes'] }}</h4>
-                            <p class="mb-0">Total Expedientes</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-folder fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4>{{ $metricas['usuarios_activos'] }}</h4>
-                            <p class="mb-0">Usuarios Activos</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-users fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4>{{ $metricas['expedientes_pendientes'] }}</h4>
-                            <p class="mb-0">Expedientes Pendientes</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-clock fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4>{{ $metricas['expedientes_vencidos'] }}</h4>
-                            <p class="mb-0">Expedientes Vencidos</p>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <span><i class="fas fa-shield-alt me-2"></i> Panel de Administración</span>
+                        <div class="btn-group">
+                            <a href="{{ route('admin.expedientes') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-folder-open"></i> Expedientes
+                            </a>
+                            <a href="{{ route('admin.usuarios') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-users"></i> Usuarios
+                            </a>
+                            <a href="{{ route('admin.permisos') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-user-shield"></i> Permisos
+                            </a>
+                            <a href="{{ route('admin.estados') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-exchange-alt"></i> Estados
+                            </a>
+                            <a href="{{ route('admin.mesa-virtual') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-desktop"></i> Mesa Virtual
+                            </a>
+                            <a href="{{ route('admin.auditoria-completa') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-history"></i> Auditoría
+                            </a>
+                            <a href="{{ route('admin.estadisticas') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-chart-bar"></i> Estadísticas
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -68,46 +40,69 @@
         </div>
     </div>
 
-    <!-- Gráficos y Estadísticas -->
-    <div class="row mb-4">
+    <!-- Métricas Principales (compactas) -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="{{ route('admin.expedientes') }}" class="stat-card bg-primary text-white text-decoration-none">
+            <i class="fas fa-folder"></i>
+            <strong>{{ $metricas['total_expedientes'] }}</strong>
+            <span>Total Expedientes</span>
+        </a>
+        <a href="{{ route('admin.usuarios') }}" class="stat-card bg-success text-white text-decoration-none">
+            <i class="fas fa-users"></i>
+            <strong>{{ $metricas['usuarios_activos'] }}</strong>
+            <span>Usuarios Activos</span>
+        </a>
+        <a href="{{ route('admin.expedientes', ['estado' => 'en_proceso']) }}" class="stat-card bg-warning text-dark text-decoration-none">
+            <i class="fas fa-clock"></i>
+            <strong>{{ $metricas['expedientes_pendientes'] }}</strong>
+            <span>Pendientes</span>
+        </a>
+        <a href="{{ route('admin.expedientes') }}" class="stat-card bg-danger text-white text-decoration-none">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>{{ $metricas['expedientes_vencidos'] }}</strong>
+            <span>Vencidos</span>
+        </a>
+    </div>
+
+    <!-- Gráficos y Estadísticas (compactos) -->
+    <div class="row mb-3">
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-chart-line"></i> Expedientes por Mes (Últimos 6 meses)</h5>
+            <div class="card card-compact">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-chart-line text-primary"></i> Expedientes por Mes</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="expedientesPorMes" height="100"></canvas>
+                <div class="card-body py-2">
+                    <canvas id="expedientesPorMes" height="70"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-chart-pie"></i> Expedientes por Estado</h5>
+            <div class="card card-compact">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie text-info"></i> Por Estado</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="expedientesPorEstado" height="200"></canvas>
+                <div class="card-body py-2">
+                    <canvas id="expedientesPorEstado" height="120"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Actividad Reciente y Alertas -->
-    <div class="row mb-4">
+    <!-- Actividad Reciente y Alertas (compactos) -->
+    <div class="row mb-3">
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-history"></i> Actividad Reciente</h5>
+            <div class="card card-compact">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-history text-secondary"></i> Actividad Reciente</h6>
                 </div>
-                <div class="card-body">
-                    <div class="timeline">
+                <div class="card-body py-2" style="max-height: 200px; overflow-y: auto;">
+                    <div class="timeline-compact">
                         @foreach($actividadReciente as $actividad)
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-primary"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">{{ $actividad->accion }}</h6>
-                                <p class="timeline-text">{{ $actividad->descripcion }}</p>
-                                <small class="text-muted">{{ $actividad->created_at->diffForHumans() }}</small>
+                        <div class="timeline-item-compact">
+                            <span class="timeline-dot bg-primary"></span>
+                            <div class="timeline-info">
+                                <strong class="small">{{ $actividad->accion }}</strong>
+                                <span class="text-muted small">- {{ $actividad->created_at->diffForHumans() }}</span>
                             </div>
                         </div>
                         @endforeach
@@ -116,16 +111,14 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-bell"></i> Alertas del Sistema</h5>
+            <div class="card card-compact">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-bell text-warning"></i> Alertas del Sistema</h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body py-2" style="max-height: 200px; overflow-y: auto;">
                     @foreach($alertas as $alerta)
-                    <div class="alert alert-{{ $alerta['tipo'] }} alert-dismissible fade show">
-                        <strong>{{ $alerta['titulo'] }}</strong>
-                        <p class="mb-0">{{ $alerta['mensaje'] }}</p>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-{{ $alerta['tipo'] }} py-1 px-2 mb-1 small">
+                        <strong>{{ $alerta['titulo'] }}:</strong> {{ $alerta['mensaje'] }}
                     </div>
                     @endforeach
                 </div>
@@ -133,38 +126,38 @@
         </div>
     </div>
 
-    <!-- Rendimiento por Área -->
+    <!-- Rendimiento por Área (compacto) -->
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5><i class="fas fa-building"></i> Rendimiento por Área</h5>
+            <div class="card card-compact">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-building text-dark"></i> Rendimiento por Área</h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table table-sm table-striped table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Área</th>
-                                    <th>Expedientes Asignados</th>
-                                    <th>Completados</th>
-                                    <th>Pendientes</th>
-                                    <th>Vencidos</th>
-                                    <th>% Eficiencia</th>
+                                    <th class="small">Área</th>
+                                    <th class="small text-center">Total</th>
+                                    <th class="small text-center">OK</th>
+                                    <th class="small text-center">Pend.</th>
+                                    <th class="small text-center">Venc.</th>
+                                    <th class="small" style="width: 120px;">Eficiencia</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($rendimientoPorArea as $area)
                                 <tr>
-                                    <td>{{ $area['nombre'] }}</td>
-                                    <td>{{ $area['total'] }}</td>
-                                    <td><span class="badge bg-success">{{ $area['completados'] }}</span></td>
-                                    <td><span class="badge bg-warning">{{ $area['pendientes'] }}</span></td>
-                                    <td><span class="badge bg-danger">{{ $area['vencidos'] }}</span></td>
+                                    <td class="small">{{ Str::limit($area['nombre'], 25) }}</td>
+                                    <td class="text-center small">{{ $area['total'] }}</td>
+                                    <td class="text-center"><span class="badge bg-success small">{{ $area['completados'] }}</span></td>
+                                    <td class="text-center"><span class="badge bg-warning small">{{ $area['pendientes'] }}</span></td>
+                                    <td class="text-center"><span class="badge bg-danger small">{{ $area['vencidos'] }}</span></td>
                                     <td>
-                                        <div class="progress">
-                                            <div class="progress-bar" style="width: {{ $area['eficiencia'] }}%">
-                                                {{ $area['eficiencia'] }}%
+                                        <div class="progress" style="height: 12px;">
+                                            <div class="progress-bar bg-info" style="width: {{ $area['eficiencia'] }}%">
+                                                <small>{{ $area['eficiencia'] }}%</small>
                                             </div>
                                         </div>
                                     </td>
@@ -221,33 +214,58 @@ new Chart(ctxEstado, {
 </script>
 
 <style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
+/* Tarjetas de métricas compactas */
+.stat-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    transition: transform 0.15s, opacity 0.15s;
+}
+.stat-card:hover {
+    transform: scale(1.02);
+    opacity: 0.9;
+}
+.stat-card i {
+    font-size: 1rem;
+}
+.stat-card strong {
+    font-size: 1.1rem;
+}
+.stat-card span {
+    font-size: 0.75rem;
+    opacity: 0.9;
 }
 
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
+/* Cards compactas */
+.card-compact {
+    border-radius: 6px;
+}
+.card-compact .card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.08);
 }
 
-.timeline-marker {
-    position: absolute;
-    left: -35px;
-    top: 5px;
-    width: 10px;
-    height: 10px;
+/* Timeline compacta */
+.timeline-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.timeline-item-compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.timeline-dot {
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
+    flex-shrink: 0;
 }
-
-.timeline-item:not(:last-child)::before {
-    content: '';
-    position: absolute;
-    left: -31px;
-    top: 15px;
-    width: 2px;
-    height: calc(100% + 10px);
-    background-color: #dee2e6;
+.timeline-info {
+    line-height: 1.3;
 }
 </style>
 @endsection

@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             AreaSeeder::class,
             TipoTramiteSeeder::class,
             UserSeeder::class,
+            ModulosPermisosSeeder::class,
+            EstadosExpedienteSeeder::class,
         ]);
     }
 }

@@ -31,20 +31,85 @@ class MesaPartesController extends Controller
         $this->derivacionService = $derivacionService;
         $this->estadisticasService = $estadisticasService;
     }
-    public function index()
+    public function index(Request $request)
     {
-        $expedientes = Expediente::with([
+        $query = Expediente::with([
                 'tipoTramite',
                 'ciudadano',
                 'area',
                 'persona',
-                'derivaciones' => fn($q) => $q->latest()->limit(1) // Para estado_inteligente
-            ])
-            ->whereIn('estado', ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+                'funcionarioAsignado',
+                'derivaciones' => fn($q) => $q->latest()->limit(1)
+            ]);
 
-        return view('mesa-partes.index', compact('expedientes'));
+        // Filtro por estados (por defecto los activos)
+        $estadosDefault = ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'];
+        if ($request->filled('estado')) {
+            if ($request->estado === 'todos') {
+                // No filtrar por estado
+            } else {
+                $query->where('estado', $request->estado);
+            }
+        } else {
+            $query->whereIn('estado', $estadosDefault);
+        }
+
+        // Filtro por canal
+        if ($request->filled('canal')) {
+            $query->where('canal', $request->canal);
+        }
+
+        // Filtro por área
+        if ($request->filled('area')) {
+            $query->where('id_area', $request->area);
+        }
+
+        // Filtro por tipo de trámite
+        if ($request->filled('tipo_tramite')) {
+            $query->where('id_tipo_tramite', $request->tipo_tramite);
+        }
+
+        // Filtro por fecha
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('created_at', '>=', $request->fecha_desde);
+        }
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('created_at', '<=', $request->fecha_hasta);
+        }
+
+        // Búsqueda general
+        if ($request->filled('busqueda')) {
+            $busqueda = $request->busqueda;
+            $query->where(function($q) use ($busqueda) {
+                $q->where('codigo_expediente', 'like', "%{$busqueda}%")
+                  ->orWhere('asunto', 'like', "%{$busqueda}%")
+                  ->orWhere('remitente', 'like', "%{$busqueda}%")
+                  ->orWhereHas('persona', function($qp) use ($busqueda) {
+                      $qp->where('nombres', 'like', "%{$busqueda}%")
+                         ->orWhere('apellidos', 'like', "%{$busqueda}%")
+                         ->orWhere('razon_social', 'like', "%{$busqueda}%")
+                         ->orWhere('numero_documento', 'like', "%{$busqueda}%");
+                  });
+            });
+        }
+
+        $expedientes = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+
+        // Datos para los filtros
+        $areas = Area::where('activo', true)->orderBy('nombre')->get();
+        $tipoTramites = TipoTramite::where('activo', true)->orderBy('nombre')->get();
+
+        // Estadísticas rápidas
+        $estadisticas = [
+            'total' => Expediente::whereIn('estado', $estadosDefault)->count(),
+            'pendientes' => Expediente::where('estado', 'recepcionado')->count(),
+            'clasificados' => Expediente::where('estado', 'clasificado')->count(),
+            'derivados' => Expediente::where('estado', 'derivado')->count(),
+            'en_proceso' => Expediente::where('estado', 'en_proceso')->count(),
+            'virtuales' => Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count(),
+        ];
+
+        return view('mesa-partes.index', compact('expedientes', 'areas', 'tipoTramites', 'estadisticas'));
     }
 
     public function registrar()

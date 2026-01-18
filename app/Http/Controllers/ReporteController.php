@@ -7,6 +7,7 @@ use App\Models\Expediente;
 use App\Models\Area;
 use App\Models\TipoTramite;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReporteController extends Controller
 {
@@ -434,5 +435,93 @@ class ReporteController extends Controller
             'numeroDocumento',
             'personaId'
         ));
+    }
+
+    /**
+     * Exportar reporte a PDF
+     */
+    public function exportarPdf(Request $request)
+    {
+        $fechaInicio = $request->get('fecha_inicio', now()->startOfMonth()->format('Y-m-d'));
+        $fechaFin = $request->get('fecha_fin', now()->format('Y-m-d'));
+        $tipoTramite = $request->get('tipo_tramite');
+        $area = $request->get('area');
+        $estado = $request->get('estado');
+        $tipoReporte = $request->get('tipo_reporte', 'general');
+
+        $query = Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
+            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+
+        if ($tipoTramite) $query->where('id_tipo_tramite', $tipoTramite);
+        if ($area) $query->where('id_area', $area);
+        if ($estado) $query->where('estado', $estado);
+
+        $expedientes = $query->orderBy('created_at', 'desc')->limit(500)->get();
+
+        // Estadísticas del período
+        $estadisticas = [
+            'total' => $expedientes->count(),
+            'por_estado' => $expedientes->groupBy('estado')->map->count(),
+            'por_area' => $expedientes->groupBy(fn($e) => $e->area?->nombre ?? 'Sin asignar')->map->count(),
+            'por_tipo' => $expedientes->groupBy(fn($e) => $e->tipoTramite?->nombre ?? 'Sin tipo')->map->count(),
+        ];
+
+        $areaInfo = $area ? Area::find($area) : null;
+        $tipoTramiteInfo = $tipoTramite ? TipoTramite::find($tipoTramite) : null;
+
+        $pdf = PDF::loadView('reportes.pdf.reporte-general', [
+            'expedientes' => $expedientes,
+            'estadisticas' => $estadisticas,
+            'fechaInicio' => $fechaInicio,
+            'fechaFin' => $fechaFin,
+            'areaInfo' => $areaInfo,
+            'tipoTramiteInfo' => $tipoTramiteInfo,
+            'estado' => $estado,
+            'tipoReporte' => $tipoReporte,
+        ]);
+
+        $pdf->setPaper('A4', 'landscape');
+
+        $filename = 'reporte_' . $tipoReporte . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Exportar reporte por área a PDF
+     */
+    public function exportarAreaPdf(Request $request)
+    {
+        $areaId = $request->get('area');
+        $fechaInicio = $request->get('fecha_inicio', now()->startOfYear()->format('Y-m-d'));
+        $fechaFin = $request->get('fecha_fin', now()->format('Y-m-d'));
+
+        $area = Area::with(['jefe', 'funcionarios'])->findOrFail($areaId);
+
+        $expedientes = Expediente::with(['tipoTramite', 'persona', 'funcionarioAsignado'])
+            ->where('id_area', $areaId)
+            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $estadisticas = [
+            'total' => $expedientes->count(),
+            'por_estado' => $expedientes->groupBy('estado')->map->count(),
+            'por_funcionario' => $expedientes->groupBy(fn($e) => $e->funcionarioAsignado?->name ?? 'Sin asignar')->map->count(),
+            'resueltos' => $expedientes->where('estado', 'resuelto')->count(),
+            'pendientes' => $expedientes->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+        ];
+
+        $pdf = PDF::loadView('reportes.pdf.reporte-area', [
+            'area' => $area,
+            'expedientes' => $expedientes,
+            'estadisticas' => $estadisticas,
+            'fechaInicio' => $fechaInicio,
+            'fechaFin' => $fechaFin,
+        ]);
+
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->download('reporte_area_' . $area->nombre . '_' . now()->format('Y-m-d') . '.pdf');
     }
 }
