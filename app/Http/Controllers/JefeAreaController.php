@@ -33,7 +33,32 @@ class JefeAreaController extends Controller
      */
     public function dashboard()
     {
-        $areaId = auth()->user()->id_area;
+        $user = auth()->user();
+        $areaId = $user->id_area;
+
+        // Si es administrador sin área asignada, mostrar todas las áreas o redirigir
+        if (!$areaId && $user->role?->nombre === 'Administrador') {
+            // Tomar la primera área activa para el admin
+            $primeraArea = Area::where('activo', true)->first();
+            $areaId = $primeraArea?->id_area;
+
+            // Si no hay áreas, mostrar dashboard vacío
+            if (!$areaId) {
+                $stats = [
+                    'total' => 0, 'pendientes' => 0, 'resueltos' => 0, 'vencidos' => 0,
+                    'por_aprobar' => 0, 'sin_asignar' => 0, 'urgentes' => 0
+                ];
+                $expedientesCriticos = collect();
+                $funcionarios = collect();
+                return view('jefe-area.dashboard', compact('stats', 'expedientesCriticos', 'funcionarios'));
+            }
+        }
+
+        // Si aún no hay área (usuario sin área y no es admin)
+        if (!$areaId) {
+            return redirect()->route('dashboard')->with('error', 'No tiene un área asignada.');
+        }
+
         $stats = $this->estadisticasService->obtenerEstadisticasJefeArea($areaId);
 
         // Estadísticas adicionales para el dashboard
@@ -672,10 +697,18 @@ class JefeAreaController extends Controller
      */
     public function supervision()
     {
-        $areaId = auth()->user()->id_area;
+        $user = auth()->user();
+        $areaId = $user->id_area;
+        $esAdministrador = $user->role?->nombre === 'Administrador';
+
+        // Si es administrador sin área, mostrar todos los funcionarios
+        $queryFuncionarios = User::query();
+        if (!$esAdministrador || $areaId) {
+            $queryFuncionarios->where('id_area', $areaId);
+        }
 
         // Funcionarios con estadísticas completas
-        $funcionarios = User::where('id_area', $areaId)
+        $funcionarios = $queryFuncionarios
             ->where('id_rol', 4)
             ->where('activo', true)
             ->withCount([
@@ -739,17 +772,22 @@ class JefeAreaController extends Controller
             })
             ->sortByDesc('carga_trabajo');
 
-        // Estadísticas generales del área
+        // Estadísticas generales del área (o todas las áreas si es admin)
+        $queryEstadisticas = Expediente::query();
+        if (!$esAdministrador || $areaId) {
+            $queryEstadisticas->where('id_area', $areaId);
+        }
+
         $estadisticasArea = [
-            'total_pendientes' => Expediente::where('id_area', $areaId)
+            'total_pendientes' => (clone $queryEstadisticas)
                 ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
-            'total_vencidos' => Expediente::where('id_area', $areaId)
+            'total_vencidos' => (clone $queryEstadisticas)
                 ->whereIn('estado', ['derivado', 'en_proceso'])
                 ->whereHas('derivaciones', function($q) {
                     $q->where('estado', 'pendiente')
                       ->where('fecha_limite', '<', now());
                 })->count(),
-            'resueltos_mes' => Expediente::where('id_area', $areaId)
+            'resueltos_mes' => (clone $queryEstadisticas)
                 ->whereIn('estado', ['resuelto', 'aprobado'])
                 ->whereMonth('updated_at', now()->month)->count(),
             'promedio_carga' => $funcionarios->avg('carga_trabajo'),
@@ -758,7 +796,11 @@ class JefeAreaController extends Controller
         ];
 
         // Procesos que requieren autorización especial
-        $procesosEspeciales = Expediente::where('id_area', $areaId)
+        $queryProcesos = Expediente::query();
+        if (!$esAdministrador || $areaId) {
+            $queryProcesos->where('id_area', $areaId);
+        }
+        $procesosEspeciales = $queryProcesos
             ->where('estado', 'resuelto')
             ->with(['funcionarioAsignado', 'tipoTramite'])
             ->orderBy('fecha_resolucion', 'asc')
@@ -788,7 +830,11 @@ class JefeAreaController extends Controller
         }
 
         // Expedientes por aprobar
-        $porAprobar = Expediente::where('id_area', $areaId)->where('estado', 'resuelto')->count();
+        $queryAprobar = Expediente::query();
+        if (!$esAdministrador || $areaId) {
+            $queryAprobar->where('id_area', $areaId);
+        }
+        $porAprobar = $queryAprobar->where('estado', 'resuelto')->count();
         if ($porAprobar > 0) {
             $alertas->push([
                 'tipo' => 'info',
@@ -807,21 +853,34 @@ class JefeAreaController extends Controller
 
     public function validarDocumentos()
     {
-        $areaId = auth()->user()->id_area;
-        
+        $user = auth()->user();
+        $areaId = $user->id_area;
+
+        $esAdministrador = $user->role?->nombre === 'Administrador';
+
+        // Preparar consulta base
+        $queryEstadisticas = Expediente::query();
+        $queryExpedientes = Expediente::query();
+
+        // Si es administrador sin área, mostrar todas las áreas
+        if (!$esAdministrador || $areaId) {
+            $queryEstadisticas->where('id_area', $areaId);
+            $queryExpedientes->where('id_area', $areaId);
+        }
+
         $estadisticas = [
-            'pendientes_validacion' => Expediente::where('id_area', $areaId)->where('estado', 'Resuelto')->count(),
-            'validados_hoy' => Expediente::where('id_area', $areaId)->where('estado', 'Aprobado')->whereDate('updated_at', today())->count(),
-            'rechazados_hoy' => Expediente::where('id_area', $areaId)->where('estado', 'Rechazado')->whereDate('updated_at', today())->count(),
+            'pendientes_validacion' => (clone $queryEstadisticas)->where('estado', 'Resuelto')->count(),
+            'validados_hoy' => (clone $queryEstadisticas)->where('estado', 'Aprobado')->whereDate('updated_at', today())->count(),
+            'rechazados_hoy' => (clone $queryEstadisticas)->where('estado', 'Rechazado')->whereDate('updated_at', today())->count(),
             'requieren_autorizacion' => 0
         ];
-        
-        $expedientesPendientes = Expediente::where('id_area', $areaId)
+
+        $expedientesPendientes = $queryExpedientes
             ->where('estado', 'Resuelto')
-            ->with(['funcionarioAsignado', 'tipoTramite'])
+            ->with(['funcionarioAsignado', 'tipoTramite', 'area'])
             ->orderBy('fecha_resolucion', 'asc')
             ->get();
-        
+
         return view('jefe-area.validar-documentos', compact('estadisticas', 'expedientesPendientes'));
     }
 

@@ -24,13 +24,13 @@ class StoreExpedienteRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            // Datos del expediente
-            'asunto' => 'required|string|max:500',
-            'asunto_documento' => 'required|string|max:500',
+            // Datos del expediente (validaciones más estrictas)
+            'asunto' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;:\-\(\)]+$/u'],
+            'asunto_documento' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;:\-\(\)]+$/u'],
             'tipo_documento_entrante' => 'required|string|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION',
             'folios' => 'required|integer|min:1|max:9999',
-            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
-            'observaciones' => 'nullable|string',
+            'id_tipo_tramite' => ['required', 'integer', 'exists:tipo_tramites,id_tipo_tramite'],
+            'observaciones' => ['nullable', 'string', 'max:1000']
 
             // Datos de la persona (remitente)
             'persona_existente_id' => 'nullable|exists:personas,id_persona',
@@ -76,19 +76,19 @@ class StoreExpedienteRequest extends FormRequest
                 },
             ],
 
-            // Persona Natural
-            'nombres' => 'required_if:tipo_persona,NATURAL|nullable|string|max:100',
-            'apellido_paterno' => 'required_if:tipo_persona,NATURAL|nullable|string|max:50',
-            'apellido_materno' => 'nullable|string|max:50',
+            // Persona Natural (validaciones más estrictas)
+            'nombres' => ['required_if:tipo_persona,NATURAL', 'nullable', 'string', 'min:2', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
+            'apellido_paterno' => ['required_if:tipo_persona,NATURAL', 'nullable', 'string', 'min:2', 'max:50', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
+            'apellido_materno' => ['nullable', 'string', 'max:50', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
 
             // Persona Jurídica
-            'razon_social' => 'required_if:tipo_persona,JURIDICA|nullable|string|max:200',
-            'representante_legal' => 'nullable|string|max:150',
+            'razon_social' => ['required_if:tipo_persona,JURIDICA', 'nullable', 'string', 'min:3', 'max:200'],
+            'representante_legal' => ['nullable', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
 
-            // Datos de contacto
-            'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'direccion' => 'nullable|string',
+            // Datos de contacto (validaciones mejoradas)
+            'telefono' => ['nullable', 'string', 'min:7', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
+            'email' => ['nullable', 'email:rfc,dns', 'max:100'],
+            'direccion' => ['nullable', 'string', 'min:5', 'max:255'],
 
             // Documentos adjuntos
             'documento' => 'nullable|file|mimes:pdf|max:10240', // 10MB - Opcional
@@ -97,16 +97,16 @@ class StoreExpedienteRequest extends FormRequest
             'documentos_adicionales' => 'nullable|array',
             'observaciones_documentos' => 'nullable|string',
 
-            // Campos de clasificación
-            'id_area' => 'required|exists:areas,id_area',
+            // Campos de clasificación (validaciones de integridad)
+            'id_area' => ['required', 'integer', 'exists:areas,id_area,activo,1'],
             'prioridad' => 'required|in:baja,normal,alta,urgente',
-            'observaciones_clasificacion' => 'nullable|string|max:500',
+            'observaciones_clasificacion' => ['nullable', 'string', 'max:500'],
 
-            // Campos de derivación
-            'id_funcionario_asignado' => 'nullable|exists:users,id',
-            'plazo_dias' => 'required|integer|min:1|max:365',
+            // Campos de derivación (validar funcionario activo)
+            'id_funcionario_asignado' => ['nullable', 'integer', 'exists:users,id,activo,1'],
+            'plazo_dias' => ['required', 'integer', 'min:1', 'max:365'],
             'prioridad_derivacion' => 'nullable|in:baja,normal,alta,urgente',
-            'observaciones_derivacion' => 'nullable|string|max:1000',
+            'observaciones_derivacion' => ['nullable', 'string', 'max:1000'],
         ];
 
         return $rules;
@@ -179,11 +179,46 @@ class StoreExpedienteRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
+        $data = [];
+
+        // Convertir documentos a mayúsculas
         if ($this->has('numero_documento') && in_array($this->tipo_documento, ['CE', 'PASAPORTE'])) {
-            $this->merge([
-                'numero_documento' => strtoupper($this->numero_documento),
-            ]);
+            $data['numero_documento'] = strtoupper($this->numero_documento);
         }
+
+        // Sanitizar texto: eliminar espacios extras y trim
+        if ($this->has('asunto')) {
+            $data['asunto'] = preg_replace('/\s+/', ' ', trim($this->asunto));
+        }
+
+        if ($this->has('asunto_documento')) {
+            $data['asunto_documento'] = preg_replace('/\s+/', ' ', trim($this->asunto_documento));
+        }
+
+        // Sanitizar nombres (capitalizar correctamente)
+        if ($this->has('nombres')) {
+            $data['nombres'] = ucwords(strtolower(trim($this->nombres)));
+        }
+
+        if ($this->has('apellido_paterno')) {
+            $data['apellido_paterno'] = ucwords(strtolower(trim($this->apellido_paterno)));
+        }
+
+        if ($this->has('apellido_materno')) {
+            $data['apellido_materno'] = ucwords(strtolower(trim($this->apellido_materno)));
+        }
+
+        // Sanitizar email
+        if ($this->has('email')) {
+            $data['email'] = strtolower(trim($this->email));
+        }
+
+        // Sanitizar teléfono (solo números y caracteres válidos)
+        if ($this->has('telefono')) {
+            $data['telefono'] = preg_replace('/[^0-9\-\+\(\)\s]/', '', $this->telefono);
+        }
+
+        $this->merge($data);
     }
 
     /**

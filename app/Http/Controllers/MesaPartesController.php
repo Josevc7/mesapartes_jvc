@@ -93,21 +93,32 @@ class MesaPartesController extends Controller
             });
         }
 
-        $expedientes = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+        // Paginación mejorada: permitir elegir cantidad de registros
+        $perPage = $request->input('per_page', 15);
+        $perPage = in_array($perPage, [10, 15, 25, 50, 100]) ? $perPage : 15;
 
-        // Datos para los filtros
-        $areas = Area::where('activo', true)->orderBy('nombre')->get();
-        $tipoTramites = TipoTramite::where('activo', true)->orderBy('nombre')->get();
+        $expedientes = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
 
-        // Estadísticas rápidas
-        $estadisticas = [
-            'total' => Expediente::whereIn('estado', $estadosDefault)->count(),
-            'pendientes' => Expediente::where('estado', 'recepcionado')->count(),
-            'clasificados' => Expediente::where('estado', 'clasificado')->count(),
-            'derivados' => Expediente::where('estado', 'derivado')->count(),
-            'en_proceso' => Expediente::where('estado', 'en_proceso')->count(),
-            'virtuales' => Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count(),
-        ];
+        // Datos para los filtros (con caché de 5 minutos)
+        $areas = \Cache::remember('areas_activas', 300, function() {
+            return Area::where('activo', true)->orderBy('nombre')->get();
+        });
+
+        $tipoTramites = \Cache::remember('tipo_tramites_activos', 300, function() {
+            return TipoTramite::where('activo', true)->orderBy('nombre')->get();
+        });
+
+        // Estadísticas rápidas (con caché de 1 minuto para datos en tiempo real)
+        $estadisticas = \Cache::remember('mesa_partes_estadisticas', 60, function() use ($estadosDefault) {
+            return [
+                'total' => Expediente::whereIn('estado', $estadosDefault)->count(),
+                'pendientes' => Expediente::where('estado', 'recepcionado')->count(),
+                'clasificados' => Expediente::where('estado', 'clasificado')->count(),
+                'derivados' => Expediente::where('estado', 'derivado')->count(),
+                'en_proceso' => Expediente::where('estado', 'en_proceso')->count(),
+                'virtuales' => Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count(),
+            ];
+        });
 
         return view('mesa-partes.index', compact('expedientes', 'areas', 'tipoTramites', 'estadisticas'));
     }
@@ -163,6 +174,9 @@ class MesaPartesController extends Controller
             );
 
             \DB::commit();
+
+            // Limpiar caché de estadísticas después de crear expediente
+            \Cache::forget('mesa_partes_estadisticas');
 
             return redirect()
                 ->route('mesa-partes.registrar')

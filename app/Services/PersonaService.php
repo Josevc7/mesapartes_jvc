@@ -55,11 +55,33 @@ class PersonaService
 
     protected function actualizarDatosContacto(Persona $persona, array $data): Persona
     {
-        $persona->update([
+        $datosActualizar = [
             'telefono' => $data['telefono'] ?? $persona->telefono,
             'email' => $data['email'] ?? $persona->email,
             'direccion' => $data['direccion'] ?? $persona->direccion,
-        ]);
+        ];
+
+        // Actualizar también nombres y apellidos si vienen en los datos
+        if ($persona->tipo_persona === 'NATURAL') {
+            if (isset($data['nombres'])) {
+                $datosActualizar['nombres'] = $data['nombres'];
+            }
+            if (isset($data['apellido_paterno'])) {
+                $datosActualizar['apellido_paterno'] = $data['apellido_paterno'];
+            }
+            if (isset($data['apellido_materno'])) {
+                $datosActualizar['apellido_materno'] = $data['apellido_materno'];
+            }
+        } elseif ($persona->tipo_persona === 'JURIDICA') {
+            if (isset($data['razon_social'])) {
+                $datosActualizar['razon_social'] = $data['razon_social'];
+            }
+            if (isset($data['representante_legal'])) {
+                $datosActualizar['representante_legal'] = $data['representante_legal'];
+            }
+        }
+
+        $persona->update($datosActualizar);
         return $persona;
     }
 

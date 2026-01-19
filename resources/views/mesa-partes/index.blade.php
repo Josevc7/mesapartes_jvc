@@ -4,11 +4,11 @@
 
 @section('styles')
 <style>
-/* Estadisticas mini inline */
+/* Estadisticas inline */
 .stat-mini {
-    padding: 0.25rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.15s;
 }
@@ -18,7 +18,8 @@
 }
 .stat-mini strong {
     font-weight: 700;
-    margin-right: 2px;
+    font-size: 1.3rem;
+    margin-right: 5px;
 }
 
 /* Filtros */
@@ -515,13 +516,34 @@
 
             @if($expedientes->hasPages())
             <div class="card-footer bg-light py-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
-                        Mostrando {{ $expedientes->firstItem() }} - {{ $expedientes->lastItem() }} de {{ $expedientes->total() }} expedientes
-                    </small>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">
+                            Mostrando {{ $expedientes->firstItem() }} - {{ $expedientes->lastItem() }} de {{ $expedientes->total() }} expedientes
+                        </small>
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="small text-muted mb-0">Mostrar:</label>
+                            <select class="form-select form-select-sm" style="width: auto;" onchange="window.location.href = updateQueryString('per_page', this.value)">
+                                <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                                <option value="15" {{ request('per_page', 15) == 15 ? 'selected' : '' }}>15</option>
+                                <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                            </select>
+                        </div>
+                    </div>
                     {{ $expedientes->links() }}
                 </div>
             </div>
+
+            <script>
+            function updateQueryString(key, value) {
+                const url = new URL(window.location);
+                url.searchParams.set(key, value);
+                url.searchParams.set('page', 1); // Reset a la primera página
+                return url.toString();
+            }
+            </script>
             @endif
         </div>
     </div>

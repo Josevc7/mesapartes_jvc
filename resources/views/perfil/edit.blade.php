@@ -146,7 +146,9 @@
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ route('perfil.show') }}" class="btn btn-secondary">Cancelar</a>
+                            <a href="{{ route('perfil.show') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Guardar Cambios
                             </button>

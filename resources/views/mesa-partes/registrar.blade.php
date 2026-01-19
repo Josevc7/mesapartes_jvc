@@ -573,11 +573,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const numeroDocumento = document.getElementById('numero_documento');
     const numeroDocumentoJuridica = document.getElementById('numero_documento_juridica');
 
+    // Búsqueda automática al completar 8 dígitos del DNI - Persona Natural
+    numeroDocumento.addEventListener('input', function() {
+        const valor = this.value.trim();
+
+        // Limpiar si hay cambios
+        document.getElementById('persona-encontrada').style.display = 'none';
+        personaEncontrada = null;
+
+        // Buscar automáticamente cuando tenga exactamente 8 dígitos
+        if (valor.length === 8 && /^\d{8}$/.test(valor)) {
+            console.log('DNI completo detectado, buscando automáticamente...');
+            buscarPersona();
+        }
+    });
+
     // Búsqueda automática al presionar Enter - Persona Natural
     numeroDocumento.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             buscarPersona();
+        }
+    });
+
+    // Búsqueda automática al completar 11 dígitos del RUC - Persona Jurídica
+    numeroDocumentoJuridica.addEventListener('input', function() {
+        const valor = this.value.trim();
+
+        // Limpiar si hay cambios
+        document.getElementById('persona-encontrada').style.display = 'none';
+        personaEncontrada = null;
+
+        // Buscar automáticamente cuando tenga exactamente 11 dígitos
+        if (valor.length === 11 && /^\d{11}$/.test(valor)) {
+            console.log('RUC completo detectado, buscando automáticamente...');
+            buscarPersonaJuridica();
         }
     });
 
@@ -587,18 +617,6 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             buscarPersonaJuridica();
         }
-    });
-
-    // Limpiar búsqueda al cambiar documento - Persona Natural
-    numeroDocumento.addEventListener('input', function() {
-        document.getElementById('persona-encontrada').style.display = 'none';
-        personaEncontrada = null;
-    });
-
-    // Limpiar búsqueda al cambiar documento - Persona Jurídica
-    numeroDocumentoJuridica.addEventListener('input', function() {
-        document.getElementById('persona-encontrada').style.display = 'none';
-        personaEncontrada = null;
     });
 });
 
@@ -648,7 +666,8 @@ function buscarPersona() {
                     if (personaEncontradaElement) {
                         personaEncontradaElement.style.display = 'none';
                     }
-                    alert('Persona no encontrada. Puede registrar una nueva.');
+                    // No mostrar alerta en búsqueda automática
+                    console.log('Persona no encontrada. Usuario puede registrar una nueva.');
                 }
             } else {
                 console.error('Error en búsqueda:', result.error);
@@ -709,7 +728,8 @@ function buscarPersonaJuridica() {
                     if (personaEncontradaElement) {
                         personaEncontradaElement.style.display = 'none';
                     }
-                    alert('Empresa no encontrada. Puede registrar una nueva.');
+                    // No mostrar alerta en búsqueda automática
+                    console.log('Empresa no encontrada. Usuario puede registrar una nueva.');
                 }
             } else {
                 console.error('Error en búsqueda:', result.error);

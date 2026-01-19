@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3>Validar Documentos</h3>
-                <span class="badge bg-info">Área: {{ auth()->user()->area->nombre }}</span>
+                <span class="badge bg-info">Área: {{ auth()->user()->area->nombre ?? 'Todas las áreas' }}</span>
             </div>
         </div>
     </div>

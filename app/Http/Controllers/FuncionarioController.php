@@ -296,8 +296,17 @@ class FuncionarioController extends Controller
 
     public function misExpedientes()
     {
-        $expedientes = Expediente::where('id_funcionario_asignado', auth()->user()->id)
-            ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona'])
+        $user = auth()->user();
+        $esAdministrador = $user->role?->nombre === 'Administrador';
+
+        // Si es administrador, mostrar todos los expedientes; si no, solo los asignados
+        $query = Expediente::query();
+        if (!$esAdministrador) {
+            $query->where('id_funcionario_asignado', $user->id);
+        }
+
+        $expedientes = $query
+            ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona', 'funcionarioAsignado'])
             ->whereIn('estado', ['derivado', 'en_proceso', 'observado'])
             ->get()
             ->map(function($expediente) {

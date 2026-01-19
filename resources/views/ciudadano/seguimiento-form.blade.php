@@ -42,8 +42,11 @@
                             @enderror
                         </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('ciudadano.dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                            <button type="submit" class="btn btn-primary flex-grow-1">
                                 <i class="fas fa-search"></i> Buscar Expediente
                             </button>
                         </div>
