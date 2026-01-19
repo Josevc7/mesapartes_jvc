@@ -27,14 +27,14 @@ class StoreExpedienteRequest extends FormRequest
             // Datos del expediente (validaciones más estrictas)
             'asunto' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;:\-\(\)]+$/u'],
             'asunto_documento' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;:\-\(\)]+$/u'],
-            'tipo_documento_entrante' => 'required|string|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION',
+            'tipo_documento_entrante' => 'required|string|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION,OTROS',
             'folios' => 'required|integer|min:1|max:9999',
             'id_tipo_tramite' => ['required', 'integer', 'exists:tipo_tramites,id_tipo_tramite'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
 
             // Datos de la persona (remitente)
             'persona_existente_id' => 'nullable|exists:personas,id_persona',
-            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
+            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE,OTROS',
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',
 
             // Validación dinámica del número de documento según tipo
@@ -70,6 +70,13 @@ class StoreExpedienteRequest extends FormRequest
                             // Pasaporte: 7 a 12 caracteres alfanuméricos
                             if (!preg_match('/^[A-Z0-9]{7,12}$/', $value)) {
                                 $fail('El Pasaporte debe contener entre 7 y 12 caracteres alfanuméricos.');
+                            }
+                            break;
+
+                        case 'OTROS':
+                            // Otros documentos: 3 a 20 caracteres alfanuméricos
+                            if (!preg_match('/^[A-Z0-9\-]{3,20}$/i', $value)) {
+                                $fail('El documento debe contener entre 3 y 20 caracteres alfanuméricos.');
                             }
                             break;
                     }

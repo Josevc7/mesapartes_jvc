@@ -92,6 +92,7 @@
                                 <option value="CE">Carné de Extranjería</option>
                                 <option value="RUC">RUC</option>
                                 <option value="PASAPORTE">Pasaporte</option>
+                                <option value="OTROS">Otros</option>
                             </select>
                         </div>
                         <div class="col-md-6">

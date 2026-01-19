@@ -105,7 +105,9 @@
                                                     id="tipo_documento" name="tipo_documento">
                                                 <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
                                                 <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carné de Extranjería</option>
+                                                <option value="RUC" {{ old('tipo_documento') == 'RUC' ? 'selected' : '' }}>RUC</option>
                                                 <option value="PASAPORTE" {{ old('tipo_documento') == 'PASAPORTE' ? 'selected' : '' }}>Pasaporte</option>
+                                                <option value="OTROS" {{ old('tipo_documento') == 'OTROS' ? 'selected' : '' }}>Otros</option>
                                             </select>
                                             @error('tipo_documento')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -270,6 +272,7 @@
                                         <option value="MEMORANDUM" {{ old('tipo_documento_entrante') == 'MEMORANDUM' ? 'selected' : '' }}>Memorándum</option>
                                         <option value="CARTA" {{ old('tipo_documento_entrante') == 'CARTA' ? 'selected' : '' }}>Carta</option>
                                         <option value="RESOLUCION" {{ old('tipo_documento_entrante') == 'RESOLUCION' ? 'selected' : '' }}>Resolución</option>
+                                        <option value="OTROS" {{ old('tipo_documento_entrante') == 'OTROS' ? 'selected' : '' }}>Otros</option>
                                     </select>
                                     @error('tipo_documento_entrante')
                                         <div class="invalid-feedback">{{ $message }}</div>

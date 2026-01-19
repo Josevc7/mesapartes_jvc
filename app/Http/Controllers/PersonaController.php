@@ -17,7 +17,7 @@ class PersonaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
+            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE,OTROS',
             'numero_documento' => 'required|string|max:20|unique:personas',
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',
             'nombres' => 'required_if:tipo_persona,NATURAL|string|max:100',
@@ -39,7 +39,7 @@ class PersonaController extends Controller
         $persona = Persona::findOrFail($id_persona);
         
         $request->validate([
-            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',
+            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE,OTROS',
             'numero_documento' => 'required|string|max:20|unique:personas,numero_documento,' . $id_persona,
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',
             'nombres' => 'required_if:tipo_persona,NATURAL|string|max:100',

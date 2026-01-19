@@ -27,6 +27,17 @@ class TipoTramiteSeeder extends Seeder
             ['nombre' => 'Solicitud de abastecimiento', 'descripcion' => 'Requerimientos de bienes y servicios', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Dirección de Administración'] ?? null],
             ['nombre' => 'Trámite de archivo y custodia documental', 'descripcion' => 'Gestión de archivo y documentación institucional', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Dirección de Administración'] ?? null],
 
+            // 1.1 Subdirección de Recursos Humanos
+            ['nombre' => 'Solicitud de constancia de trabajo', 'descripcion' => 'Emisión de constancia de trabajo para empleados activos', 'plazo_dias' => 5, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de constancia de prácticas', 'descripcion' => 'Emisión de constancia de prácticas pre-profesionales o profesionales', 'plazo_dias' => 5, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de vacaciones', 'descripcion' => 'Solicitud de periodo vacacional', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de licencia con goce de haber', 'descripcion' => 'Solicitud de licencia remunerada', 'plazo_dias' => 7, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de licencia sin goce de haber', 'descripcion' => 'Solicitud de licencia no remunerada', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de certificado laboral', 'descripcion' => 'Emisión de certificado de trabajo y relación laboral', 'plazo_dias' => 7, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de cambio de datos personales', 'descripcion' => 'Actualización de datos personales en el legajo', 'plazo_dias' => 5, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Presentación de documentos personales', 'descripcion' => 'Entrega de documentación personal para legajo', 'plazo_dias' => 3, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+            ['nombre' => 'Solicitud de contrato o renovación', 'descripcion' => 'Solicitud de contratación o renovación contractual', 'plazo_dias' => 15, 'activo' => true, 'id_area' => $areas['Subdirección de Recursos Humanos'] ?? null],
+
             // 2. Dirección de Planificación y Presupuesto
             ['nombre' => 'Programación presupuestal', 'descripcion' => 'Trámites de programación y asignación presupuestal', 'plazo_dias' => 20, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
             ['nombre' => 'Modificación presupuestal', 'descripcion' => 'Solicitud de modificaciones al presupuesto', 'plazo_dias' => 15, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],

@@ -130,7 +130,7 @@ class CiudadanoController extends Controller
         $request->validate([
             // === VALIDACIONES DE DATOS DEL SOLICITANTE ===
             'tipo_persona' => 'required|in:NATURAL,JURIDICA',              // Solo personas naturales o jurídicas
-            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE',        // Tipos de documento válidos
+            'tipo_documento' => 'required|in:DNI,CE,RUC,PASAPORTE,OTROS',        // Tipos de documento válidos
 
             // Validación dinámica según tipo de documento
             'numero_documento' => [
@@ -167,6 +167,13 @@ class CiudadanoController extends Controller
                                 $fail('El Pasaporte debe contener entre 7 y 12 caracteres alfanuméricos.');
                             }
                             break;
+
+                        case 'OTROS':
+                            // Otros documentos: 3 a 20 caracteres alfanuméricos
+                            if (!preg_match('/^[A-Z0-9\-]{3,20}$/i', $value)) {
+                                $fail('El documento debe contener entre 3 y 20 caracteres alfanuméricos.');
+                            }
+                            break;
                     }
                 },
             ],
@@ -187,7 +194,7 @@ class CiudadanoController extends Controller
             
             // === VALIDACIONES DE DATOS DEL TRÁMITE ===
             'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',       // Debe existir en la tabla
-            'tipo_documento_entrante' => 'required|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION', // Tipo de documento
+            'tipo_documento_entrante' => 'required|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION,OTROS', // Tipo de documento
             'folios' => 'required|integer|min:1|max:999',                 // Número de folios
             'asunto' => 'required|string|max:500',                        // Asunto obligatorio
             'descripcion' => 'nullable|string|max:2000',                  // Descripción opcional

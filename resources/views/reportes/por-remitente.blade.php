@@ -37,6 +37,7 @@
                                 <option value="RUC" {{ $tipoDocumento == 'RUC' ? 'selected' : '' }}>RUC</option>
                                 <option value="CE" {{ $tipoDocumento == 'CE' ? 'selected' : '' }}>Carnet Extranjeria</option>
                                 <option value="PASAPORTE" {{ $tipoDocumento == 'PASAPORTE' ? 'selected' : '' }}>Pasaporte</option>
+                                <option value="OTROS" {{ $tipoDocumento == 'OTROS' ? 'selected' : '' }}>Otros</option>
                             </select>
                         </div>
                         <div class="mb-3">
