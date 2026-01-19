@@ -9,7 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('areas', function (Blueprint $table) {
-            $table->foreignId('jefe_id')->nullable()->constrained('users');
+            $table->unsignedBigInteger('jefe_id')->nullable();
+            $table->foreign('jefe_id')->references('id')->on('users');
             $table->boolean('activo')->default(true);
         });
     }

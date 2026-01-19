@@ -30,7 +30,7 @@ class StoreExpedienteRequest extends FormRequest
             'tipo_documento_entrante' => 'required|string|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION',
             'folios' => 'required|integer|min:1|max:9999',
             'id_tipo_tramite' => ['required', 'integer', 'exists:tipo_tramites,id_tipo_tramite'],
-            'observaciones' => ['nullable', 'string', 'max:1000']
+            'observaciones' => ['nullable', 'string', 'max:1000'],
 
             // Datos de la persona (remitente)
             'persona_existente_id' => 'nullable|exists:personas,id_persona',
@@ -76,19 +76,19 @@ class StoreExpedienteRequest extends FormRequest
                 },
             ],
 
-            // Persona Natural (validaciones más estrictas)
-            'nombres' => ['required_if:tipo_persona,NATURAL', 'nullable', 'string', 'min:2', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
-            'apellido_paterno' => ['required_if:tipo_persona,NATURAL', 'nullable', 'string', 'min:2', 'max:50', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
+            // Persona Natural
+            'nombres' => ['required_if:tipo_persona,NATURAL', 'nullable', 'string', 'max:100', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
+            'apellido_paterno' => ['required_if:tipo_persona,NATURAL', 'nullable', 'string', 'max:50', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
             'apellido_materno' => ['nullable', 'string', 'max:50', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
 
             // Persona Jurídica
             'razon_social' => ['required_if:tipo_persona,JURIDICA', 'nullable', 'string', 'min:3', 'max:200'],
             'representante_legal' => ['nullable', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u'],
 
-            // Datos de contacto (validaciones mejoradas)
-            'telefono' => ['nullable', 'string', 'min:7', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
-            'email' => ['nullable', 'email:rfc,dns', 'max:100'],
-            'direccion' => ['nullable', 'string', 'min:5', 'max:255'],
+            // Datos de contacto
+            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\s\-\+\(\)]+$/'],
+            'email' => ['nullable', 'email:rfc', 'max:100'],
+            'direccion' => ['nullable', 'string', 'max:255'],
 
             // Documentos adjuntos
             'documento' => 'nullable|file|mimes:pdf|max:10240', // 10MB - Opcional

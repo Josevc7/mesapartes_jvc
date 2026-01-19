@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('expedientes', function (Blueprint $table) {
-            $table->foreignId('id_funcionario_asignado')->nullable()->constrained('users');
+            $table->unsignedBigInteger('id_funcionario_asignado')->nullable();
+            $table->foreign('id_funcionario_asignado')->references('id')->on('users');
         });
     }
 

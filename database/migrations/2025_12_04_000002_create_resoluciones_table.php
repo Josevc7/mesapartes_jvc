@@ -12,7 +12,8 @@ return new class extends Migration
             $table->id('id_resolucion');
             $table->unsignedBigInteger('id_expediente');
             $table->foreign('id_expediente')->references('id_expediente')->on('expedientes');
-            $table->foreignId('id_funcionario_resolutor')->constrained('users');
+            $table->unsignedBigInteger('id_funcionario_resolutor');
+            $table->foreign('id_funcionario_resolutor')->references('id')->on('users');
             $table->string('numero_resolucion', 50)->unique();
             $table->enum('tipo_resolucion', ['aprobado', 'rechazado', 'observado']);
             $table->text('fundamento_legal')->nullable();

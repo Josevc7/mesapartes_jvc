@@ -17,7 +17,8 @@ return new class extends Migration
             $table->text('asunto');
             $table->unsignedBigInteger('id_tipo_tramite');
             $table->foreign('id_tipo_tramite')->references('id_tipo_tramite')->on('tipo_tramites');
-            $table->foreignId('id_ciudadano')->constrained('users');
+            $table->unsignedBigInteger('id_ciudadano');
+            $table->foreign('id_ciudadano')->references('id')->on('users');
             $table->date('fecha_registro');
             $table->enum('estado', ['pendiente', 'derivado', 'en_proceso', 'resuelto', 'archivado'])->default('pendiente');
             $table->enum('prioridad', ['baja', 'normal', 'alta', 'urgente'])->default('normal');

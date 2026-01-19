@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::table('derivacions', function (Blueprint $table) {
             $table->date('fecha_limite')->nullable();
-            $table->foreignId('funcionario_origen_id')->nullable()->constrained('users');
-            $table->foreignId('funcionario_destino_id')->nullable()->constrained('users');
+            $table->unsignedBigInteger('funcionario_origen_id')->nullable();
+            $table->foreign('funcionario_origen_id')->references('id')->on('users');
+            $table->unsignedBigInteger('funcionario_destino_id')->nullable();
+            $table->foreign('funcionario_destino_id')->references('id')->on('users');
         });
     }
 

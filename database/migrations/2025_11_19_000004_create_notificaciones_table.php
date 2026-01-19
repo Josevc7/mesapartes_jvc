@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('notificaciones', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_usuario')->constrained('users');
+            $table->unsignedBigInteger('id_usuario');
+            $table->foreign('id_usuario')->references('id')->on('users');
             $table->string('titulo');
             $table->text('mensaje');
             $table->string('expediente_codigo')->nullable();

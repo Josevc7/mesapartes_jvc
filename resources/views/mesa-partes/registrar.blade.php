@@ -577,14 +577,14 @@ document.addEventListener('DOMContentLoaded', function() {
     numeroDocumento.addEventListener('input', function() {
         const valor = this.value.trim();
 
-        // Limpiar si hay cambios
-        document.getElementById('persona-encontrada').style.display = 'none';
-        personaEncontrada = null;
-
         // Buscar automáticamente cuando tenga exactamente 8 dígitos
         if (valor.length === 8 && /^\d{8}$/.test(valor)) {
             console.log('DNI completo detectado, buscando automáticamente...');
             buscarPersona();
+        } else {
+            // Limpiar solo si no tiene 8 dígitos
+            document.getElementById('persona-encontrada').style.display = 'none';
+            personaEncontrada = null;
         }
     });
 
@@ -600,14 +600,14 @@ document.addEventListener('DOMContentLoaded', function() {
     numeroDocumentoJuridica.addEventListener('input', function() {
         const valor = this.value.trim();
 
-        // Limpiar si hay cambios
-        document.getElementById('persona-encontrada').style.display = 'none';
-        personaEncontrada = null;
-
         // Buscar automáticamente cuando tenga exactamente 11 dígitos
         if (valor.length === 11 && /^\d{11}$/.test(valor)) {
             console.log('RUC completo detectado, buscando automáticamente...');
             buscarPersonaJuridica();
+        } else {
+            // Limpiar solo si no tiene 11 dígitos
+            document.getElementById('persona-encontrada').style.display = 'none';
+            personaEncontrada = null;
         }
     });
 

@@ -12,7 +12,8 @@ return new class extends Migration
             $table->id('id_observacion');
             $table->unsignedBigInteger('id_expediente');
             $table->foreign('id_expediente')->references('id_expediente')->on('expedientes');
-            $table->foreignId('id_usuario')->constrained('users');
+            $table->unsignedBigInteger('id_usuario');
+            $table->foreign('id_usuario')->references('id')->on('users');
             $table->enum('tipo', ['observacion', 'devolucion', 'subsanacion']);
             $table->text('descripcion');
             $table->date('fecha_limite')->nullable();

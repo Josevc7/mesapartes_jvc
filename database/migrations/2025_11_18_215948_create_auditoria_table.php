@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('auditoria', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_usuario')->constrained('users');
+            $table->unsignedBigInteger('id_usuario');
+            $table->foreign('id_usuario')->references('id')->on('users');
             $table->string('accion');
             $table->string('tabla');
             $table->unsignedBigInteger('registro_id');

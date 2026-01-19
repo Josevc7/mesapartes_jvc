@@ -25,11 +25,11 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Email: validación estricta con formato RFC y DNS
+            // Email: validación estándar (sin validación DNS para desarrollo)
             'email' => [
                 'required',
                 'string',
-                'email:rfc,dns',
+                'email:rfc',
                 'max:255',
                 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
             ],

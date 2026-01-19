@@ -374,8 +374,11 @@
 
                             <!-- Asunto -->
                             <td>
-                                <span title="{{ $expediente->asunto_documento }}">
-                                    {{ Str::limit($expediente->asunto_documento, 35) }}
+                                @php
+                                    $asunto_mostrar = $expediente->asunto_documento ?? $expediente->asunto ?? 'Sin asunto';
+                                @endphp
+                                <span title="{{ $asunto_mostrar }}">
+                                    {{ Str::limit($asunto_mostrar, 35) }}
                                 </span>
                                 @if($expediente->folios)
                                     <div class="solicitante-detalle">

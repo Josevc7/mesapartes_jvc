@@ -19,7 +19,8 @@ return new class extends Migration
             $table->foreign('id_origen_area')->references('id_area')->on('areas');
             $table->unsignedBigInteger('id_destino_area');
             $table->foreign('id_destino_area')->references('id_area')->on('areas');
-            $table->foreignId('id_funcionario_asignado')->nullable()->constrained('users');
+            $table->unsignedBigInteger('id_funcionario_asignado')->nullable();
+            $table->foreign('id_funcionario_asignado')->references('id')->on('users');
             $table->date('fecha_derivacion');
             $table->date('fecha_recepcion')->nullable();
             $table->enum('estado', ['pendiente', 'recibido', 'vencido'])->default('pendiente');
