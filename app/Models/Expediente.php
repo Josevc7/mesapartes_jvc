@@ -36,6 +36,7 @@ class Expediente extends Model
         'descripcion',
         'id_tipo_tramite',
         'tipo_documento_entrante',
+        'numero_documento_entrante',
         'folios',
         'id_ciudadano',
         'id_persona',

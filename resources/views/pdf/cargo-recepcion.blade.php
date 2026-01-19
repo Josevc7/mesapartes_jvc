@@ -169,16 +169,26 @@
 
     <!-- Trámite Info -->
     <div class="content">
-        <h4 style="margin-bottom: 10px; color: #cc5500;">INFORMACIÓN DEL TRÁMITE</h4>
-        
+        <h4 style="margin-bottom: 10px; color: #cc5500;">INFORMACIÓN DEL DOCUMENTO</h4>
+
+        <div class="field">
+            <span class="field-label">TIPO DOCUMENTO:</span>
+            <span class="field-value">{{ $expediente->tipo_documento_entrante ?? 'N/A' }}@if($expediente->numero_documento_entrante) N° {{ $expediente->numero_documento_entrante }}@endif</span>
+        </div>
+
         <div class="field">
             <span class="field-label">TIPO TRÁMITE:</span>
             <span class="field-value">{{ $expediente->tipoTramite->nombre ?? 'POR CLASIFICAR' }}</span>
         </div>
-        
+
         <div class="field">
             <span class="field-label">ASUNTO:</span>
             <span class="field-value">{{ $expediente->asunto }}</span>
+        </div>
+
+        <div class="field">
+            <span class="field-label">FOLIOS:</span>
+            <span class="field-value">{{ $expediente->folios ?? 1 }}</span>
         </div>
         
         @if($expediente->observaciones)

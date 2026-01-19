@@ -25,9 +25,9 @@ class StoreExpedienteRequest extends FormRequest
     {
         $rules = [
             // Datos del expediente (validaciones más estrictas)
-            'asunto' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;:\-\(\)]+$/u'],
             'asunto_documento' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,;:\-\(\)]+$/u'],
             'tipo_documento_entrante' => 'required|string|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION,OTROS',
+            'numero_documento_entrante' => ['nullable', 'string', 'max:50'],
             'folios' => 'required|integer|min:1|max:9999',
             'id_tipo_tramite' => ['required', 'integer', 'exists:tipo_tramites,id_tipo_tramite'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
@@ -128,12 +128,13 @@ class StoreExpedienteRequest extends FormRequest
     {
         return [
             // Expediente
-            'asunto.required' => 'El asunto del trámite es obligatorio',
-            'asunto.max' => 'El asunto no puede exceder 500 caracteres',
             'asunto_documento.required' => 'El asunto del documento es obligatorio',
+            'asunto_documento.min' => 'El asunto del documento debe tener al menos 10 caracteres',
             'asunto_documento.max' => 'El asunto del documento no puede exceder 500 caracteres',
+            'asunto_documento.regex' => 'El asunto contiene caracteres no permitidos',
             'tipo_documento_entrante.required' => 'Debe seleccionar el tipo de documento',
             'tipo_documento_entrante.in' => 'El tipo de documento seleccionado no es válido',
+            'numero_documento_entrante.max' => 'El número de documento no puede exceder 50 caracteres',
             'folios.required' => 'Debe indicar el número de folios',
             'folios.integer' => 'El número de folios debe ser un número entero',
             'folios.min' => 'El número de folios debe ser al menos 1',
@@ -194,10 +195,6 @@ class StoreExpedienteRequest extends FormRequest
         }
 
         // Sanitizar texto: eliminar espacios extras y trim
-        if ($this->has('asunto')) {
-            $data['asunto'] = preg_replace('/\s+/', ' ', trim($this->asunto));
-        }
-
         if ($this->has('asunto_documento')) {
             $data['asunto_documento'] = preg_replace('/\s+/', ' ', trim($this->asunto_documento));
         }
@@ -236,10 +233,11 @@ class StoreExpedienteRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'asunto' => 'asunto del trámite',
+            'asunto_documento' => 'asunto del documento',
+            'numero_documento_entrante' => 'número de documento',
             'id_tipo_tramite' => 'tipo de trámite',
-            'tipo_documento' => 'tipo de documento',
-            'numero_documento' => 'número de documento',
+            'tipo_documento' => 'tipo de documento de identidad',
+            'numero_documento' => 'número de documento de identidad',
             'tipo_persona' => 'tipo de persona',
             'nombres' => 'nombres',
             'apellido_paterno' => 'apellido paterno',

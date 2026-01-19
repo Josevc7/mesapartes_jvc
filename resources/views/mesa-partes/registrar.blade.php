@@ -295,7 +295,7 @@
                             </div>
 
                             <div class="row g-4">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="tipo_documento_entrante" class="form-label fw-semibold">
                                         <i class="fas fa-file-invoice text-warning me-2"></i>Tipo de Documento *
                                     </label>
@@ -316,7 +316,19 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-5">
+                                <div class="col-md-3">
+                                    <label for="numero_documento_entrante" class="form-label fw-semibold">
+                                        <i class="fas fa-hashtag text-warning me-2"></i>N° de Documento
+                                    </label>
+                                    <input type="text" class="form-control form-control-lg @error('numero_documento_entrante') is-invalid @enderror"
+                                           id="numero_documento_entrante" name="numero_documento_entrante" value="{{ old('numero_documento_entrante') }}"
+                                           placeholder="Ej: 001-2026">
+                                    @error('numero_documento_entrante')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-4">
                                     <label for="asunto_documento" class="form-label fw-semibold">
                                         <i class="fas fa-align-left text-warning me-2"></i>Asunto *
                                     </label>
@@ -328,14 +340,26 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label for="folios" class="form-label fw-semibold">
-                                        <i class="fas fa-copy text-warning me-2"></i>Folios (N° de hojas) *
+                                        <i class="fas fa-copy text-warning me-2"></i>Folios *
                                     </label>
                                     <input type="number" class="form-control form-control-lg @error('folios') is-invalid @enderror"
                                            id="folios" name="folios" value="{{ old('folios', 1) }}"
                                            min="1" max="9999" required>
                                     @error('folios')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label for="documento" class="form-label fw-semibold">
+                                        <i class="fas fa-file-pdf text-warning me-2"></i>Documento PDF
+                                    </label>
+                                    <input type="file" class="form-control form-control-lg @error('documento') is-invalid @enderror"
+                                           id="documento" name="documento" accept=".pdf">
+                                    <div class="form-text">Opcional - Máximo 10MB</div>
+                                    @error('documento')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -405,53 +429,14 @@
                             </div>
                         </div>
 
-                        <!-- Sección 6: Datos del Expediente -->
-                        <div class="mb-5">
-                            <div class="d-flex align-items-center mb-4">
-                                <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
-                                    <i class="fas fa-clipboard-list text-info fa-lg"></i>
-                                </div>
-                                <div>
-                                    <h5 class="mb-1 text-info fw-bold">6. Datos del Expediente</h5>
-                                    <p class="text-muted mb-0 small">Información adicional y documento adjunto</p>
-                                </div>
-                            </div>
-
-                            <div class="row g-4">
-                                <div class="col-md-8">
-                                    <label for="asunto" class="form-label fw-semibold">
-                                        <i class="fas fa-align-left text-info me-2"></i>Asunto del Trámite *
-                                    </label>
-                                    <input type="text" class="form-control form-control-lg @error('asunto') is-invalid @enderror"
-                                           id="asunto" name="asunto" value="{{ old('asunto') }}"
-                                           placeholder="Describa el motivo del trámite" required>
-                                    @error('asunto')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label for="documento" class="form-label fw-semibold">
-                                        <i class="fas fa-file-pdf text-info me-2"></i>Documento PDF
-                                    </label>
-                                    <input type="file" class="form-control form-control-lg @error('documento') is-invalid @enderror"
-                                           id="documento" name="documento" accept=".pdf">
-                                    <div class="form-text">Opcional - Máximo 10MB</div>
-                                    @error('documento')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sección 7: Derivación del Expediente -->
+                        <!-- Sección 6: Derivación del Expediente -->
                         <div class="mb-5">
                             <div class="d-flex align-items-center mb-4">
                                 <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
                                     <i class="fas fa-share text-warning fa-lg"></i>
                                 </div>
                                 <div>
-                                    <h5 class="mb-1 text-warning fw-bold">7. Derivación del Expediente</h5>
+                                    <h5 class="mb-1 text-warning fw-bold">6. Derivación del Expediente</h5>
                                     <p class="text-muted mb-0 small">Asigne el funcionario y establezca plazos</p>
                                 </div>
                             </div>

@@ -39,9 +39,9 @@ class ExpedienteService
             // 4. Crear expediente
             $expediente = Expediente::create([
                 'codigo_expediente' => $codigo,
-                'asunto' => $data['asunto'],
+                'asunto' => $data['asunto_documento'],
                 'asunto_documento' => $data['asunto_documento'] ?? null,
-                'asunto_tramite' => $data['asunto'] ?? null, // El campo "asunto" del form es el asunto del trámite
+                'numero_documento_entrante' => $data['numero_documento_entrante'] ?? null,
                 'tipo_documento_entrante' => $data['tipo_documento_entrante'] ?? null,
                 'folios' => $data['folios'] ?? 1,
                 'id_persona' => $persona->id_persona,

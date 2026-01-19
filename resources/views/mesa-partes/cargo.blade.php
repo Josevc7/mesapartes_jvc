@@ -254,7 +254,7 @@
 
             <div class="info-row">
                 <span class="info-label">Tipo de Documento:</span>
-                <span class="info-value">{{ $expediente->tipo_documento_entrante ?? 'Solicitud' }}</span>
+                <span class="info-value">{{ $expediente->tipo_documento_entrante ?? 'Solicitud' }}@if($expediente->numero_documento_entrante) N° {{ $expediente->numero_documento_entrante }}@endif</span>
             </div>
 
             <div class="info-row">
