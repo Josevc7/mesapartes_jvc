@@ -542,6 +542,9 @@
                         <button type="button" class="btn btn-success btn-lg px-4" onclick="imprimirCargo()">
                             <i class="fas fa-print me-2"></i>Imprimir Cargo
                         </button>
+                        <button type="button" class="btn btn-primary px-4" onclick="nuevoRegistro()">
+                            <i class="fas fa-plus me-2"></i>Nuevo Registro
+                        </button>
                         <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                             Cerrar
                         </button>
@@ -568,6 +571,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Buscar automáticamente cuando tenga exactamente 8 dígitos
         if (valor.length === 8 && /^\d{8}$/.test(valor)) {
             console.log('DNI completo detectado, buscando automáticamente...');
+            // Limpiar campos del documento para nuevo registro
+            limpiarCamposDocumento();
             buscarPersona();
         } else {
             // Limpiar solo si no tiene 8 dígitos
@@ -591,6 +596,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Buscar automáticamente cuando tenga exactamente 11 dígitos
         if (valor.length === 11 && /^\d{11}$/.test(valor)) {
             console.log('RUC completo detectado, buscando automáticamente...');
+            // Limpiar campos del documento para nuevo registro
+            limpiarCamposDocumento();
             buscarPersonaJuridica();
         } else {
             // Limpiar solo si no tiene 11 dígitos
@@ -1036,17 +1043,20 @@ function limpiarFormularioCompleto() {
     limpiarCamposPersona();
 
     // Limpiar campos de datos del documento
-    const tipoDocEntrante = document.getElementById('tipo_documento_entrante');
-    const asuntoDoc = document.getElementById('asunto_documento');
-    const folios = document.getElementById('folios');
-    if (tipoDocEntrante) tipoDocEntrante.value = '';
-    if (asuntoDoc) asuntoDoc.value = '';
-    if (folios) folios.value = '1';
+    limpiarCamposDocumento();
 
-    // Limpiar campos de trámite
-    document.getElementById('id_tipo_tramite').value = '';
-    document.getElementById('asunto').value = '';
-    document.getElementById('documento').value = '';
+    // Limpiar campos de trámite y clasificación
+    const idArea = document.getElementById('id_area');
+    const idTipoTramite = document.getElementById('id_tipo_tramite');
+    const prioridad = document.getElementById('prioridad');
+    const funcionarioAsignado = document.getElementById('id_funcionario_asignado');
+    const plazoDias = document.getElementById('plazo_dias');
+
+    if (idArea) idArea.value = '';
+    if (idTipoTramite) idTipoTramite.innerHTML = '<option value="">Primero seleccione un área</option>';
+    if (prioridad) prioridad.value = 'normal';
+    if (funcionarioAsignado) funcionarioAsignado.innerHTML = '<option value="">Seleccione primero un área</option>';
+    if (plazoDias) plazoDias.value = '15';
 
     // Ocultar alertas
     document.getElementById('persona-encontrada').style.display = 'none';
@@ -1058,6 +1068,41 @@ function limpiarFormularioCompleto() {
     togglePersonaFields();
 
     personaEncontrada = null;
+}
+
+// Función para limpiar solo campos del documento (cuando cambia el DNI)
+function limpiarCamposDocumento() {
+    const tipoDocEntrante = document.getElementById('tipo_documento_entrante');
+    const numeroDocEntrante = document.getElementById('numero_documento_entrante');
+    const asuntoDoc = document.getElementById('asunto_documento');
+    const folios = document.getElementById('folios');
+    const documento = document.getElementById('documento');
+
+    if (tipoDocEntrante) tipoDocEntrante.value = '';
+    if (numeroDocEntrante) numeroDocEntrante.value = '';
+    if (asuntoDoc) asuntoDoc.value = '';
+    if (folios) folios.value = '1';
+    if (documento) documento.value = '';
+}
+
+// Función para nuevo registro (cierra modal y limpia formulario)
+function nuevoRegistro() {
+    // Cerrar el modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalCargoExitoso'));
+    if (modal) {
+        modal.hide();
+    }
+
+    // Limpiar todo el formulario
+    limpiarFormularioCompleto();
+
+    // Hacer focus en el campo de DNI
+    setTimeout(function() {
+        const campoDoc = document.getElementById('numero_documento');
+        if (campoDoc) {
+            campoDoc.focus();
+        }
+    }, 300);
 }
 </script>
 
