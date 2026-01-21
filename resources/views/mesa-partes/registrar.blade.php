@@ -703,7 +703,9 @@ function buscarPersonaJuridica() {
 
     console.log('Buscando persona jurídica con RUC:', numeroDoc);
 
-    fetch(`{{ route('mesa-partes.buscar-persona') }}?q=${numeroDoc}`)
+       fetch(`{{ route('mesa-partes.buscar-persona') }}?q=${numeroDoc}`)
+    // he cambiado para que funcione por ip  y localhost
+    //fetch(`${window.APP_URL}/mesa-partes/buscar-persona?q=${encodeURIComponent(numeroDoc)}`)
         .then(response => {
             console.log('Response status:', response.status);
             if (!response.ok) {
@@ -892,7 +894,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Cargar funcionarios del área
             if (funcionarioSelect) {
-                fetch(`/api/areas/${areaId}/funcionarios`)
+                  //fetch(`/api/areas/${areaId}/funcionarios`)
+                //cambiado para acceder por ip a  funcionario
+                  fetch(`${window.APP_URL}/api/areas/${areaId}/funcionarios`)
                     .then(response => response.json())
                     .then(data => {
                         funcionarioSelect.innerHTML = '<option value="">Sin asignar (el jefe asignará después)</option>';
@@ -914,7 +918,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Cargar tipos de trámite del área
             if (tipoTramiteSelect) {
-                fetch(`/api/areas/${areaId}/tipos-tramite`)
+
+                  //fetch(`/api/areas/${areaId}/tipos-tramite`)
+                //cambiado para acceder por ip 
+                  fetch(`${window.APP_URL}/api/areas/${areaId}/tipos-tramite`)
                     .then(response => response.json())
                     .then(data => {
                         tipoTramiteSelect.innerHTML = '<option value="">Seleccione un tipo de trámite</option>';
