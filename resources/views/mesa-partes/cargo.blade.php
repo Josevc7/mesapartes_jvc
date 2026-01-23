@@ -217,20 +217,21 @@
                 <span class="info-value">{{ $expediente->created_at->format('d/m/Y H:i') }}</span>
             </div>
 
-            <div class="info-row">
+            <!--<div class="info-row">
                 <span class="info-label">Canal:</span>
                 <span class="info-value">Presencial</span>
-            </div>
+            </div>-->
 
             <div class="info-row">
                 <span class="info-label">Registrado por:</span>
-                <span class="info-value">Mesa de Partes</span>
+                <span class="info-value"> Mesa de Partes</span>
             </div>
         </div>
 
         <!-- Datos del Remitente -->
         <div class="section">
             <div class="section-title">DATOS DEL REMITENTE</div>
+            
 
             <div class="info-row">
                 <span class="info-label">Remitente:</span>
@@ -246,6 +247,16 @@
                     @endif
                 </span>
             </div>
+            @if($expediente->persona)
+                <div class="info-row">
+                    <span class="info-label">
+                        {{ $expediente->persona->tipo_documento }}:
+                   </span>
+                   <span class="info-value">
+                       {{ $expediente->persona->numero_documento }}
+                   </span>
+               </div>
+            @endif
         </div>
 
         <!-- Datos del Documento -->
@@ -281,25 +292,25 @@
             </div>
         </div>
 
-        <!-- Clasificación -->
+        <!-- Clasificación  y Derivacion -->
         <div class="section">
-            <div class="section-title">CLASIFICACIÓN Y DERIVACIÓN</div>
+            <div class="section-title">DERIVADO</div>
 
-            @if($expediente->tipoTramite)
+           {{-- @if($expediente->tipoTramite)
             <div class="info-row">
                 <span class="info-label">Tipo de Trámite:</span>
                 <span class="info-value">{{ $expediente->tipoTramite->nombre }}</span>
             </div>
-            @endif
+            @endif --}}
 
             @if($expediente->area)
             <div class="info-row">
-                <span class="info-label">Área Asignada:</span>
+                <span class="info-label">Área:</span>
                 <span class="info-value">{{ $expediente->area->nombre }}</span>
             </div>
             @endif
 
-            <div class="info-row">
+           {{-- <div class="info-row">
                 <span class="info-label">Estado:</span>
                 <span class="info-value">
                     @php
@@ -310,7 +321,7 @@
                     @endphp
                     <span class="estado-badge {{ $estadoClass }}">{{ $expediente->estado }}</span>
                 </span>
-            </div>
+            </div>--}}
         </div>
 
         <!-- Disclaimer -->

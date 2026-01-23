@@ -352,7 +352,7 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-4">
+                               {{-- <div class="col-md-4">
                                     <label for="documento" class="form-label fw-semibold">
                                         <i class="fas fa-file-pdf text-warning me-2"></i>Documento PDF
                                     </label>
@@ -364,6 +364,70 @@
                                     @enderror
                                 </div>
                             </div>
+                            <div class="row g-4 mt-1">
+                                 <div class="col-md-3">
+                                    <label for="plazo_dias" class="form-label fw-semibold">
+                                           <i class="fas fa-calendar-alt text-warning me-2"></i>Plazo (días) *
+                                    </label>
+                                    <input type="number" class="form-control form-control-lg @error('plazo_dias') is-invalid @enderror"
+                                              id="plazo_dias" name="plazo_dias" value="{{ old('plazo_dias', 15) }}"
+                                              min="1" max="365" required>
+                                    <div class="form-text">Se actualiza según el tipo de trámite</div>
+                                    @error('plazo_dias')
+                                              <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                 </div>--}}
+                                 <div class="row g-4 mt-1">
+                                     <!-- Documento PDF -->
+                                     <div class="col-md-8">
+                                          <label for="documento" class="form-label fw-semibold">
+                                              <i class="fas fa-file-pdf text-warning me-2"></i>Documento PDF
+                                     </label>
+                                 <input type="file"
+                                        class="form-control form-control-lg @error('documento') is-invalid @enderror"
+                                        id="documento"
+                                        name="documento"
+                                        accept=".pdf">
+                                 <div class="form-text">Opcional - Máximo 10MB</div>
+                                 @error('documento')
+                                     <div class="invalid-feedback">{{ $message }}</div>
+                                 @enderror
+                             </div>
+
+                             <!-- Plazo -->
+                             <div class="col-md-4">
+                                  <label for="plazo_dias" class="form-label fw-semibold">
+                                      <i class="fas fa-calendar-alt text-warning me-2"></i>Plazo (días) *
+                                  </label>
+                                  <input type="number"
+                                         class="form-control form-control-lg @error('plazo_dias') is-invalid @enderror"
+                                         id="plazo_dias"
+                                         name="plazo_dias"
+                                         value="{{ old('plazo_dias', 15) }}"
+                                         min="1"
+                                         max="365"
+                                         required>
+                                 <div class="form-text">Se actualiza según el tipo de trámite</div>
+                                 @error('plazo_dias')
+                                     <div class="invalid-feedback">{{ $message }}</div>
+                                 @enderror
+                             </div>
+                         </div>
+
+
+
+                                 <div class="col-md-9">
+                                     <label for="observaciones_clasificacion" class="form-label fw-semibold">
+                                         <i class="fas fa-comment text-warning me-2"></i>Observaciones
+                                     </label>
+                                     <textarea class="form-control form-control-lg @error('observaciones_clasificacion') is-invalid @enderror"
+                                               id="observaciones_clasificacion" name="observaciones_clasificacion"
+                                               rows="1" placeholder="Observaciones...">{{ old('observaciones_clasificacion') }}</textarea>
+                                     @error('observaciones_clasificacion')
+                                         <div class="invalid-feedback">{{ $message }}</div>
+                                     @enderror
+                                 </div>
+                             </div>
                         </div>
                         
                         <!-- Sección 5: Clasificación y Tipo de Trámite -->
@@ -430,7 +494,7 @@
                         </div>
 
                         <!-- Sección 6: Derivación del Expediente -->
-                        <div class="mb-5">
+                        {{--<div class="mb-5">
                             <div class="d-flex align-items-center mb-4">
                                 <div class="bg-warning bg-opacity-10 rounded-circle p-3 me-3">
                                     <i class="fas fa-share text-warning fa-lg"></i>
@@ -454,9 +518,9 @@
                                     @error('id_funcionario_asignado')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                </div>
+                                </div> --}}
 
-                                <div class="col-md-3">
+                               {{-- <div class="col-md-3">
                                     <label for="plazo_dias" class="form-label fw-semibold">
                                         <i class="fas fa-calendar-alt text-warning me-2"></i>Plazo (días) *
                                     </label>
@@ -481,7 +545,7 @@
                                     @enderror
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="alert alert-info border-0 shadow-sm mb-4">
                             <div class="d-flex align-items-start">
