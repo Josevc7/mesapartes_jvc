@@ -52,18 +52,38 @@ class SeguimientoController extends Controller
     {
         $request->validate([
             'codigo_expediente' => 'required|string',
-            'dni' => 'required|string|size:8'
+            'tipo_documento' => 'required|in:DNI,RUC',
+            'numero_documento' => [
+                'required',
+                'string',
+                'regex:/^[0-9]+$/',
+                function ($attribute, $value, $fail) use ($request) {
+                    $tipo = $request->input('tipo_documento');
+                    if ($tipo === 'DNI' && strlen($value) !== 8) {
+                        $fail('El DNI debe contener exactamente 8 dígitos.');
+                    } elseif ($tipo === 'RUC' && strlen($value) !== 11) {
+                        $fail('El RUC debe contener exactamente 11 dígitos.');
+                    }
+                },
+            ],
+        ], [
+            'codigo_expediente.required' => 'El número de expediente es obligatorio.',
+            'tipo_documento.required' => 'Debe seleccionar el tipo de documento.',
+            'tipo_documento.in' => 'El tipo de documento debe ser DNI o RUC.',
+            'numero_documento.required' => 'El número de documento es obligatorio.',
+            'numero_documento.regex' => 'El documento solo debe contener números.',
         ]);
 
         $expediente = Expediente::where('codigo_expediente', $request->codigo_expediente)
             ->whereHas('persona', function($query) use ($request) {
-                $query->where('numero_documento', $request->dni);
+                $query->where('numero_documento', $request->numero_documento);
             })
             ->with(['tipoTramite', 'area', 'persona', 'derivaciones.area', 'historial.usuario'])
             ->first();
 
         if (!$expediente) {
-            return back()->with('error', 'No se encontró el expediente o el DNI no coincide.');
+            $tipoDoc = $request->tipo_documento === 'RUC' ? 'RUC' : 'DNI';
+            return back()->withInput()->withErrors(['numero_documento' => "No se encontró el expediente o el {$tipoDoc} no coincide con el solicitante."]);
         }
 
         return view('seguimiento.resultado', compact('expediente'));

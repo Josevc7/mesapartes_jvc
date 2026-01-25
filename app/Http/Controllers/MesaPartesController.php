@@ -135,7 +135,7 @@ class MesaPartesController extends Controller
      * REFACTORIZADO: Ahora usa FormRequest y Service
      * ADEMÁS: Clasifica y deriva automáticamente en un solo paso
      */
-    public function storeRegistrar(StoreExpedienteRequest $request)
+     public function storeRegistrar(StoreExpedienteRequest $request)
     {
         try {
             \DB::beginTransaction();
@@ -191,7 +191,12 @@ class MesaPartesController extends Controller
                 ->withInput()
                 ->with('error', 'Error al procesar el expediente: ' . $e->getMessage());
         }
-    }
+    } 
+   // nuevo storeRegistrar asi
+     
+
+
+
 
     public function show(Expediente $expediente)
     {

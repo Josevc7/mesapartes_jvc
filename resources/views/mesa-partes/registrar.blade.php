@@ -23,7 +23,7 @@
                 </div>
             </div>
         </div>
-
+       
         <!-- CUERPO DEL FORMULARIO -->
         <div class="modern-form-body">
                     @if(session('success') && !session('codigo_expediente'))
@@ -74,9 +74,12 @@
                         </div>
                     @endif
                     
-                    <form method="POST" action="{{ route('mesa-partes.store-registrar') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('mesa-partes.store-registrar') }}" enctype="multipart/form-data" id="form-registrar" novalidate>
                         @csrf
                         <input type="hidden" id="persona_existente_id" name="persona_existente_id" value="">
+                        <!-- Campos hidden para asegurar el envío correcto de datos de persona jurídica -->
+                        <input type="hidden" id="tipo_documento_envio" name="tipo_documento" value="{{ old('tipo_documento', 'DNI') }}">
+                        <input type="hidden" id="numero_documento_envio" name="numero_documento" value="{{ old('numero_documento') }}">
                         
                         <!-- Sección 1: Identificación del Solicitante -->
                         <div class="mb-5">
@@ -114,7 +117,7 @@
                                                 <i class="fas fa-id-card text-primary me-2"></i>Tipo de Documento *
                                             </label>
                                             <select class="form-select form-select-lg @error('tipo_documento') is-invalid @enderror"
-                                                    id="tipo_documento" name="tipo_documento">
+                                                    id="tipo_documento">
                                                 <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
                                                 <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carné de Extranjería</option>
                                                 <option value="RUC" {{ old('tipo_documento') == 'RUC' ? 'selected' : '' }}>RUC</option>
@@ -132,7 +135,7 @@
                                             </label>
                                             <div class="input-group input-group-lg">
                                                 <input type="text" class="form-control @error('numero_documento') is-invalid @enderror"
-                                                       id="numero_documento" name="numero_documento" value="{{ old('numero_documento') }}"
+                                                       id="numero_documento" value="{{ old('numero_documento') }}"
                                                        placeholder="Ingrese documento y presione Enter">
                                                 <button type="button" class="btn btn-primary" id="btn-buscar" onclick="buscarPersona()">
                                                     <i class="fas fa-search"></i>
@@ -566,7 +569,7 @@
                             <a href="{{ route('mesa-partes.index') }}" class="btn btn-outline-secondary btn-lg px-4">
                                 <i class="fas fa-arrow-left me-2"></i>Volver a Mesa de Partes
                             </a>
-                            <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm">
+                            <button type="button" id="btn-registrar" class="btn btn-success btn-lg px-5 shadow-sm" onclick="validarYEnviar()">
                                 <i class="fas fa-check-double me-2"></i>Registrar, Clasificar y Derivar
                             </button>
                         </div>
@@ -656,6 +659,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Búsqueda automática al completar 11 dígitos del RUC - Persona Jurídica
     numeroDocumentoJuridica.addEventListener('input', function() {
         const valor = this.value.trim();
+
+        // Sincronizar siempre con los campos hidden para el envío del formulario
+        document.getElementById('numero_documento_envio').value = valor;
+        document.getElementById('tipo_documento_envio').value = 'RUC';
 
         // Buscar automáticamente cuando tenga exactamente 11 dígitos
         if (valor.length === 11 && /^\d{11}$/.test(valor)) {
@@ -824,18 +831,22 @@ function mostrarPersonaEncontrada(persona) {
 
 function usarPersonaExistente() {
     if (!personaEncontrada) return;
-    
+
     const p = personaEncontrada;
-    
+
     // Marcar como persona existente
     const personaExistenteId = document.getElementById('persona_existente_id');
     if (personaExistenteId) personaExistenteId.value = p.id_persona;
-    
+
     // Llenar campos básicos
     const tipoDoc = document.getElementById('tipo_documento');
     const numeroDoc = document.getElementById('numero_documento');
     const numeroDocJuridica = document.getElementById('numero_documento_juridica');
     const tipoPersona = document.getElementById('tipo_persona');
+
+    // Actualizar campos hidden
+    document.getElementById('tipo_documento_envio').value = p.tipo_documento || 'DNI';
+    document.getElementById('numero_documento_envio').value = p.numero_documento || '';
 
     if (tipoDoc) tipoDoc.value = p.tipo_documento || 'DNI';
     if (tipoPersona) tipoPersona.value = p.tipo_persona || 'NATURAL';
@@ -854,7 +865,6 @@ function usarPersonaExistente() {
     } else {
         // Para persona jurídica, llenar el campo de RUC
         if (numeroDocJuridica) numeroDocJuridica.value = p.numero_documento || '';
-        if (numeroDoc) numeroDoc.value = p.numero_documento || '';
 
         const razonSocial = document.getElementById('razon_social');
         const representante = document.getElementById('representante_legal');
@@ -1048,7 +1058,6 @@ function togglePersonaFields() {
         document.getElementById('razon_social').required = false;
         document.getElementById('razon_social').value = '';
         document.getElementById('representante_legal').value = '';
-        numeroDocumentoJuridica.required = false;
 
         // Sincronizar el valor del RUC si existe
         if (numeroDocumentoJuridica.value) {
@@ -1061,9 +1070,8 @@ function togglePersonaFields() {
         camposNaturalDoc.style.display = 'none';
         camposJuridicaDoc.style.display = 'block';
 
-        // Hacer requeridos los campos de persona jurídica
+        // Hacer requeridos los campos de persona jurídica (solo razon_social, RUC se valida en submit)
         document.getElementById('razon_social').required = true;
-        numeroDocumentoJuridica.required = true;
 
         // Quitar requeridos de persona natural
         document.getElementById('nombres').required = false;
@@ -1076,9 +1084,15 @@ function togglePersonaFields() {
 
         // Cambiar automáticamente a RUC y sincronizar valores
         tipoDocumento.value = 'RUC';
-        if (numeroDocumento.value) {
+        document.getElementById('tipo_documento_envio').value = 'RUC';
+
+        if (numeroDocumento.value && !numeroDocumentoJuridica.value) {
+            // Solo copiar si el campo jurídica está vacío
             numeroDocumentoJuridica.value = numeroDocumento.value;
-            numeroDocumento.value = '';
+        }
+        // Mantener sincronizado el valor del RUC con el campo hidden
+        if (numeroDocumentoJuridica.value) {
+            document.getElementById('numero_documento_envio').value = numeroDocumentoJuridica.value;
         }
     }
 }
@@ -1093,7 +1107,102 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Agregar validación al formulario
+// Función para validar y enviar el formulario
+function validarYEnviar() {
+    console.log('validarYEnviar ejecutándose...');
+
+    const tipoPersona = document.getElementById('tipo_persona').value;
+    console.log('Tipo persona:', tipoPersona);
+
+    if (tipoPersona === 'JURIDICA') {
+        const rucValue = document.getElementById('numero_documento_juridica').value.trim();
+        console.log('RUC value:', rucValue);
+
+        // Validar que el RUC esté lleno
+        if (!rucValue || rucValue.length !== 11) {
+            alert('Debe ingresar un RUC válido de 11 dígitos');
+            document.getElementById('numero_documento_juridica').focus();
+            return false;
+        }
+
+        // Validar razón social
+        const razonSocial = document.getElementById('razon_social').value.trim();
+        if (!razonSocial) {
+            alert('Debe ingresar la razón social');
+            document.getElementById('razon_social').focus();
+            return false;
+        }
+
+        // Sincronizar con los campos hidden
+        console.log('Sincronizando campos hidden para JURIDICA...');
+        document.getElementById('tipo_documento_envio').value = 'RUC';
+        document.getElementById('numero_documento_envio').value = rucValue;
+    } else {
+        // Persona natural - validar campos requeridos
+        const numeroDoc = document.getElementById('numero_documento').value.trim();
+        if (!numeroDoc) {
+            alert('Debe ingresar el número de documento');
+            document.getElementById('numero_documento').focus();
+            return false;
+        }
+
+        const nombres = document.getElementById('nombres').value.trim();
+        if (!nombres) {
+            alert('Debe ingresar los nombres');
+            document.getElementById('nombres').focus();
+            return false;
+        }
+
+        const apellidoPaterno = document.getElementById('apellido_paterno').value.trim();
+        if (!apellidoPaterno) {
+            alert('Debe ingresar el apellido paterno');
+            document.getElementById('apellido_paterno').focus();
+            return false;
+        }
+
+        // Sincronizar campos visibles con hidden
+        document.getElementById('tipo_documento_envio').value = document.getElementById('tipo_documento').value;
+        document.getElementById('numero_documento_envio').value = numeroDoc;
+    }
+
+    // Validaciones comunes para ambos tipos
+    const tipoDocEntrante = document.getElementById('tipo_documento_entrante').value;
+    if (!tipoDocEntrante) {
+        alert('Debe seleccionar el tipo de documento');
+        document.getElementById('tipo_documento_entrante').focus();
+        return false;
+    }
+
+    const asunto = document.getElementById('asunto_documento').value.trim();
+    if (!asunto || asunto.length < 10) {
+        alert('Debe ingresar el asunto del documento (mínimo 10 caracteres)');
+        document.getElementById('asunto_documento').focus();
+        return false;
+    }
+
+    const idArea = document.getElementById('id_area').value;
+    if (!idArea) {
+        alert('Debe seleccionar el área de destino');
+        document.getElementById('id_area').focus();
+        return false;
+    }
+
+    const idTipoTramite = document.getElementById('id_tipo_tramite').value;
+    if (!idTipoTramite) {
+        alert('Debe seleccionar el tipo de trámite');
+        document.getElementById('id_tipo_tramite').focus();
+        return false;
+    }
+
+    // Si todas las validaciones pasan, enviar el formulario
+    console.log('Todas las validaciones pasaron, enviando formulario...');
+    console.log('tipo_documento_envio:', document.getElementById('tipo_documento_envio').value);
+    console.log('numero_documento_envio:', document.getElementById('numero_documento_envio').value);
+
+    document.getElementById('form-registrar').submit();
+}
+
+// Agregar sincronización de campos
 document.addEventListener('DOMContentLoaded', function() {
     // Limpiar formulario después de mensaje de éxito
     @if(session('success'))
@@ -1101,6 +1210,22 @@ document.addEventListener('DOMContentLoaded', function() {
             limpiarFormularioCompleto();
         }, 2000);
     @endif
+
+    // Sincronizar campo numero_documento visible con hidden en tiempo real
+    const numeroDocumentoVisible = document.getElementById('numero_documento');
+    if (numeroDocumentoVisible) {
+        numeroDocumentoVisible.addEventListener('input', function() {
+            document.getElementById('numero_documento_envio').value = this.value;
+        });
+    }
+
+    // Sincronizar campo tipo_documento visible con hidden
+    const tipoDocumentoVisible = document.getElementById('tipo_documento');
+    if (tipoDocumentoVisible) {
+        tipoDocumentoVisible.addEventListener('change', function() {
+            document.getElementById('tipo_documento_envio').value = this.value;
+        });
+    }
 });
 
 // Función para limpiar todo el formulario
@@ -1110,6 +1235,10 @@ function limpiarFormularioCompleto() {
     document.getElementById('tipo_documento').value = 'DNI';
     document.getElementById('numero_documento').value = '';
     document.getElementById('tipo_persona').value = 'NATURAL';
+
+    // Limpiar campos hidden
+    document.getElementById('tipo_documento_envio').value = 'DNI';
+    document.getElementById('numero_documento_envio').value = '';
 
     limpiarCamposPersona();
 
