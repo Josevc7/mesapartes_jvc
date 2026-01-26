@@ -11,16 +11,104 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReporteController extends Controller
 {
-    public function index()
+    /**
+     * Obtiene la query base filtrada según el rol del usuario
+     */
+    private function getQueryPorRol($query = null)
     {
-        $stats = [
-            'total_expedientes' => Expediente::count(),
-            'expedientes_mes' => Expediente::whereMonth('created_at', now()->month)->count(),
-            'pendientes' => Expediente::whereIn('estado', ['Registrado', 'Clasificado'])->count(),
-            'resueltos' => Expediente::where('estado', 'Resuelto')->count()
+        $user = auth()->user();
+        $query = $query ?? Expediente::query();
+
+        // Administrador ve todo
+        if ($user->rol->nombre === 'Administrador') {
+            return $query;
+        }
+
+        // Mesa de Partes ve todos los expedientes (registra y deriva)
+        if ($user->rol->nombre === 'Mesa de Partes') {
+            return $query;
+        }
+
+        // Jefe de Área ve solo expedientes de su área
+        if ($user->rol->nombre === 'Jefe de Área') {
+            return $query->where('id_area', $user->id_area);
+        }
+
+        // Funcionario ve solo sus expedientes asignados
+        if ($user->rol->nombre === 'Funcionario') {
+            return $query->where('id_funcionario_asignado', $user->id);
+        }
+
+        // Ciudadano ve solo sus propios expedientes
+        if ($user->rol->nombre === 'Ciudadano') {
+            return $query->where('id_persona', $user->id_persona);
+        }
+
+        // Soporte ve todo (para diagnóstico)
+        if ($user->rol->nombre === 'Soporte') {
+            return $query;
+        }
+
+        return $query;
+    }
+
+    /**
+     * Obtiene el título del reporte según el rol
+     */
+    private function getTituloReporte()
+    {
+        $user = auth()->user();
+        $rol = $user->rol->nombre;
+
+        $titulos = [
+            'Administrador' => 'Reportes del Sistema - Vista Global',
+            'Mesa de Partes' => 'Reportes - Mesa de Partes',
+            'Jefe de Área' => 'Reportes - ' . ($user->area->nombre ?? 'Mi Área'),
+            'Funcionario' => 'Reportes - Mis Expedientes Asignados',
+            'Ciudadano' => 'Reportes - Mis Trámites',
+            'Soporte' => 'Reportes del Sistema - Soporte',
         ];
 
-        return view('reportes.index', compact('stats'));
+        return $titulos[$rol] ?? 'Reportes';
+    }
+
+    public function index()
+    {
+        $user = auth()->user();
+        $rolNombre = $user->rol->nombre;
+
+        // Query base filtrada por rol
+        $baseQuery = $this->getQueryPorRol();
+
+        $stats = [
+            'total_expedientes' => (clone $baseQuery)->count(),
+            'expedientes_mes' => (clone $baseQuery)->whereMonth('created_at', now()->month)->count(),
+            'pendientes' => (clone $baseQuery)->whereIn('estado', ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'])->count(),
+            'resueltos' => (clone $baseQuery)->where('estado', 'resuelto')->count()
+        ];
+
+        // Estadísticas adicionales según rol
+        $statsAdicionales = [];
+
+        if ($rolNombre === 'Jefe de Área') {
+            $statsAdicionales = [
+                'funcionarios_area' => \App\Models\User::where('id_area', $user->id_area)->where('id_rol', 4)->count(),
+                'expedientes_vencidos' => (clone $baseQuery)->whereHas('derivaciones', function($q) {
+                    $q->where('fecha_limite', '<', now())->where('estado', 'Pendiente');
+                })->count(),
+            ];
+        }
+
+        if ($rolNombre === 'Funcionario') {
+            $statsAdicionales = [
+                'por_recibir' => (clone $baseQuery)->where('estado', 'derivado')->count(),
+                'en_proceso' => (clone $baseQuery)->where('estado', 'en_proceso')->count(),
+            ];
+        }
+
+        $tituloReporte = $this->getTituloReporte();
+
+        return view('reportes.index', compact('stats', 'statsAdicionales', 'tituloReporte', 'rolNombre'));
     }
 
     /**
@@ -34,9 +122,10 @@ class ReporteController extends Controller
         $area = $request->get('area');
         $estado = $request->get('estado');
 
-        // Query base
-        $query = Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
-            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        // Query base filtrada por rol
+        $query = $this->getQueryPorRol(
+            Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
+        )->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         // Filtros opcionales
         if ($tipoTramite) {
@@ -51,8 +140,9 @@ class ReporteController extends Controller
 
         $expedientes = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        // Estadísticas del período
-        $statsQuery = Expediente::whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        // Estadísticas del período - filtradas por rol
+        $statsQuery = $this->getQueryPorRol(Expediente::query())
+            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         if ($tipoTramite) $statsQuery->where('id_tipo_tramite', $tipoTramite);
         if ($area) $statsQuery->where('id_area', $area);
@@ -60,14 +150,14 @@ class ReporteController extends Controller
 
         $estadisticas = [
             'total' => (clone $statsQuery)->count(),
-            'por_estado' => Expediente::selectRaw('estado, COUNT(*) as total')
+            'por_estado' => $this->getQueryPorRol(Expediente::selectRaw('estado, COUNT(*) as total'))
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($tipoTramite, fn($q) => $q->where('id_tipo_tramite', $tipoTramite))
                 ->when($area, fn($q) => $q->where('id_area', $area))
                 ->groupBy('estado')
                 ->get()
                 ->pluck('total', 'estado'),
-            'por_tipo_tramite' => Expediente::selectRaw('id_tipo_tramite, COUNT(*) as total')
+            'por_tipo_tramite' => $this->getQueryPorRol(Expediente::selectRaw('id_tipo_tramite, COUNT(*) as total'))
                 ->with('tipoTramite:id_tipo_tramite,nombre')
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($area, fn($q) => $q->where('id_area', $area))
@@ -76,7 +166,7 @@ class ReporteController extends Controller
                 ->orderByDesc('total')
                 ->limit(10)
                 ->get(),
-            'por_area' => Expediente::selectRaw('id_area, COUNT(*) as total')
+            'por_area' => $this->getQueryPorRol(Expediente::selectRaw('id_area, COUNT(*) as total'))
                 ->with('area:id_area,nombre')
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($tipoTramite, fn($q) => $q->where('id_tipo_tramite', $tipoTramite))
@@ -85,7 +175,7 @@ class ReporteController extends Controller
                 ->groupBy('id_area')
                 ->orderByDesc('total')
                 ->get(),
-            'por_dia' => Expediente::selectRaw('DATE(created_at) as fecha, COUNT(*) as total')
+            'por_dia' => $this->getQueryPorRol(Expediente::selectRaw('DATE(created_at) as fecha, COUNT(*) as total'))
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($tipoTramite, fn($q) => $q->where('id_tipo_tramite', $tipoTramite))
                 ->when($area, fn($q) => $q->where('id_area', $area))
@@ -125,8 +215,10 @@ class ReporteController extends Controller
         $area = $request->get('area');
         $estado = $request->get('estado');
 
-        $query = Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
-            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        // Query filtrada por rol
+        $query = $this->getQueryPorRol(
+            Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
+        )->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         if ($tipoTramite) $query->where('id_tipo_tramite', $tipoTramite);
         if ($area) $query->where('id_area', $area);
@@ -182,17 +274,19 @@ class ReporteController extends Controller
 
     public function tramitesPorMes()
     {
-        $tramites = Expediente::selectRaw('MONTH(created_at) as mes, COUNT(*) as total')
-            ->whereYear('created_at', now()->year)
+        $tramites = $this->getQueryPorRol(
+            Expediente::selectRaw('MONTH(created_at) as mes, COUNT(*) as total')
+        )->whereYear('created_at', now()->year)
             ->groupBy('mes')
             ->get();
-            
+
         return response()->json($tramites);
     }
 
     public function tiemposAtencion()
     {
-        $tiempos = Expediente::where('estado', 'Resuelto')
+        $tiempos = $this->getQueryPorRol(Expediente::query())
+            ->where('estado', 'resuelto')
             ->selectRaw('AVG(DATEDIFF(updated_at, created_at)) as promedio_dias')
             ->first();
 
@@ -449,8 +543,10 @@ class ReporteController extends Controller
         $estado = $request->get('estado');
         $tipoReporte = $request->get('tipo_reporte', 'general');
 
-        $query = Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
-            ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
+        // Query filtrada por rol
+        $query = $this->getQueryPorRol(
+            Expediente::with(['tipoTramite', 'area', 'persona', 'funcionarioAsignado'])
+        )->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59']);
 
         if ($tipoTramite) $query->where('id_tipo_tramite', $tipoTramite);
         if ($area) $query->where('id_area', $area);

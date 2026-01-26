@@ -6,20 +6,26 @@
 <style>
 /* Estadisticas inline */
 .stat-mini {
-    padding: 0.6rem 1.1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    padding: 1.8rem 3rem;
+    border-radius: 14px;
+    font-size: 1.5rem;
+    font-weight: 600;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    min-width: 140px;
+    text-align: center;
 }
 .stat-mini:hover {
-    opacity: 0.85;
-    transform: scale(1.02);
+    opacity: 0.9;
+    transform: scale(1.05);
 }
 .stat-mini strong {
-    font-weight: 700;
-    font-size: 1.3rem;
-    margin-right: 5px;
+    font-weight: 800;
+    font-size: 3rem;
+    display: block;
+    line-height: 1;
+    margin-bottom: 5px;
 }
 
 /* Filtros */
@@ -205,7 +211,7 @@
     </div>
 
     <!-- Estadisticas rapidas (compactas) -->
-    <div class="d-flex flex-wrap gap-2 mb-2">
+    <div class="d-flex flex-wrap gap-3 mb-3">
         <span class="stat-mini bg-primary text-white" onclick="filtrarPorEstado('todos')" role="button">
             <strong>{{ $estadisticas['total'] }}</strong> Total
         </span>

@@ -6,7 +6,13 @@
 <div class="container">
     <div class="row">
         <div class="col-12">
-            <h2><i class="fas fa-chart-bar"></i> Reportes del Sistema</h2>
+            <h2><i class="fas fa-chart-bar"></i> {{ $tituloReporte ?? 'Reportes del Sistema' }}</h2>
+            <p class="text-muted">
+                <i class="fas fa-user-tag"></i> Rol: <span class="badge bg-secondary">{{ $rolNombre }}</span>
+                @if($rolNombre === 'Jefe de Área')
+                    - <i class="fas fa-building"></i> {{ auth()->user()->area->nombre ?? 'Sin área' }}
+                @endif
+            </p>
         </div>
     </div>
 
@@ -45,6 +51,48 @@
             </div>
         </div>
     </div>
+
+    <!-- Estadisticas adicionales segun rol -->
+    @if(!empty($statsAdicionales))
+    <div class="row mt-3">
+        @if($rolNombre === 'Jefe de Área')
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ $statsAdicionales['funcionarios_area'] ?? 0 }}</h3>
+                        <p class="mb-0">Funcionarios en Área</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ $statsAdicionales['expedientes_vencidos'] ?? 0 }}</h3>
+                        <p class="mb-0">Expedientes Vencidos</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+        @if($rolNombre === 'Funcionario')
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ $statsAdicionales['por_recibir'] ?? 0 }}</h3>
+                        <p class="mb-0">Por Recibir</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark text-white">
+                    <div class="card-body text-center">
+                        <h3>{{ $statsAdicionales['en_proceso'] ?? 0 }}</h3>
+                        <p class="mb-0">En Proceso</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+    </div>
+    @endif
 
     <!-- Reportes Disponibles -->
     <div class="row mt-4">
