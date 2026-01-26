@@ -102,6 +102,16 @@ Route::get('/consulta', [SeguimientoController::class, 'consultaForm'])->name('s
 Route::post('/consulta/buscar', [SeguimientoController::class, 'buscar'])->name('seguimiento.buscar')->middleware('throttle:10,1');
 Route::get('/seguimiento/consulta', [SeguimientoController::class, 'consultaForm'])->name('seguimiento.consulta-form')->middleware('throttle:10,1');
 
+// API para obtener movimientos de un expediente (usado en consulta pública)
+Route::get('/api/seguimiento/{expediente}/movimientos', [SeguimientoController::class, 'getMovimientos'])
+    ->name('seguimiento.movimientos')
+    ->middleware('throttle:30,1');
+
+// Eliminar expediente desde seguimiento (solo Admin y Mesa de Partes autenticados)
+Route::delete('/seguimiento/expedientes/{expediente}', [SeguimientoController::class, 'eliminarExpediente'])
+    ->name('seguimiento.eliminar')
+    ->middleware(['auth', 'role:Mesa de Partes,Administrador']);
+
 // RUTAS DE MESA DE PARTES (Clasificar y Derivar)
 Route::prefix('mesa-partes')->middleware(['auth', 'role:Mesa de Partes,Administrador'])->group(function () {
     // Gestión de expedientes

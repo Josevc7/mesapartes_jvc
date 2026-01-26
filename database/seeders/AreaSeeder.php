@@ -229,20 +229,8 @@ class AreaSeeder extends Seeder
             'activo' => true,
         ]);
 
-        Area::create([
-            'nombre' => 'Subdirección de Vehículos',
-            'descripcion' => 'Certificaciones e inspecciones vehiculares',
-            'id_area_padre' => $dirCirculacion->id_area,
-            'nivel' => 'SUBDIRECCION',
-            'activo' => true,
-        ]);
+        
 
-        Area::create([
-            'nombre' => 'Subdirección de Transporte',
-            'descripcion' => 'Regulación de servicios de transporte público',
-            'id_area_padre' => $dirCirculacion->id_area,
-            'nivel' => 'SUBDIRECCION',
-            'activo' => true,
-        ]);
+        
     }
 }

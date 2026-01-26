@@ -10,6 +10,7 @@ class Documento extends Model
     
     protected $fillable = [
         'id_expediente',
+        'id_derivacion',
         'nombre',
         'ruta_pdf',
         'tipo',
@@ -19,5 +20,10 @@ class Documento extends Model
     public function expediente()
     {
         return $this->belongsTo(Expediente::class, 'id_expediente', 'id_expediente');
+    }
+
+    public function derivacion()
+    {
+        return $this->belongsTo(Derivacion::class, 'id_derivacion', 'id_derivacion');
     }
 }

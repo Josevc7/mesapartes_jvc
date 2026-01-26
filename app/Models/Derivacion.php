@@ -25,9 +25,12 @@ class Derivacion extends Model
     ];
 
     protected $casts = [
-        'fecha_derivacion' => 'date',
-        'fecha_recepcion' => 'date',
-        'fecha_limite' => 'date'
+        //'fecha_derivacion' => 'date',
+        //'fecha_recepcion' => 'date',
+        //'fecha_limite' => 'date'
+          'fecha_derivacion' => 'datetime',
+          'fecha_recepcion'  => 'datetime',
+          'fecha_limite'     => 'date', // o datetime si también quieres hora
     ];
 
     public function expediente()
@@ -64,5 +67,10 @@ class Derivacion extends Model
     public function funcionarioAsignado()
     {
         return $this->belongsTo(User::class, 'id_funcionario_asignado', 'id');
+    }
+
+    public function documentos()
+    {
+        return $this->hasMany(Documento::class, 'id_derivacion', 'id_derivacion');
     }
 }

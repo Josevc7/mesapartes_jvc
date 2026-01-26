@@ -26,7 +26,10 @@
                             <input type="text" class="form-control @error('codigo_expediente') is-invalid @enderror"
                                    id="codigo_expediente" name="codigo_expediente"
                                    value="{{ old('codigo_expediente') }}"
-                                   placeholder="Ej: 2025-000001" required>
+                                   placeholder="Ej: 2025-000001 o 2025" required>
+                            <small class="form-text text-muted">
+                                Puede ingresar el código completo o parcial (ej: "2025" para ver todos del año)
+                            </small>
                             @error('codigo_expediente')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -96,7 +99,7 @@
                     <div class="text-center">
                         <small class="text-muted">
                             <i class="fas fa-info-circle"></i>
-                            Ingrese el número de expediente y su documento (DNI o RUC) para consultar el estado de su trámite
+                            Ingrese el número de expediente (completo o parcial) y su documento para consultar sus trámites
                         </small>
                     </div>
                 </div>
