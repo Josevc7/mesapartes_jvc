@@ -221,7 +221,8 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
 });
 
 // RUTAS INTERNAS (Funcionarios - Resolver y Procesar)
-Route::prefix('funcionario')->middleware(['auth', 'role:Funcionario,Administrador'])->group(function () {
+// Jefe de Área también puede acceder para atender expedientes en áreas pequeñas
+Route::prefix('funcionario')->middleware(['auth', 'role:Funcionario,Jefe de Área,Administrador'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [FuncionarioController::class, 'dashboard'])->name('funcionario.dashboard');
     
@@ -273,6 +274,7 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::get('/areas/{id_area}/edit', [AdminController::class, 'editArea'])->name('admin.areas.edit');
     Route::put('/areas/{id_area}', [AdminController::class, 'updateArea'])->name('admin.areas.update');
     Route::put('/areas/{id_area}/toggle', [AdminController::class, 'toggleArea'])->name('admin.areas.toggle');
+    Route::delete('/areas/{id_area}', [AdminController::class, 'destroyArea'])->name('admin.areas.destroy');
     
     // Gestión de tipos de trámite
     Route::get('/tipo-tramites', [AdminController::class, 'tipoTramites'])->name('admin.tipo-tramites');

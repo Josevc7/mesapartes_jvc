@@ -77,11 +77,11 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="id_rol" class="form-label">Rol *</label>
-                                    <select class="form-select @error('id_rol') is-invalid @enderror" 
+                                    <select class="form-select @error('id_rol') is-invalid @enderror"
                                             id="id_rol" name="id_rol" required>
                                         <option value="">Seleccione un rol</option>
                                         @foreach($roles as $rol)
-                                            <option value="{{ $rol->id }}" {{ old('id_rol', $usuario->rol_id) == $rol->id ? 'selected' : '' }}>
+                                            <option value="{{ $rol->id_rol }}" {{ old('id_rol', $usuario->id_rol) == $rol->id_rol ? 'selected' : '' }}>
                                                 {{ $rol->nombre }}
                                             </option>
                                         @endforeach
@@ -94,11 +94,11 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="id_area" class="form-label">Área</label>
-                                    <select class="form-select @error('id_area') is-invalid @enderror" 
+                                    <select class="form-select @error('id_area') is-invalid @enderror"
                                             id="id_area" name="id_area">
                                         <option value="">Seleccione un área</option>
                                         @foreach($areas as $area)
-                                            <option value="{{ $area->id }}" {{ old('id_area', $usuario->area_id) == $area->id ? 'selected' : '' }}>
+                                            <option value="{{ $area->id_area }}" {{ old('id_area', $usuario->id_area) == $area->id_area ? 'selected' : '' }}>
                                                 {{ $area->nombre }}
                                             </option>
                                         @endforeach

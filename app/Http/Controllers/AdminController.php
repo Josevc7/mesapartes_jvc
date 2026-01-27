@@ -196,9 +196,38 @@ class AdminController extends Controller
     {
         $area = Area::findOrFail($id_area);
         $area->update(['activo' => !$area->activo]);
-        
+
         $estado = $area->activo ? 'activada' : 'desactivada';
         return redirect()->route('admin.areas')->with('success', "Área {$estado} correctamente");
+    }
+
+    public function destroyArea($id_area)
+    {
+        $area = Area::findOrFail($id_area);
+
+        // Verificar si tiene expedientes asociados
+        if ($area->expedientes()->count() > 0) {
+            return redirect()->route('admin.areas')
+                ->with('error', 'No se puede eliminar. El área tiene expedientes asociados.');
+        }
+
+        // Verificar si tiene funcionarios asignados
+        if ($area->funcionarios()->count() > 0) {
+            return redirect()->route('admin.areas')
+                ->with('error', 'No se puede eliminar. El área tiene funcionarios asignados.');
+        }
+
+        // Verificar si tiene tipos de trámite
+        if ($area->tipoTramites()->count() > 0) {
+            return redirect()->route('admin.areas')
+                ->with('error', 'No se puede eliminar. El área tiene tipos de trámite asociados.');
+        }
+
+        $nombreArea = $area->nombre;
+        $area->delete();
+
+        return redirect()->route('admin.areas')
+            ->with('success', "Área '{$nombreArea}' eliminada correctamente");
     }
 
     // Gestión de Tipos de Trámite
