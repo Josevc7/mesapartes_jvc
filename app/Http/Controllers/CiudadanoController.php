@@ -20,35 +20,31 @@ class CiudadanoController extends Controller
     {
         // Obtener el ID del usuario autenticado (ciudadano logueado)
         $ciudadanoId = auth()->user()->id;
-        
-        // Calcular estadísticas de expedientes del ciudadano
+
+        // OPTIMIZACIÓN: Una sola consulta para todas las estadísticas (antes eran 4 consultas)
+        $estadisticas = Expediente::where('id_ciudadano', $ciudadanoId)
+            ->selectRaw("
+                COUNT(*) as total_expedientes,
+                SUM(CASE WHEN estado IN ('registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado') THEN 1 ELSE 0 END) as en_proceso,
+                SUM(CASE WHEN estado = 'resuelto' THEN 1 ELSE 0 END) as resueltos,
+                SUM(CASE WHEN estado = 'observado' THEN 1 ELSE 0 END) as observados
+            ")
+            ->first();
+
         $stats = [
-            // Contar total de expedientes que pertenecen al ciudadano
-            'total_expedientes' => Expediente::where('id_ciudadano', $ciudadanoId)->count(),
-            
-            // Contar expedientes en proceso (estados activos)
-            'en_proceso' => Expediente::where('id_ciudadano', $ciudadanoId)
-                ->whereIn('estado', ['Registrado', 'Clasificado', 'Derivado', 'En Proceso'])
-                ->count(),
-            
-            // Contar expedientes completados exitosamente
-            'resueltos' => Expediente::where('id_ciudadano', $ciudadanoId)
-                ->where('estado', 'Resuelto')
-                ->count(),
-            
-            // Contar expedientes que requieren atención del ciudadano
-            'observados' => Expediente::where('id_ciudadano', $ciudadanoId)
-                ->where('estado', 'Observado')
-                ->count()
+            'total_expedientes' => $estadisticas->total_expedientes ?? 0,
+            'en_proceso' => $estadisticas->en_proceso ?? 0,
+            'resueltos' => $estadisticas->resueltos ?? 0,
+            'observados' => $estadisticas->observados ?? 0
         ];
-        
+
         // Obtener los 5 expedientes más recientes del ciudadano
         $expedientes_recientes = Expediente::where('id_ciudadano', $ciudadanoId)
             ->with(['tipoTramite'])           // Eager loading: cargar relación tipoTramite para evitar N+1
             ->orderBy('created_at', 'desc')   // Ordenar por fecha de creación descendente
             ->limit(5)                       // Limitar a 5 resultados
             ->get();                         // Ejecutar consulta y obtener colección
-            
+
         // Retornar vista del dashboard pasando las variables calculadas
         return view('ciudadano.dashboard', compact('stats', 'expedientes_recientes'));
     }

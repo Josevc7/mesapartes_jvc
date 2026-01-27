@@ -122,12 +122,27 @@ class SeguimientoController extends Controller
             'numero_documento' => 'required|string'
         ]);
 
-        // Verificar que el expediente pertenece al documento proporcionado
+        // OPTIMIZACIÓN: Una sola consulta con todas las relaciones necesarias
         $expediente = Expediente::where('id_expediente', $idExpediente)
             ->whereHas('persona', function($query) use ($request) {
                 $query->where('numero_documento', $request->numero_documento);
             })
-            ->with(['persona', 'tipoTramite', 'area', 'derivaciones.areaDestino'])
+            ->with([
+                'persona',
+                'tipoTramite',
+                'area',
+                'derivaciones' => function($query) {
+                    $query->orderBy('fecha_derivacion', 'asc')
+                        ->with([
+                            'areaOrigen',
+                            'areaDestino',
+                            'funcionarioOrigen',
+                            'funcionarioDestino',
+                            'funcionarioAsignado',
+                            'documentos'
+                        ]);
+                }
+            ])
             ->first();
 
         if (!$expediente) {
@@ -136,59 +151,47 @@ class SeguimientoController extends Controller
             ], 404);
         }
 
-        // Obtener el área actual desde la última derivación
+        // Obtener el área actual desde la última derivación (ya cargada)
         $ultimaDerivacion = $expediente->derivaciones->sortByDesc('fecha_derivacion')->first();
         $areaActual = $ultimaDerivacion
             ? ($ultimaDerivacion->areaDestino->nombre ?? 'N/A')
             : ($expediente->area->nombre ?? 'Mesa de Partes');
 
-        // Obtener derivaciones con sus relaciones
-        $movimientos = Derivacion::where('id_expediente', $idExpediente)
-            ->with([
-                'areaOrigen',
-                'areaDestino',
-                'funcionarioOrigen',
-                'funcionarioDestino',
-                'funcionarioAsignado',
-                'documentos'
-            ])
-            ->orderBy('fecha_derivacion', 'asc')
-            ->get()
-            ->map(function($derivacion) {
-                // Obtener documento si existe (con manejo seguro)
-                $documento = null;
-                if ($derivacion->documentos && $derivacion->documentos->count() > 0) {
-                    $primerDoc = $derivacion->documentos->first();
-                    $documento = [
-                        'id' => $primerDoc->id_documento,
-                        'nombre' => $primerDoc->nombre,
-                        'tipo' => $primerDoc->tipo
-                    ];
-                }
-
-                return [
-                    'id' => $derivacion->id_derivacion,
-                    'fecha_movimiento' => $derivacion->fecha_derivacion
-                        ? $derivacion->fecha_derivacion->format('d/m/Y H:i')
-                        : '-',
-                    'area_origen' => $derivacion->areaOrigen->nombre ?? 'N/A',
-                    'area_destino' => $derivacion->areaDestino->nombre ?? 'N/A',
-                    'funcionario_origen' => $derivacion->funcionarioOrigen->name ?? 'Sin asignar',
-                    'recepcionado_por' => $derivacion->funcionarioDestino->name
-                        ?? $derivacion->funcionarioAsignado->name
-                        ?? 'Sin asignar',
-                    'documento' => $documento,
-                    'fecha_recepcion' => $derivacion->fecha_recepcion
-                        ? $derivacion->fecha_recepcion->format('d/m/Y H:i')
-                        : 'Pendiente',
-                    'fecha_limite' => $derivacion->fecha_limite
-                        ? $derivacion->fecha_limite->format('d/m/Y')
-                        : '-',
-                    'plazo_dias' => $derivacion->plazo_dias ?? '-',
-                    'estado' => strtoupper($derivacion->estado ?? 'pendiente'),
-                    'observaciones' => $derivacion->observaciones ?? '-'
+        // Mapear derivaciones ya cargadas (sin consulta adicional)
+        $movimientos = $expediente->derivaciones->map(function($derivacion) {
+            $documento = null;
+            if ($derivacion->documentos && $derivacion->documentos->count() > 0) {
+                $primerDoc = $derivacion->documentos->first();
+                $documento = [
+                    'id' => $primerDoc->id_documento,
+                    'nombre' => $primerDoc->nombre,
+                    'tipo' => $primerDoc->tipo
                 ];
-            });
+            }
+
+            return [
+                'id' => $derivacion->id_derivacion,
+                'fecha_movimiento' => $derivacion->fecha_derivacion
+                    ? $derivacion->fecha_derivacion->format('d/m/Y H:i')
+                    : '-',
+                'area_origen' => $derivacion->areaOrigen->nombre ?? 'N/A',
+                'area_destino' => $derivacion->areaDestino->nombre ?? 'N/A',
+                'funcionario_origen' => $derivacion->funcionarioOrigen->name ?? 'Sin asignar',
+                'recepcionado_por' => $derivacion->funcionarioDestino->name
+                    ?? $derivacion->funcionarioAsignado->name
+                    ?? 'Sin asignar',
+                'documento' => $documento,
+                'fecha_recepcion' => $derivacion->fecha_recepcion
+                    ? $derivacion->fecha_recepcion->format('d/m/Y H:i')
+                    : 'Pendiente',
+                'fecha_limite' => $derivacion->fecha_limite
+                    ? $derivacion->fecha_limite->format('d/m/Y')
+                    : '-',
+                'plazo_dias' => $derivacion->plazo_dias ?? '-',
+                'estado' => strtoupper($derivacion->estado ?? 'pendiente'),
+                'observaciones' => $derivacion->observaciones ?? '-'
+            ];
+        });
 
         return response()->json([
             'expediente' => [
@@ -197,7 +200,7 @@ class SeguimientoController extends Controller
                 'asunto' => $expediente->asunto,
                 'estado_actual' => ucfirst(str_replace('_', ' ', $expediente->estado)),
                 'tipo_tramite' => $expediente->tipoTramite->nombre ?? 'N/A',
-                'area_actual' => $areaActual, // Corregido: área desde última derivación
+                'area_actual' => $areaActual,
                 'fecha_registro' => $expediente->created_at->format('d/m/Y H:i'),
                 'solicitante' => $expediente->persona->nombre_completo ?? $expediente->persona->razon_social ?? 'N/A'
             ],

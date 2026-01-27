@@ -221,31 +221,31 @@ class Expediente extends Model
     }
     
     // Estado inteligente basado en el proceso real
+    // OPTIMIZADO: Usa relaciones cargadas en lugar de consultas adicionales
     public function getEstadoInteligenteAttribute()
     {
         // Si está clasificado = "Clasificado" (listo para derivar)
         if ($this->estado === 'clasificado') {
             return 'clasificado';
         }
-        
-        // Si tiene funcionario asignado y está derivado = "Asignado"
-        if ($this->estado === 'derivado' && $this->id_funcionario_asignado) {
-            return 'asignado';
-        }
-        
+
         // Si está derivado pero sin funcionario = "Derivado"
         if ($this->estado === 'derivado' && !$this->id_funcionario_asignado) {
             return 'derivado';
         }
-        
-        // Si está en proceso pero no ha sido recibido = "Por Recibir"
+
+        // Si tiene funcionario asignado y está derivado
         if ($this->estado === 'derivado' && $this->id_funcionario_asignado) {
-            $ultimaDerivacion = $this->derivaciones()->latest()->first();
-            if ($ultimaDerivacion && !$ultimaDerivacion->fecha_recepcion) {
-                return 'por_recibir';
+            // OPTIMIZACIÓN: Usar relación ya cargada si existe, evita consulta N+1
+            if ($this->relationLoaded('derivaciones') && $this->derivaciones->isNotEmpty()) {
+                $ultimaDerivacion = $this->derivaciones->sortByDesc('created_at')->first();
+                if ($ultimaDerivacion && !$ultimaDerivacion->fecha_recepcion) {
+                    return 'por_recibir';
+                }
             }
+            return 'asignado';
         }
-        
+
         return $this->estado;
     }
     
