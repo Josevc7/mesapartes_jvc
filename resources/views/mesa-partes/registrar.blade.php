@@ -625,6 +625,42 @@
 @section('scripts')
 <script>
 let personaEncontrada = null;
+let ultimoDocConsultado = '';     // evita búsquedas repetidas
+let buscandoAuto = false;         // evita bucles cuando llenas valores por JS
+
+function resetEstadoPersonaPorCambioDocumento() {
+    // Quita persona existente
+    const personaExistenteId = document.getElementById('persona_existente_id');
+    if (personaExistenteId) personaExistenteId.value = '';
+
+    // Oculta aviso
+    const box = document.getElementById('persona-encontrada');
+    if (box) box.style.display = 'none';
+
+    // Limpia datos de persona SIN tocar el campo numero_documento (el usuario lo está escribiendo)
+    const nombres = document.getElementById('nombres');
+    const apellidoPaterno = document.getElementById('apellido_paterno');
+    const apellidoMaterno = document.getElementById('apellido_materno');
+    const razonSocial = document.getElementById('razon_social');
+    const representanteLegal = document.getElementById('representante_legal');
+    const telefono = document.getElementById('telefono');
+    const email = document.getElementById('email');
+    const direccion = document.getElementById('direccion');
+
+    if (nombres) nombres.value = '';
+    if (apellidoPaterno) apellidoPaterno.value = '';
+    if (apellidoMaterno) apellidoMaterno.value = '';
+    if (razonSocial) razonSocial.value = '';
+    if (representanteLegal) representanteLegal.value = '';
+    if (telefono) telefono.value = '';
+    if (email) email.value = '';
+    if (direccion) direccion.value = '';
+
+    // Habilita edición
+    deshabilitarCamposPersona(false);
+
+    personaEncontrada = null;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const tipoPersonaSelect = document.getElementById('tipo_persona');
@@ -633,18 +669,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Búsqueda automática al completar 8 dígitos del DNI - Persona Natural
     numeroDocumento.addEventListener('input', function() {
-        const valor = this.value.trim();
+        if (buscandoAuto) return;
 
-        // Buscar automáticamente cuando tenga exactamente 8 dígitos
-        if (valor.length === 8 && /^\d{8}$/.test(valor)) {
-            console.log('DNI completo detectado, buscando automáticamente...');
-            // Limpiar campos del documento para nuevo registro
-            limpiarCamposDocumento();
-            buscarPersona();
-        } else {
-            // Limpiar solo si no tiene 8 dígitos
-            document.getElementById('persona-encontrada').style.display = 'none';
-            personaEncontrada = null;
+        // solo números si es DNI/RUC (si usas CE/PASAPORTE, quita esta línea)
+        const tipoDoc = document.getElementById('tipo_documento').value;
+        let valor = this.value.trim();
+
+        if (tipoDoc === 'DNI') {
+            valor = valor.replace(/\D/g, '').slice(0, 8);
+            this.value = valor;
+        } else if (tipoDoc === 'RUC') {
+            valor = valor.replace(/\D/g, '').slice(0, 11);
+            this.value = valor;
+        }
+
+        // Si HABÍA un documento consultado antes y el usuario está escribiendo algo diferente -> limpiar persona
+        // Solo limpiar si ultimoDocConsultado tenía un valor completo (8 o 11 dígitos)
+        const teniaDocumentoAnterior = ultimoDocConsultado.length >= 8;
+        if (teniaDocumentoAnterior && valor !== ultimoDocConsultado) {
+            resetEstadoPersonaPorCambioDocumento();
+            ultimoDocConsultado = ''; // permite nueva búsqueda
+        }
+
+        // Buscar automáticamente SOLO cuando el documento está completo
+        const estaCompleto =
+            (tipoDoc === 'DNI' && /^\d{8}$/.test(valor)) ||
+            (tipoDoc === 'RUC' && /^\d{11}$/.test(valor));
+
+        if (estaCompleto) {
+            if (valor === ultimoDocConsultado) return; // ya consultado
+
+            ultimoDocConsultado = valor;
+
+            // Sincroniza hidden
+            document.getElementById('tipo_documento_envio').value = tipoDoc;
+            document.getElementById('numero_documento_envio').value = valor;
+
+            buscarPersona(); // si existe, tu código ya autocompleta con usarPersonaExistente()
         }
     });
 
@@ -832,6 +893,8 @@ function mostrarPersonaEncontrada(persona) {
 function usarPersonaExistente() {
     if (!personaEncontrada) return;
 
+    buscandoAuto = true; // Evitar que el input dispare búsquedas mientras llenamos
+
     const p = personaEncontrada;
 
     // Marcar como persona existente
@@ -872,26 +935,28 @@ function usarPersonaExistente() {
         if (razonSocial) razonSocial.value = p.razon_social || '';
         if (representante) representante.value = p.representante_legal || '';
     }
-    
+
     // Llenar datos de contacto
     const telefono = document.getElementById('telefono');
     const email = document.getElementById('email');
     const direccion = document.getElementById('direccion');
-    
+
     if (telefono) telefono.value = p.telefono || '';
     if (email) email.value = p.email || '';
     if (direccion) direccion.value = p.direccion || '';
-    
+
     // Actualizar vista
     togglePersonaFields();
-    
+
     const personaEncontradaElement = document.getElementById('persona-encontrada');
     if (personaEncontradaElement) {
         personaEncontradaElement.style.display = 'none';
     }
-    
+
     // Deshabilitar campos de persona (solo lectura)
     deshabilitarCamposPersona(true);
+
+    buscandoAuto = false; // Restaurar bandera
 }
 
 function nuevaPersona() {
@@ -1219,11 +1284,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Sincronizar campo tipo_documento visible con hidden
+    // Sincronizar campo tipo_documento visible con hidden Y limpiar al cambiar tipo
     const tipoDocumentoVisible = document.getElementById('tipo_documento');
     if (tipoDocumentoVisible) {
         tipoDocumentoVisible.addEventListener('change', function() {
+            ultimoDocConsultado = '';
+            resetEstadoPersonaPorCambioDocumento();
+
+            // actualizar hidden
             document.getElementById('tipo_documento_envio').value = this.value;
+            document.getElementById('numero_documento_envio').value = document.getElementById('numero_documento').value.trim();
         });
     }
 });
