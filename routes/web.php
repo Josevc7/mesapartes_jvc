@@ -275,7 +275,8 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::put('/areas/{id_area}', [AdminController::class, 'updateArea'])->name('admin.areas.update');
     Route::put('/areas/{id_area}/toggle', [AdminController::class, 'toggleArea'])->name('admin.areas.toggle');
     Route::delete('/areas/{id_area}', [AdminController::class, 'destroyArea'])->name('admin.areas.destroy');
-    
+    Route::post('/areas/cargar-organigrama', [AdminController::class, 'cargarOrganigrama'])->name('admin.areas.cargar-organigrama');
+
     // Gestión de tipos de trámite
     Route::get('/tipo-tramites', [AdminController::class, 'tipoTramites'])->name('admin.tipo-tramites');
     Route::post('/tipo-tramites', [AdminController::class, 'storeTipoTramite'])->name('admin.tipo-tramites.store');
@@ -414,6 +415,17 @@ Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
         return App\Models\Area::where('activo', true)->select('id_area', 'nombre')->get();
     })->name('api.areas');
 
+    // Áreas jerárquicas para derivación (considera permisos del usuario)
+    Route::get('/areas-jerarquicas', function() {
+        $derivacionService = new App\Services\DerivacionService();
+        return response()->json($derivacionService->obtenerAreasParaDerivacion(auth()->user()));
+    })->name('api.areas-jerarquicas');
+
+    // Árbol completo de áreas
+    Route::get('/areas-arbol', function() {
+        return response()->json(App\Models\Area::getArbolParaSelect(true));
+    })->name('api.areas-arbol');
+
     Route::get('/funcionarios/{area}', function($area) {
         // Validar que el área existe
         App\Models\Area::findOrFail($area);
@@ -424,4 +436,10 @@ Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
             ->select('id', 'name', 'email')
             ->get();
     })->name('api.funcionarios');
+
+    // Funcionarios jerárquicos (incluye sub-áreas si es dirección)
+    Route::get('/funcionarios-jerarquicos/{area}', function($area) {
+        $derivacionService = new App\Services\DerivacionService();
+        return response()->json($derivacionService->obtenerFuncionariosParaAsignacion($area));
+    })->name('api.funcionarios-jerarquicos');
 });

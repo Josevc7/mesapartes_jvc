@@ -123,12 +123,22 @@ class AdminController extends Controller
         return redirect()->route('admin.usuarios')->with('success', 'Usuario eliminado correctamente');
     }
 
-    // Gestión de Áreas
+    // Gestión de Áreas (con jerarquía)
     public function areas()
     {
-        $areas = Area::with('jefe')->paginate(10);
+        // Obtener áreas organizadas jerárquicamente
+        $areasRaiz = Area::with(['jefe', 'subAreas.jefe', 'subAreas.subAreas.jefe'])
+            ->whereNull('id_area_padre')
+            ->orderBy('nivel')
+            ->orderBy('nombre')
+            ->get();
+
+        // También obtener lista plana para el select de área padre
+        $todasLasAreas = Area::orderBy('nivel')->orderBy('nombre')->get();
         $jefes = User::where('id_rol', 3)->where('activo', true)->get();
-        return view('admin.areas.index', compact('areas', 'jefes'));
+        $niveles = Area::getNiveles();
+
+        return view('admin.areas.index', compact('areasRaiz', 'todasLasAreas', 'jefes', 'niveles'));
     }
 
     public function storeArea(Request $request)
@@ -136,13 +146,17 @@ class AdminController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'id_jefe' => 'nullable|exists:users,id'
+            'id_jefe' => 'nullable|exists:users,id',
+            'id_area_padre' => 'nullable|exists:areas,id_area',
+            'nivel' => 'required|in:DIRECCION_REGIONAL,OCI,DIRECCION,SUBDIRECCION,RESIDENCIA'
         ]);
 
         $area = Area::create([
             'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
             'id_jefe' => $request->id_jefe,
+            'id_area_padre' => $request->id_area_padre,
+            'nivel' => $request->nivel,
             'activo' => true
         ]);
 
@@ -156,9 +170,16 @@ class AdminController extends Controller
 
     public function editArea($id_area)
     {
-        $area = Area::findOrFail($id_area);
+        $area = Area::with('areaPadre')->findOrFail($id_area);
         $jefes = User::where('id_rol', 3)->where('activo', true)->get();
-        return response()->json(['area' => $area, 'jefes' => $jefes]);
+        $todasLasAreas = Area::where('id_area', '!=', $id_area)->orderBy('nivel')->orderBy('nombre')->get();
+        $niveles = Area::getNiveles();
+        return response()->json([
+            'area' => $area,
+            'jefes' => $jefes,
+            'areas' => $todasLasAreas,
+            'niveles' => $niveles
+        ]);
     }
 
     public function updateArea(Request $request, $id_area)
@@ -166,18 +187,31 @@ class AdminController extends Controller
         $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
-            'id_jefe' => 'nullable|exists:users,id'
+            'id_jefe' => 'nullable|exists:users,id',
+            'id_area_padre' => 'nullable|exists:areas,id_area',
+            'nivel' => 'required|in:DIRECCION_REGIONAL,OCI,DIRECCION,SUBDIRECCION,RESIDENCIA'
         ]);
 
         $area = Area::findOrFail($id_area);
-        
+
+        // Validar que no se asigne a sí misma como padre
+        if ($request->id_area_padre == $id_area) {
+            return redirect()->route('admin.areas')->with('error', 'Un área no puede ser su propio padre');
+        }
+
+        // Validar que no se cree un ciclo (el padre no puede ser un descendiente)
+        if ($request->id_area_padre) {
+            $descendientes = $area->getDescendientes()->pluck('id_area')->toArray();
+            if (in_array($request->id_area_padre, $descendientes)) {
+                return redirect()->route('admin.areas')->with('error', 'No se puede asignar un área hija como padre');
+            }
+        }
+
         // Si cambió el jefe, actualizar relaciones
         if ($area->id_jefe != $request->id_jefe) {
-            // Quitar área del jefe anterior
             if ($area->id_jefe) {
                 User::where('id', $area->id_jefe)->update(['id_area' => null]);
             }
-            // Asignar área al nuevo jefe
             if ($request->id_jefe) {
                 User::where('id', $request->id_jefe)->update(['id_area' => $area->id_area]);
             }
@@ -186,10 +220,33 @@ class AdminController extends Controller
         $area->update([
             'nombre' => $request->nombre,
             'descripcion' => $request->descripcion,
-            'id_jefe' => $request->id_jefe
+            'id_jefe' => $request->id_jefe,
+            'id_area_padre' => $request->id_area_padre,
+            'nivel' => $request->nivel
         ]);
 
         return redirect()->route('admin.areas')->with('success', 'Área actualizada correctamente');
+    }
+
+    public function cargarOrganigrama()
+    {
+        try {
+            // Ejecutar el seeder del organigrama
+            $seeder = new \Database\Seeders\OrganigramaDRTCSeeder();
+            $seeder->setCommand(new \Symfony\Component\Console\Output\NullOutput());
+            $seeder->run();
+
+            $totalAreas = Area::count();
+            return response()->json([
+                'success' => true,
+                'message' => "Organigrama cargado exitosamente. Total de áreas: {$totalAreas}"
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar el organigrama: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function toggleArea($id_area)
