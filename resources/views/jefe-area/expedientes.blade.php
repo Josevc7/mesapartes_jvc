@@ -299,22 +299,27 @@
                                            class="btn btn-outline-primary" title="Ver detalle">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <button type="button" class="btn btn-outline-secondary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#modalAsignar{{ $expediente->id_expediente }}"
+                                        <button type="button" class="btn btn-outline-secondary btn-asignar"
+                                                data-expediente-id="{{ $expediente->id_expediente }}"
+                                                data-expediente-codigo="{{ $expediente->codigo_expediente }}"
+                                                data-expediente-asunto="{{ Str::limit($expediente->asunto, 50) }}"
+                                                data-funcionario-actual="{{ $expediente->funcionarioAsignado->name ?? 'Sin asignar' }}"
+                                                data-funcionario-id="{{ $expediente->id_funcionario_asignado }}"
                                                 title="Asignar">
                                             <i class="fas fa-user-plus"></i>
                                         </button>
                                         @if($expediente->estado === 'resuelto')
-                                            <button type="button" class="btn btn-outline-success"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalAprobar{{ $expediente->id_expediente }}"
+                                            <button type="button" class="btn btn-outline-success btn-aprobar"
+                                                    data-expediente-id="{{ $expediente->id_expediente }}"
+                                                    data-expediente-codigo="{{ $expediente->codigo_expediente }}"
+                                                    data-expediente-asunto="{{ Str::limit($expediente->asunto, 80) }}"
                                                     title="Aprobar">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalRechazar{{ $expediente->id_expediente }}"
+                                            <button type="button" class="btn btn-outline-danger btn-rechazar"
+                                                    data-expediente-id="{{ $expediente->id_expediente }}"
+                                                    data-expediente-codigo="{{ $expediente->codigo_expediente }}"
+                                                    data-expediente-asunto="{{ Str::limit($expediente->asunto, 50) }}"
                                                     title="Rechazar">
                                                 <i class="fas fa-times"></i>
                                             </button>
@@ -322,123 +327,6 @@
                                     </div>
                                 </td>
                             </tr>
-
-                            <!-- Modal Asignar Individual -->
-                            <div class="modal fade" id="modalAsignar{{ $expediente->id_expediente }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form method="POST" action="{{ route('jefe-area.asignar-expediente', $expediente) }}">
-                                            @csrf
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">
-                                                    <i class="fas fa-user-plus me-2"></i>
-                                                    Asignar Expediente
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p><strong>Expediente:</strong> {{ $expediente->codigo_expediente }}</p>
-                                                <p><strong>Asunto:</strong> {{ Str::limit($expediente->asunto, 50) }}</p>
-                                                <p><strong>Asignado actual:</strong>
-                                                    {{ $expediente->funcionarioAsignado->name ?? 'Sin asignar' }}
-                                                </p>
-                                                <hr>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Seleccionar Funcionario</label>
-                                                    <select name="funcionario_id" class="form-select" required>
-                                                        <option value="">-- Seleccione --</option>
-                                                        @foreach($funcionarios as $func)
-                                                            <option value="{{ $func->id }}"
-                                                                    {{ $expediente->id_funcionario_asignado == $func->id ? 'selected' : '' }}>
-                                                                {{ $func->name }}
-                                                                (Carga: {{ $func->carga_trabajo }} expedientes)
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Observaciones (opcional)</label>
-                                                    <textarea name="observaciones" class="form-control" rows="2"
-                                                              placeholder="Motivo de la asignación..."></textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                <button type="submit" class="btn btn-primary">
-                                                    <i class="fas fa-save me-1"></i> Asignar
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal Aprobar -->
-                            @if($expediente->estado === 'resuelto')
-                            <div class="modal fade" id="modalAprobar{{ $expediente->id_expediente }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header bg-success text-white">
-                                            <h5 class="modal-title">
-                                                <i class="fas fa-check-circle me-2"></i>
-                                                Aprobar Expediente
-                                            </h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p>¿Está seguro de aprobar el expediente?</p>
-                                            <p><strong>{{ $expediente->codigo_expediente }}</strong></p>
-                                            <p>{{ Str::limit($expediente->asunto, 80) }}</p>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                            <form method="POST" action="{{ route('jefe-area.aprobar', $expediente) }}" class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="fas fa-check me-1"></i> Aprobar
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal Rechazar -->
-                            <div class="modal fade" id="modalRechazar{{ $expediente->id_expediente }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form method="POST" action="{{ route('jefe-area.rechazar', $expediente) }}">
-                                            @csrf
-                                            <div class="modal-header bg-danger text-white">
-                                                <h5 class="modal-title">
-                                                    <i class="fas fa-times-circle me-2"></i>
-                                                    Rechazar Expediente
-                                                </h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p><strong>Expediente:</strong> {{ $expediente->codigo_expediente }}</p>
-                                                <p><strong>Asunto:</strong> {{ Str::limit($expediente->asunto, 50) }}</p>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Motivo del Rechazo *</label>
-                                                    <textarea name="motivo_rechazo" class="form-control" rows="3"
-                                                              required minlength="10"
-                                                              placeholder="Explique el motivo del rechazo..."></textarea>
-                                                    <small class="text-muted">Mínimo 10 caracteres</small>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                <button type="submit" class="btn btn-danger">
-                                                    <i class="fas fa-times me-1"></i> Rechazar
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-
                             @empty
                             <tr>
                                 <td colspan="8" class="text-center py-5">
@@ -501,7 +389,119 @@
     </form>
 </div>
 
-@push('scripts')
+<!-- Modal Asignar Individual (Único - Dinámico) -->
+<div class="modal fade" id="modalAsignarExpediente" tabindex="-1" aria-labelledby="modalAsignarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formAsignarExpediente" method="POST" action="">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAsignarLabel">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Asignar Expediente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Expediente:</strong> <span id="asignarCodigo"></span></p>
+                    <p><strong>Asunto:</strong> <span id="asignarAsunto"></span></p>
+                    <p><strong>Asignado actual:</strong> <span id="asignarFuncionarioActual"></span></p>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Funcionario</label>
+                        <select name="funcionario_id" id="asignarFuncionarioSelect" class="form-select" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach($funcionarios as $func)
+                                <option value="{{ $func->id }}">
+                                    {{ $func->name }}
+                                    (Carga: {{ $func->carga_trabajo }} expedientes)
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones (opcional)</label>
+                        <textarea name="observaciones" id="asignarObservaciones" class="form-control" rows="2"
+                                  placeholder="Motivo de la asignación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Asignar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Aprobar (Único - Dinámico) -->
+<div class="modal fade" id="modalAprobarExpediente" tabindex="-1" aria-labelledby="modalAprobarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalAprobarLabel">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Aprobar Expediente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de aprobar el expediente?</p>
+                <p><strong id="aprobarCodigo"></strong></p>
+                <p id="aprobarAsunto"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formAprobarExpediente" method="POST" action="" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> Aprobar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Rechazar (Único - Dinámico) -->
+<div class="modal fade" id="modalRechazarExpediente" tabindex="-1" aria-labelledby="modalRechazarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formRechazarExpediente" method="POST" action="">
+                @csrf
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalRechazarLabel">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Rechazar Expediente
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Expediente:</strong> <span id="rechazarCodigo"></span></p>
+                    <p><strong>Asunto:</strong> <span id="rechazarAsunto"></span></p>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo del Rechazo *</label>
+                        <textarea name="motivo_rechazo" id="rechazarMotivo" class="form-control" rows="3"
+                                  required minlength="10"
+                                  placeholder="Explique el motivo del rechazo..."></textarea>
+                        <small class="text-muted">Mínimo 10 caracteres</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-1"></i> Rechazar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const selectAll = document.getElementById('selectAll');
@@ -525,7 +525,76 @@ document.addEventListener('DOMContentLoaded', function() {
     checkboxes.forEach(cb => {
         cb.addEventListener('change', updateCount);
     });
+
+    // Modal Asignar - Dinámico
+    const modalAsignar = new bootstrap.Modal(document.getElementById('modalAsignarExpediente'));
+    document.querySelectorAll('.btn-asignar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const expedienteId = this.dataset.expedienteId;
+            const codigo = this.dataset.expedienteCodigo;
+            const asunto = this.dataset.expedienteAsunto;
+            const funcionarioActual = this.dataset.funcionarioActual;
+            const funcionarioId = this.dataset.funcionarioId;
+
+            document.getElementById('asignarCodigo').textContent = codigo;
+            document.getElementById('asignarAsunto').textContent = asunto;
+            document.getElementById('asignarFuncionarioActual').textContent = funcionarioActual;
+
+            // Actualizar la acción del formulario
+            document.getElementById('formAsignarExpediente').action =
+                '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/asignar';
+
+            // Seleccionar el funcionario actual si existe
+            const selectFunc = document.getElementById('asignarFuncionarioSelect');
+            selectFunc.value = funcionarioId || '';
+
+            // Limpiar observaciones
+            document.getElementById('asignarObservaciones').value = '';
+
+            modalAsignar.show();
+        });
+    });
+
+    // Modal Aprobar - Dinámico
+    const modalAprobar = new bootstrap.Modal(document.getElementById('modalAprobarExpediente'));
+    document.querySelectorAll('.btn-aprobar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const expedienteId = this.dataset.expedienteId;
+            const codigo = this.dataset.expedienteCodigo;
+            const asunto = this.dataset.expedienteAsunto;
+
+            document.getElementById('aprobarCodigo').textContent = codigo;
+            document.getElementById('aprobarAsunto').textContent = asunto;
+
+            // Actualizar la acción del formulario
+            document.getElementById('formAprobarExpediente').action =
+                '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/aprobar';
+
+            modalAprobar.show();
+        });
+    });
+
+    // Modal Rechazar - Dinámico
+    const modalRechazar = new bootstrap.Modal(document.getElementById('modalRechazarExpediente'));
+    document.querySelectorAll('.btn-rechazar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const expedienteId = this.dataset.expedienteId;
+            const codigo = this.dataset.expedienteCodigo;
+            const asunto = this.dataset.expedienteAsunto;
+
+            document.getElementById('rechazarCodigo').textContent = codigo;
+            document.getElementById('rechazarAsunto').textContent = asunto;
+
+            // Actualizar la acción del formulario
+            document.getElementById('formRechazarExpediente').action =
+                '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/rechazar';
+
+            // Limpiar el motivo
+            document.getElementById('rechazarMotivo').value = '';
+
+            modalRechazar.show();
+        });
+    });
 });
 </script>
-@endpush
 @endsection

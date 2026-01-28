@@ -76,11 +76,28 @@ class FuncionarioController extends Controller
                 ], 400);
             }
 
-            // Actualizar estado y agregar al historial
+            // Actualizar estado del expediente
             $expediente->update(['estado' => 'en_proceso']);
+
+            // Actualizar la última derivación con fecha de recepción y estado
+            $ultimaDerivacion = $expediente->derivacionActual();
+            if ($ultimaDerivacion) {
+                $ultimaDerivacion->update([
+                    'fecha_recepcion' => now(),
+                    'estado' => 'recibido'
+                ]);
+            }
+
+            // Agregar al historial con información completa
             $expediente->agregarHistorial(
-                'Expediente recibido por el funcionario para su procesamiento',
-                auth()->id()
+                'Expediente recepcionado',
+                auth()->id(),
+                [
+                    'accion' => \App\Models\HistorialExpediente::ACCION_RECEPCION,
+                    'id_area' => auth()->user()->id_area,
+                    'estado' => 'en_proceso',
+                    'detalle' => 'Expediente recibido para procesamiento'
+                ]
             );
 
             return response()->json(['success' => true, 'message' => 'Expediente recibido correctamente']);

@@ -151,15 +151,25 @@ class Expediente extends Model
      * Agrega una entrada al historial del expediente
      * @param string $descripcion - Descripción de la acción realizada
      * @param int $usuarioId - ID del usuario que realiza la acción
+     * @param array $opciones - Opciones adicionales: estado, accion, id_area, detalle
      * @return \App\Models\HistorialExpediente
      */
-    public function agregarHistorial($descripcion, $usuarioId)
+    public function agregarHistorial($descripcion, $usuarioId, $opciones = [])
     {
+        // Compatibilidad: si $opciones es string, es el estado (formato anterior)
+        if (is_string($opciones)) {
+            $opciones = ['estado' => $opciones];
+        }
+
         // Crea un nuevo registro en la tabla historial_expedientes
         return $this->historial()->create([
-            'descripcion' => $descripcion,  // Qué acción se realizó
-            'id_usuario' => $usuarioId,     // Quién la realizó
-            'fecha' => now()                // Cuándo se realizó (timestamp actual)
+            'descripcion' => $descripcion,
+            'id_usuario' => $usuarioId,
+            'id_area' => $opciones['id_area'] ?? $this->id_area,
+            'accion' => $opciones['accion'] ?? null,
+            'detalle' => $opciones['detalle'] ?? null,
+            'estado' => $opciones['estado'] ?? $this->estado,
+            'fecha' => now()
         ]);
     }
 

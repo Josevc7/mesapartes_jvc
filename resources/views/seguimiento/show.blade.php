@@ -218,28 +218,94 @@
                     </div>
                     @endif
 
-                    <!-- Historial -->
+                    <!-- Historial de Movimientos -->
                     <div class="mb-4">
-                        <h6>Historial de Movimientos</h6>
-                        <div class="timeline">
-                            @forelse($expediente->historial->sortByDesc('fecha') as $historial)
-                            <div class="d-flex mb-3">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-primary rounded-circle p-2 text-white text-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-history"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-1">{{ $historial->descripcion }}</h6>
-                                    <small class="text-muted">
-                                        {{ $historial->fecha->format('d/m/Y H:i') }}
-                                    </small>
-                                </div>
-                            </div>
-                            @empty
-                            <p class="text-muted">No hay movimientos registrados.</p>
-                            @endforelse
+                        <h6><i class="fas fa-history me-2"></i>Historial de Movimientos</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 12%">Fecha/Hora</th>
+                                        <th style="width: 18%">Funcionario</th>
+                                        <th style="width: 15%">Área</th>
+                                        <th style="width: 12%">Acción</th>
+                                        <th style="width: 12%">Estado</th>
+                                        <th style="width: 31%">Detalle</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($expediente->historial->sortBy('fecha') as $historial)
+                                    @php
+                                        $estadoColor = match($historial->estado) {
+                                            'recepcionado', 'registrado' => 'secondary',
+                                            'clasificado' => 'info',
+                                            'derivado', 'Derivado' => 'primary',
+                                            'en_proceso' => 'warning',
+                                            'resuelto' => 'success',
+                                            'aprobado' => 'success',
+                                            'observado' => 'danger',
+                                            'archivado' => 'dark',
+                                            default => 'secondary'
+                                        };
+                                        $accionColor = match($historial->accion) {
+                                            'REGISTRO' => 'secondary',
+                                            'CLASIFICACION' => 'info',
+                                            'DERIVACION' => 'primary',
+                                            'RECEPCION' => 'success',
+                                            'EN_PROCESO' => 'warning',
+                                            'RESOLUCION' => 'success',
+                                            'APROBACION' => 'success',
+                                            'RECHAZO' => 'danger',
+                                            'OBSERVACION' => 'warning',
+                                            'ARCHIVO' => 'dark',
+                                            'ASIGNACION' => 'info',
+                                            default => 'secondary'
+                                        };
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <small>{{ $historial->fecha->format('d/m/Y') }}</small><br>
+                                            <small class="text-muted">{{ $historial->fecha->format('H:i') }}</small>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-user text-muted me-1"></i>
+                                            {{ $historial->usuario->name ?? 'Sistema' }}
+                                        </td>
+                                        <td>
+                                            {{ $historial->area->nombre ?? ($historial->usuario->area->nombre ?? 'N/A') }}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-{{ $accionColor }}">
+                                                {{ $historial->accion_legible }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if($historial->estado)
+                                                <span class="badge bg-{{ $estadoColor }}">
+                                                    {{ strtoupper(str_replace('_', ' ', $historial->estado)) }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <small>{{ $historial->detalle ?? $historial->descripcion }}</small>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-3 text-muted">
+                                            <i class="fas fa-folder-open me-2"></i>No hay movimientos registrados.
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Total de movimientos: {{ $expediente->historial->count() }}
+                        </small>
                     </div>
 
                     <!-- Información de Contacto -->
