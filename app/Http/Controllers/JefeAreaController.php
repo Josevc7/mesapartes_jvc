@@ -446,6 +446,31 @@ class JefeAreaController extends Controller
         return back()->with('success', 'Expediente aprobado correctamente');
     }
 
+    /**
+     * Archivar expediente aprobado
+     */
+    public function archivar(Expediente $expediente)
+    {
+        $this->authorize('update', $expediente);
+
+        // Verificar que el expediente esté aprobado
+        if ($expediente->estado !== 'aprobado') {
+            return back()->with('error', 'Solo se pueden archivar expedientes aprobados.');
+        }
+
+        $expediente->update([
+            'estado' => 'archivado',
+            'fecha_archivo' => now()
+        ]);
+
+        $expediente->agregarHistorial(
+            'Expediente archivado. Trámite finalizado.',
+            auth()->user()->id
+        );
+
+        return back()->with('success', 'Expediente archivado correctamente. El trámite ha sido finalizado.');
+    }
+
     public function rechazar(Request $request, Expediente $expediente)
     {
         $request->validate([

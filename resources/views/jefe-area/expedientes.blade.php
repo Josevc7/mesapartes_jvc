@@ -104,6 +104,7 @@
                             <option value="resuelto" {{ request('estado') == 'resuelto' ? 'selected' : '' }}>Resuelto</option>
                             <option value="aprobado" {{ request('estado') == 'aprobado' ? 'selected' : '' }}>Aprobado</option>
                             <option value="observado" {{ request('estado') == 'observado' ? 'selected' : '' }}>Observado</option>
+                            <option value="archivado" {{ request('estado') == 'archivado' ? 'selected' : '' }}>Archivado</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -262,6 +263,7 @@
                                             'resuelto' => 'success',
                                             'aprobado' => 'success',
                                             'observado' => 'danger',
+                                            'archivado' => 'dark',
                                             default => 'secondary'
                                         };
                                     @endphp
@@ -336,6 +338,14 @@
                                                     data-expediente-asunto="{{ Str::limit($expediente->asunto, 50) }}"
                                                     title="Rechazar">
                                                 <i class="fas fa-times"></i>
+                                            </button>
+                                        @endif
+                                        @if($expediente->estado === 'aprobado')
+                                            <button type="button" class="btn btn-outline-secondary btn-archivar"
+                                                    data-expediente-id="{{ $expediente->id_expediente }}"
+                                                    data-expediente-codigo="{{ $expediente->codigo_expediente }}"
+                                                    title="Archivar expediente">
+                                                <i class="fas fa-archive"></i>
                                             </button>
                                         @endif
                                     </div>
@@ -545,6 +555,38 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Archivar (Único - Dinámico) -->
+<div class="modal fade" id="modalArchivarExpediente" tabindex="-1" aria-labelledby="modalArchivarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="modalArchivarLabel">
+                    <i class="fas fa-archive me-2"></i>
+                    Archivar Expediente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Confirma que desea archivar el expediente?</p>
+                <p><strong>Expediente:</strong> <span id="archivarCodigo"></span></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Al archivar, el expediente quedará cerrado y no podrá ser modificado. Esta acción indica que el trámite ha sido completamente finalizado.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formArchivarExpediente" method="POST" action="" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-archive me-1"></i> Archivar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -656,6 +698,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/recepcionar';
 
             modalRecepcionar.show();
+        });
+    });
+
+    // Modal Archivar - Dinámico
+    const modalArchivar = new bootstrap.Modal(document.getElementById('modalArchivarExpediente'));
+    document.querySelectorAll('.btn-archivar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const expedienteId = this.dataset.expedienteId;
+            const codigo = this.dataset.expedienteCodigo;
+
+            document.getElementById('archivarCodigo').textContent = codigo;
+
+            // Actualizar la acción del formulario
+            document.getElementById('formArchivarExpediente').action =
+                '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/archivar';
+
+            modalArchivar.show();
         });
     });
 });

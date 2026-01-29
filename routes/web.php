@@ -191,6 +191,7 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
     Route::post('/expedientes/{expediente}/aprobar', [JefeAreaController::class, 'aprobar'])->name('jefe-area.aprobar');
     Route::post('/expedientes/{expediente}/rechazar', [JefeAreaController::class, 'rechazar'])->name('jefe-area.rechazar');
     Route::post('/expedientes/{expediente}/recepcionar', [JefeAreaController::class, 'recepcionar'])->name('jefe-area.recepcionar');
+    Route::post('/expedientes/{expediente}/archivar', [JefeAreaController::class, 'archivar'])->name('jefe-area.archivar');
 
     // Asignación y Reasignación de expedientes
     Route::post('/expedientes/{expediente}/asignar', [JefeAreaController::class, 'asignarExpediente'])->name('jefe-area.asignar-expediente');
