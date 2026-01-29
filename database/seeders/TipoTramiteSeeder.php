@@ -44,6 +44,11 @@ class TipoTramiteSeeder extends Seeder
             ['nombre' => 'Evaluación de proyectos', 'descripcion' => 'Evaluación técnica de proyectos de inversión', 'plazo_dias' => 30, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
             ['nombre' => 'Planeamiento institucional', 'descripcion' => 'Trámites de planificación estratégica', 'plazo_dias' => 20, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
             ['nombre' => 'Racionalización administrativa', 'descripcion' => 'Estudios y propuestas de racionalización', 'plazo_dias' => 25, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
+            ['nombre' => 'Solicitud de Certificación Presupuestal', 'descripcion' => 'Solicitud de certificación de disponibilidad presupuestal', 'plazo_dias' => 5, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
+            ['nombre' => 'Evaluación Presupuestal de Expediente', 'descripcion' => 'Evaluación presupuestal de expedientes administrativos', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
+            ['nombre' => 'Informe de Planificación y Presupuesto', 'descripcion' => 'Elaboración de informes técnicos de planificación y presupuesto', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
+            ['nombre' => 'Modificación Presupuestal', 'descripcion' => 'Trámite de modificación de asignación presupuestal', 'plazo_dias' => 15, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
+            ['nombre' => 'Opinión Técnica Presupuestal', 'descripcion' => 'Emisión de opinión técnica sobre asuntos presupuestales', 'plazo_dias' => 7, 'activo' => true, 'id_area' => $areas['Dirección de Planificación y Presupuesto'] ?? null],
 
             // 3. Dirección de Asesoría Jurídica
             ['nombre' => 'Opinión legal', 'descripcion' => 'Solicitud de opinión jurídica institucional', 'plazo_dias' => 15, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
@@ -51,6 +56,9 @@ class TipoTramiteSeeder extends Seeder
             ['nombre' => 'Recursos administrativos (apelación, reconsideración)', 'descripcion' => 'Trámite de recursos impugnativos', 'plazo_dias' => 30, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
             ['nombre' => 'Procesos sancionadores', 'descripcion' => 'Gestión de procedimientos sancionadores', 'plazo_dias' => 30, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
             ['nombre' => 'Asesoramiento jurídico institucional', 'descripcion' => 'Consultas y asesoría legal general', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
+            ['nombre' => 'Solicitud de Opinión Legal', 'descripcion' => 'Solicitud formal de opinión legal sobre asuntos específicos', 'plazo_dias' => 15, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
+            ['nombre' => 'Emisión de Informe Legal', 'descripcion' => 'Elaboración y emisión de informes legales sobre materias consultadas', 'plazo_dias' => 10, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
+            ['nombre' => 'Revisión Legal de Documentación', 'descripcion' => 'Revisión y validación legal de documentos institucionales', 'plazo_dias' => 7, 'activo' => true, 'id_area' => $areas['Dirección de Asesoría Jurídica'] ?? null],
 
             // 4. Dirección de Caminos
             ['nombre' => 'Mantenimiento de vías', 'descripcion' => 'Solicitudes de mantenimiento vial', 'plazo_dias' => 20, 'activo' => true, 'id_area' => $areas['Dirección de Caminos'] ?? null],

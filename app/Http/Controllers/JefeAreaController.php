@@ -106,10 +106,13 @@ class JefeAreaController extends Controller
             ->sortByDesc('dias_vencido')
             ->take(5);
 
-        // Funcionarios del área con carga de trabajo
-        $funcionarios = User::where('id_area', $areaId)
-            ->where('id_rol', 4)
+        // Funcionarios de las subdirecciones con carga de trabajo
+        $subdireccionesIds = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+
+        $funcionarios = User::whereIn('id_area', $subdireccionesIds)
+            ->where('id_rol', 4) // Solo Funcionarios
             ->where('activo', true)
+            ->with('area')
             ->withCount([
                 'expedientesAsignados as pendientes' => function($q) {
                     $q->whereIn('estado', ['derivado', 'en_proceso']);
@@ -210,10 +213,13 @@ class JefeAreaController extends Controller
             return $exp;
         });
 
-        // Funcionarios del área para filtros y asignación
-        $funcionarios = User::where('id_area', $areaId)
-            ->where('id_rol', 4)
+        // Funcionarios de las subdirecciones para filtros y asignación
+        $subdireccionesIds = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+
+        $funcionarios = User::whereIn('id_area', $subdireccionesIds)
+            ->where('id_rol', 4) // Solo Funcionarios
             ->where('activo', true)
+            ->with('area')
             ->withCount([
                 'expedientesAsignados as carga_trabajo' => function($q) {
                     $q->whereIn('estado', ['derivado', 'en_proceso']);
@@ -262,9 +268,14 @@ class JefeAreaController extends Controller
             'persona'
         ]);
 
-        $funcionarios = User::where('id_area', auth()->user()->id_area)
-            ->where('id_rol', 4)
+        // Funcionarios de las subdirecciones
+        $areaId = auth()->user()->id_area;
+        $subdireccionesIds = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+
+        $funcionarios = User::whereIn('id_area', $subdireccionesIds)
+            ->where('id_rol', 4) // Solo Funcionarios
             ->where('activo', true)
+            ->with('area')
             ->get();
 
         return view('jefe-area.show-expediente', compact('expediente', 'funcionarios'));
@@ -284,17 +295,30 @@ class JefeAreaController extends Controller
 
         $funcionario = User::findOrFail($request->funcionario_id);
 
-        // Verificar que el funcionario pertenece al área
-        if ($funcionario->id_area !== auth()->user()->id_area) {
+        // Verificar que el funcionario pertenece al área o sus subdirecciones
+        $areaJefe = auth()->user()->id_area;
+        $subdireccionesIds = Area::where('id_area_padre', $areaJefe)->pluck('id_area')->toArray();
+        $areasPermitidas = array_merge([$areaJefe], $subdireccionesIds);
+
+        if (!in_array($funcionario->id_area, $areasPermitidas)) {
             return back()->with('error', 'El funcionario no pertenece a esta área.');
         }
 
         $funcionarioAnterior = $expediente->funcionarioAsignado?->name ?? 'Sin asignar';
+        $esNuevaAsignacion = $funcionarioAnterior === 'Sin asignar';
 
-        DB::transaction(function() use ($expediente, $funcionario, $request, $funcionarioAnterior) {
-            $expediente->update([
+        DB::transaction(function() use ($expediente, $funcionario, $request, $funcionarioAnterior, $esNuevaAsignacion) {
+            // Datos a actualizar
+            $datosActualizar = [
                 'id_funcionario_asignado' => $funcionario->id
-            ]);
+            ];
+
+            // Si es primera asignación y viene de recepcionado, cambiar estado a asignado
+            if ($esNuevaAsignacion && in_array($expediente->estado, ['recepcionado', 'derivado'])) {
+                $datosActualizar['estado'] = 'asignado';
+            }
+
+            $expediente->update($datosActualizar);
 
             // Actualizar la derivación activa
             $derivacionActiva = $expediente->derivaciones()
@@ -309,7 +333,7 @@ class JefeAreaController extends Controller
             }
 
             $mensaje = "Asignado a {$funcionario->name} por Jefe de Área.";
-            if ($funcionarioAnterior !== 'Sin asignar') {
+            if (!$esNuevaAsignacion) {
                 $mensaje = "Reasignado de {$funcionarioAnterior} a {$funcionario->name}.";
             }
             if ($request->observaciones) {
@@ -337,13 +361,16 @@ class JefeAreaController extends Controller
         $funcionario = User::findOrFail($request->funcionario_id);
         $areaId = auth()->user()->id_area;
 
-        // Verificar que el funcionario pertenece al área
-        if ($funcionario->id_area !== $areaId) {
+        // Verificar que el funcionario pertenece al área o sus subdirecciones
+        $subdireccionesIds = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+        $areasPermitidas = array_merge([$areaId], $subdireccionesIds);
+
+        if (!in_array($funcionario->id_area, $areasPermitidas)) {
             return back()->with('error', 'El funcionario no pertenece a esta área.');
         }
 
         $count = 0;
-        DB::transaction(function() use ($request, $funcionario, $areaId, &$count) {
+        DB::transaction(function() use ($request, $funcionario, $areaId, $areasPermitidas, &$count) {
             foreach ($request->expedientes as $expedienteId) {
                 $expediente = Expediente::where('id_expediente', $expedienteId)
                     ->where('id_area', $areaId)
@@ -380,6 +407,30 @@ class JefeAreaController extends Controller
         return back()->with('success', "{$count} expediente(s) asignado(s) correctamente a {$funcionario->name}.");
     }
 
+    /**
+     * Recepcionar expediente derivado al área
+     */
+    public function recepcionar(Expediente $expediente)
+    {
+        $this->authorize('update', $expediente);
+
+        // Verificar que el expediente esté en estado derivado
+        if ($expediente->estado !== 'derivado') {
+            return back()->with('error', 'Solo se pueden recepcionar expedientes en estado derivado.');
+        }
+
+        $expediente->update([
+            'estado' => 'recepcionado'
+        ]);
+
+        $expediente->agregarHistorial(
+            'Expediente recepcionado por el área. Fecha/Hora: ' . now()->format('d/m/Y H:i:s') . '. Responsable: ' . auth()->user()->name,
+            auth()->user()->id
+        );
+
+        return back()->with('success', 'Expediente recepcionado correctamente. Ahora puede asignarlo a un funcionario.');
+    }
+
     public function aprobar(Expediente $expediente)
     {
         $this->authorize('approve', $expediente);
@@ -389,9 +440,9 @@ class JefeAreaController extends Controller
             'aprobado_por' => auth()->user()->id,
             'fecha_aprobacion' => now()
         ]);
-        
+
         $expediente->agregarHistorial('Expediente aprobado por Jefe de Área', auth()->user()->id);
-        
+
         return back()->with('success', 'Expediente aprobado correctamente');
     }
 
@@ -468,10 +519,13 @@ class JefeAreaController extends Controller
             ->get()
             ->keyBy('mes');
 
-        // Rendimiento por funcionario
-        $funcionariosRendimiento = User::where('id_area', $areaId)
-            ->where('id_rol', 4)
+        // Rendimiento por funcionarios de subdirecciones
+        $subdireccionesIdsReporte = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+
+        $funcionariosRendimiento = User::whereIn('id_area', $subdireccionesIdsReporte)
+            ->where('id_rol', 4) // Solo Funcionarios
             ->where('activo', true)
+            ->with('area')
             ->withCount([
                 'expedientesAsignados as total_asignados',
                 'expedientesAsignados as resueltos' => function($q) {
@@ -652,10 +706,13 @@ class JefeAreaController extends Controller
                 return $exp;
             });
 
-        // Funcionarios disponibles para reasignación
-        $funcionarios = User::where('id_area', $areaId)
-            ->where('id_rol', 4)
+        // Funcionarios de subdirecciones disponibles para reasignación
+        $subdireccionesIdsPlazos = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+
+        $funcionarios = User::whereIn('id_area', $subdireccionesIdsPlazos)
+            ->where('id_rol', 4) // Solo Funcionarios
             ->where('activo', true)
+            ->with('area')
             ->withCount([
                 'expedientesAsignados as carga_trabajo' => function($q) {
                     $q->whereIn('estado', ['derivado', 'en_proceso']);
@@ -701,16 +758,19 @@ class JefeAreaController extends Controller
         $areaId = $user->id_area;
         $esAdministrador = $user->role?->nombre === 'Administrador';
 
-        // Si es administrador sin área, mostrar todos los funcionarios
+        // Funcionarios de subdirecciones
+        $subdireccionesIdsSupervision = $areaId ? Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray() : [];
+
         $queryFuncionarios = User::query();
         if (!$esAdministrador || $areaId) {
-            $queryFuncionarios->where('id_area', $areaId);
+            $queryFuncionarios->whereIn('id_area', $subdireccionesIdsSupervision);
         }
 
         // Funcionarios con estadísticas completas
         $funcionarios = $queryFuncionarios
-            ->where('id_rol', 4)
+            ->where('id_rol', 4) // Solo Funcionarios
             ->where('activo', true)
+            ->with('area')
             ->withCount([
                 'expedientesAsignados as total_asignados',
                 'expedientesAsignados as resueltos' => function($q) {
@@ -1064,8 +1124,12 @@ class JefeAreaController extends Controller
         
         $metas = \App\Models\Meta::where('id_area', $areaId)->get();
         
-        $rendimientoFuncionarios = User::where('id_area', $areaId)
-            ->where('id_rol', 4)
+        // Funcionarios de subdirecciones
+        $subdireccionesIdsMetas = Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray();
+
+        $rendimientoFuncionarios = User::whereIn('id_area', $subdireccionesIdsMetas)
+            ->where('id_rol', 4) // Solo Funcionarios
+            ->with('area')
             ->withCount(['expedientesAsignados as expedientes_resueltos' => function($q) {
                 $q->where('estado', 'Resuelto')->whereMonth('updated_at', now()->month);
             }])

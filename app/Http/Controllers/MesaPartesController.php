@@ -43,7 +43,7 @@ class MesaPartesController extends Controller
             ]);
 
         // Filtro por estados (por defecto los activos)
-        $estadosDefault = ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'];
+        $estadosDefault = ['recepcionado', 'registrado', 'clasificado', 'derivado', 'asignado', 'en_proceso'];
         if ($request->filled('estado')) {
             if ($request->estado === 'todos') {
                 // No filtrar por estado
@@ -125,8 +125,19 @@ class MesaPartesController extends Controller
 
     public function registrar()
     {
-        $tipoTramites = TipoTramite::where('activo', true)->orderBy('nombre')->get();
-        return view('mesa-partes.registrar', compact('tipoTramites'));
+       // $tipoTramites = TipoTramite::where('activo', true)->orderBy('nombre')->get();
+       //return view('mesa-partes.registrar', compact('tipoTramites'));
+        //  SOLO DIRECCIONES (para el ciudadano)
+        $areas = Area::where('activo', true)
+        ->where('nivel', Area::NIVEL_DIRECCION)
+        ->orderBy('nombre')
+       ->get();
+
+       $tipoTramites = TipoTramite::where('activo', true)
+        ->orderBy('nombre')
+        ->get();
+       return view('mesa-partes.registrar', compact('areas', 'tipoTramites'));
+         
     }
 
     /**
@@ -580,4 +591,5 @@ class MesaPartesController extends Controller
                 ->with('error', 'Error al procesar el expediente: ' . $e->getMessage());
         }
     }
+   
 }

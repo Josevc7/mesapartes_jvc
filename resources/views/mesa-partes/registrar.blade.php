@@ -453,7 +453,11 @@
                                     <select class="form-select form-select-lg @error('id_area') is-invalid @enderror"
                                             id="id_area" name="id_area" required>
                                         <option value="">Seleccione un área</option>
-                                        @foreach(\App\Models\Area::where('activo', true)->orderBy('nombre')->get() as $area)
+                                        {{--@foreach(\App\Models\Area::where('activo', true)->orderBy('nombre')->get() as $area)--}}
+                                        @foreach(\App\Models\Area::where('activo', true)
+                                             ->where('nivel', \App\Models\Area::NIVEL_DIRECCION)
+                                             ->orderBy('nombre')
+                                             ->get() as $area)
                                             <option value="{{ $area->id_area }}" {{ old('id_area') == $area->id_area ? 'selected' : '' }}>
                                                 {{ $area->nombre }}
                                             </option>
@@ -638,23 +642,14 @@ function resetEstadoPersonaPorCambioDocumento() {
     if (box) box.style.display = 'none';
 
     // Limpia datos de persona SIN tocar el campo numero_documento (el usuario lo está escribiendo)
-    const nombres = document.getElementById('nombres');
-    const apellidoPaterno = document.getElementById('apellido_paterno');
-    const apellidoMaterno = document.getElementById('apellido_materno');
-    const razonSocial = document.getElementById('razon_social');
-    const representanteLegal = document.getElementById('representante_legal');
-    const telefono = document.getElementById('telefono');
-    const email = document.getElementById('email');
-    const direccion = document.getElementById('direccion');
-
-    if (nombres) nombres.value = '';
-    if (apellidoPaterno) apellidoPaterno.value = '';
-    if (apellidoMaterno) apellidoMaterno.value = '';
-    if (razonSocial) razonSocial.value = '';
-    if (representanteLegal) representanteLegal.value = '';
-    if (telefono) telefono.value = '';
-    if (email) email.value = '';
-    if (direccion) direccion.value = '';
+    document.getElementById('nombres').value = '';
+    document.getElementById('apellido_paterno').value = '';
+    document.getElementById('apellido_materno').value = '';
+    document.getElementById('razon_social').value = '';
+    document.getElementById('representante_legal').value = '';
+    document.getElementById('telefono').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('direccion').value = '';
 
     // Habilita edición
     deshabilitarCamposPersona(false);
@@ -683,10 +678,8 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = valor;
         }
 
-        // Si HABÍA un documento consultado antes y el usuario está escribiendo algo diferente -> limpiar persona
-        // Solo limpiar si ultimoDocConsultado tenía un valor completo (8 o 11 dígitos)
-        const teniaDocumentoAnterior = ultimoDocConsultado.length >= 8;
-        if (teniaDocumentoAnterior && valor !== ultimoDocConsultado) {
+        // Si el usuario cambió el número (y no es el último consultado) -> limpiar TODO de persona
+        if (valor !== ultimoDocConsultado) {
             resetEstadoPersonaPorCambioDocumento();
             ultimoDocConsultado = ''; // permite nueva búsqueda
         }

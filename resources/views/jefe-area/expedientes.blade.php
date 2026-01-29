@@ -98,6 +98,8 @@
                         <select name="estado" class="form-select">
                             <option value="">Todos</option>
                             <option value="derivado" {{ request('estado') == 'derivado' ? 'selected' : '' }}>Derivado</option>
+                            <option value="recepcionado" {{ request('estado') == 'recepcionado' ? 'selected' : '' }}>Recepcionado</option>
+                            <option value="asignado" {{ request('estado') == 'asignado' ? 'selected' : '' }}>Asignado</option>
                             <option value="en_proceso" {{ request('estado') == 'en_proceso' ? 'selected' : '' }}>En Proceso</option>
                             <option value="resuelto" {{ request('estado') == 'resuelto' ? 'selected' : '' }}>Resuelto</option>
                             <option value="aprobado" {{ request('estado') == 'aprobado' ? 'selected' : '' }}>Aprobado</option>
@@ -105,13 +107,13 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Funcionario</label>
+                        <label class="form-label">Personal</label>
                         <select name="funcionario" class="form-select">
                             <option value="">Todos</option>
                             <option value="sin_asignar" {{ request('funcionario') == 'sin_asignar' ? 'selected' : '' }}>Sin Asignar</option>
                             @foreach($funcionarios as $funcionario)
                                 <option value="{{ $funcionario->id }}" {{ request('funcionario') == $funcionario->id ? 'selected' : '' }}>
-                                    {{ $funcionario->name }} ({{ $funcionario->carga_trabajo }})
+                                    {{ $funcionario->name }} - {{ $funcionario->area->nombre ?? 'N/A' }} ({{ $funcionario->carga_trabajo }})
                                 </option>
                             @endforeach
                         </select>
@@ -254,10 +256,12 @@
                                     @php
                                         $estadoColor = match($expediente->estado) {
                                             'derivado' => 'primary',
-                                            'en_proceso' => 'info',
+                                            'recepcionado' => 'info',
+                                            'asignado' => 'secondary',
+                                            'en_proceso' => 'warning',
                                             'resuelto' => 'success',
                                             'aprobado' => 'success',
-                                            'observado' => 'warning',
+                                            'observado' => 'danger',
                                             default => 'secondary'
                                         };
                                     @endphp
@@ -299,6 +303,15 @@
                                            class="btn btn-outline-primary" title="Ver detalle">
                                             <i class="fas fa-eye"></i>
                                         </a>
+                                        @if($expediente->estado === 'derivado')
+                                            <button type="button" class="btn btn-outline-success btn-recepcionar"
+                                                    data-expediente-id="{{ $expediente->id_expediente }}"
+                                                    data-expediente-codigo="{{ $expediente->codigo_expediente }}"
+                                                    title="Recepcionar expediente">
+                                                <i class="fas fa-inbox"></i>
+                                            </button>
+                                        @endif
+                                        @if(in_array($expediente->estado, ['recepcionado', 'derivado', 'asignado', 'en_proceso']))
                                         <button type="button" class="btn btn-outline-secondary btn-asignar"
                                                 data-expediente-id="{{ $expediente->id_expediente }}"
                                                 data-expediente-codigo="{{ $expediente->codigo_expediente }}"
@@ -308,6 +321,7 @@
                                                 title="Asignar">
                                             <i class="fas fa-user-plus"></i>
                                         </button>
+                                        @endif
                                         @if($expediente->estado === 'resuelto')
                                             <button type="button" class="btn btn-outline-success btn-aprobar"
                                                     data-expediente-id="{{ $expediente->id_expediente }}"
@@ -366,7 +380,7 @@
                                 <option value="">-- Seleccione --</option>
                                 @foreach($funcionarios as $func)
                                     <option value="{{ $func->id }}">
-                                        {{ $func->name }} (Carga actual: {{ $func->carga_trabajo }})
+                                        {{ $func->name }} - {{ $func->area->nombre ?? 'N/A' }} (Carga: {{ $func->carga_trabajo }})
                                     </option>
                                 @endforeach
                             </select>
@@ -413,7 +427,7 @@
                             <option value="">-- Seleccione --</option>
                             @foreach($funcionarios as $func)
                                 <option value="{{ $func->id }}">
-                                    {{ $func->name }}
+                                    {{ $func->name }} - {{ $func->area->nombre ?? 'N/A' }}
                                     (Carga: {{ $func->carga_trabajo }} expedientes)
                                 </option>
                             @endforeach
@@ -496,6 +510,38 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Recepcionar (Único - Dinámico) -->
+<div class="modal fade" id="modalRecepcionarExpediente" tabindex="-1" aria-labelledby="modalRecepcionarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalRecepcionarLabel">
+                    <i class="fas fa-inbox me-2"></i>
+                    Recepcionar Expediente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Confirma la recepción del expediente en el área?</p>
+                <p><strong>Expediente:</strong> <span id="recepcionarCodigo"></span></p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Al recepcionar, el expediente quedará bajo responsabilidad del área y podrá ser asignado a un funcionario.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formRecepcionarExpediente" method="POST" action="" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> Recepcionar
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -593,6 +639,23 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('rechazarMotivo').value = '';
 
             modalRechazar.show();
+        });
+    });
+
+    // Modal Recepcionar - Dinámico
+    const modalRecepcionar = new bootstrap.Modal(document.getElementById('modalRecepcionarExpediente'));
+    document.querySelectorAll('.btn-recepcionar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const expedienteId = this.dataset.expedienteId;
+            const codigo = this.dataset.expedienteCodigo;
+
+            document.getElementById('recepcionarCodigo').textContent = codigo;
+
+            // Actualizar la acción del formulario
+            document.getElementById('formRecepcionarExpediente').action =
+                '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/recepcionar';
+
+            modalRecepcionar.show();
         });
     });
 });

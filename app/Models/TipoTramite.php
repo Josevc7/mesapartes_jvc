@@ -31,4 +31,5 @@ class TipoTramite extends Model
     {
         return $this->belongsTo(Area::class, 'id_area', 'id_area');
     }
+    
 }

@@ -190,6 +190,7 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
     Route::get('/expedientes/{expediente}', [JefeAreaController::class, 'showExpediente'])->name('jefe-area.show-expediente');
     Route::post('/expedientes/{expediente}/aprobar', [JefeAreaController::class, 'aprobar'])->name('jefe-area.aprobar');
     Route::post('/expedientes/{expediente}/rechazar', [JefeAreaController::class, 'rechazar'])->name('jefe-area.rechazar');
+    Route::post('/expedientes/{expediente}/recepcionar', [JefeAreaController::class, 'recepcionar'])->name('jefe-area.recepcionar');
 
     // Asignación y Reasignación de expedientes
     Route::post('/expedientes/{expediente}/asignar', [JefeAreaController::class, 'asignarExpediente'])->name('jefe-area.asignar-expediente');
@@ -442,4 +443,5 @@ Route::prefix('api')->middleware(['auth', 'throttle:60,1'])->group(function () {
         $derivacionService = new App\Services\DerivacionService();
         return response()->json($derivacionService->obtenerFuncionariosParaAsignacion($area));
     })->name('api.funcionarios-jerarquicos');
+
 });

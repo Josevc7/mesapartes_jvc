@@ -62,11 +62,17 @@
                                     </td>
                                     <td>{{ $expediente->remitente ?? ($expediente->ciudadano->name ?? 'N/A') }}</td>
                                     <td>
-                                        <span class="badge bg-{{ 
-                                            $expediente->estado == 'derivado' ? 'warning' : 
-                                            ($expediente->estado == 'en_proceso' ? 'info' : 
-                                            ($expediente->estado == 'resuelto' ? 'success' : 'secondary')) 
-                                        }}">
+                                        @php
+                                            $estadoColor = match($expediente->estado) {
+                                                'asignado' => 'primary',
+                                                'derivado' => 'warning',
+                                                'en_proceso' => 'info',
+                                                'resuelto' => 'success',
+                                                'observado' => 'danger',
+                                                default => 'secondary'
+                                            };
+                                        @endphp
+                                        <span class="badge bg-{{ $estadoColor }}">
                                             {{ ucfirst($expediente->estado) }}
                                         </span>
                                     </td>
@@ -103,9 +109,9 @@
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             
-                                            @if($expediente->estado == 'derivado')
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="recibirExpediente({{ $expediente->id_expediente }})" 
+                                            @if(in_array($expediente->estado, ['derivado', 'asignado']))
+                                            <button class="btn btn-outline-success"
+                                                    onclick="recibirExpediente({{ $expediente->id_expediente }})"
                                                     title="Recibir">
                                                 <i class="fas fa-hand-paper"></i>
                                             </button>

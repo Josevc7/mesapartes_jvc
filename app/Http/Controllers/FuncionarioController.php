@@ -25,7 +25,7 @@ class FuncionarioController extends Controller
         if ($request->estado) {
             $query->where('estado', $request->estado);
         } else {
-            $query->whereIn('estado', ['derivado', 'en_proceso', 'observado', 'resuelto']);
+            $query->whereIn('estado', ['asignado', 'derivado', 'en_proceso', 'observado', 'resuelto']);
         }
 
         if ($request->prioridad) {
@@ -43,6 +43,7 @@ class FuncionarioController extends Controller
         
         // Estadísticas
         $stats = [
+            'asignados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'asignado')->count(),
             'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'derivado')->count(),
             'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'en_proceso')->count(),
             'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
@@ -69,10 +70,10 @@ class FuncionarioController extends Controller
             // Verificar permisos
             $this->authorize('process', $expediente);
 
-            // Verificar que el expediente esté en estado derivado o Derivado (con mayúscula)
-            if (!in_array($expediente->estado, ['derivado', 'Derivado'])) {
+            // Verificar que el expediente esté en estado derivado o asignado
+            if (!in_array($expediente->estado, ['derivado', 'Derivado', 'asignado', 'Asignado'])) {
                 return response()->json([
-                    'error' => 'El expediente no está en estado derivado. Estado actual: ' . $expediente->estado
+                    'error' => 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado
                 ], 400);
             }
 
