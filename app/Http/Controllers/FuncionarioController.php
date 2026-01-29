@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\Derivacion;
 use App\Models\Documento;
+use App\Models\HistorialExpediente;
 use App\Services\DerivacionService;
 
 class FuncionarioController extends Controller
@@ -160,10 +161,21 @@ class FuncionarioController extends Controller
             'estado' => $estado
         ]);
 
-        // Registrar en historial
+        // Registrar en historial con accion correspondiente
+        $accionHistorial = match($request->accion) {
+            'resolver' => HistorialExpediente::ACCION_RESOLUCION,
+            'solicitar_info' => HistorialExpediente::ACCION_OBSERVACION,
+            default => HistorialExpediente::ACCION_CAMBIO_ESTADO
+        };
+
         $expediente->agregarHistorial(
             'Procesado por funcionario: ' . $request->observaciones_funcionario,
-            auth()->user()->id
+            auth()->user()->id,
+            [
+                'accion' => $accionHistorial,
+                'estado' => $estado,
+                'id_area' => auth()->user()->id_area,
+            ]
         );
 
         return redirect()->route('funcionario.index')
@@ -179,7 +191,16 @@ class FuncionarioController extends Controller
             'fecha_resolucion' => now()
         ]);
 
-        $expediente->agregarHistorial('Expediente resuelto', auth()->user()->id);
+        $expediente->agregarHistorial(
+            'Expediente resuelto',
+            auth()->user()->id,
+            [
+                'accion' => HistorialExpediente::ACCION_RESOLUCION,
+                'estado' => 'resuelto',
+                'id_area' => auth()->user()->id_area,
+                'detalle' => 'Resolucion emitida'
+            ]
+        );
 
         return redirect()->route('funcionario.index')
             ->with('success', 'Expediente resuelto correctamente');
@@ -205,8 +226,13 @@ class FuncionarioController extends Controller
         $expediente->update(['estado' => 'observado']);
         
         $expediente->agregarHistorial(
-            'Solicitud de información adicional: ' . $request->observaciones,
-            auth()->user()->id
+            'Solicitud de informacion adicional: ' . $request->observaciones,
+            auth()->user()->id,
+            [
+                'accion' => HistorialExpediente::ACCION_OBSERVACION,
+                'estado' => 'observado',
+                'id_area' => auth()->user()->id_area,
+            ]
         );
 
         return redirect()->route('funcionario.index')
@@ -242,7 +268,12 @@ class FuncionarioController extends Controller
 
         $expediente->agregarHistorial(
             'Documento adjuntado: ' . $request->nombre,
-            auth()->user()->id
+            auth()->user()->id,
+            [
+                'accion' => HistorialExpediente::ACCION_ADJUNTO,
+                'estado' => $expediente->estado,
+                'id_area' => auth()->user()->id_area,
+            ]
         );
 
         return back()->with('success', 'Documento adjuntado correctamente');

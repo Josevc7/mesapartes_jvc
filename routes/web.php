@@ -11,6 +11,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\JefeAreaController;
 use App\Http\Controllers\SoporteController;
 use App\Http\Controllers\CiudadanoController;
+use App\Http\Controllers\SeguimientoUnificadoController;
 
 // NOTA: Las alertas de CSRF son falsas alarmas. 
 // Laravel aplica protección CSRF automáticamente a través del middleware 'web'.
@@ -111,6 +112,13 @@ Route::get('/api/seguimiento/{expediente}/movimientos', [SeguimientoController::
 Route::delete('/seguimiento/expedientes/{expediente}', [SeguimientoController::class, 'eliminarExpediente'])
     ->name('seguimiento.eliminar')
     ->middleware(['auth', 'role:Mesa de Partes,Administrador']);
+
+// SEGUIMIENTO TRANSVERSAL (visible para todos los roles autenticados)
+Route::prefix('panel/seguimiento')->middleware('auth')->group(function () {
+    Route::get('/', [SeguimientoUnificadoController::class, 'index'])->name('panel.seguimiento.index');
+    Route::get('/{codigo}', [SeguimientoUnificadoController::class, 'show'])->name('panel.seguimiento.show');
+    Route::get('/{codigo}/historial', [SeguimientoUnificadoController::class, 'historial'])->name('panel.seguimiento.historial');
+});
 
 // RUTAS DE MESA DE PARTES (Clasificar y Derivar)
 Route::prefix('mesa-partes')->middleware(['auth', 'role:Mesa de Partes,Administrador'])->group(function () {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Documento;
 use App\Models\Expediente;
+use App\Models\HistorialExpediente;
 use App\Services\DocumentoAccessService;
 use Illuminate\Support\Facades\Storage;
 
@@ -109,11 +110,15 @@ class DocumentoController extends Controller
         ]);
 
         // Registrar en historial
-        $expediente->historial()->create([
-            'id_usuario' => $user->id,
-            'descripcion' => 'Documento adjuntado: ' . ($request->nombre ?? $nombreOriginal),
-            'fecha' => now(),
-        ]);
+        $expediente->agregarHistorial(
+            'Documento adjuntado: ' . ($request->nombre ?? $nombreOriginal),
+            $user->id,
+            [
+                'accion' => HistorialExpediente::ACCION_ADJUNTO,
+                'estado' => $expediente->estado,
+                'id_area' => $expediente->id_area,
+            ]
+        );
 
         return redirect()->back()->with('success', 'Documento subido correctamente.');
     }
@@ -137,11 +142,16 @@ class DocumentoController extends Controller
         }
 
         // Registrar en historial
-        $documento->expediente->historial()->create([
-            'id_usuario' => $user->id,
-            'descripcion' => 'Documento eliminado: ' . $documento->nombre,
-            'fecha' => now(),
-        ]);
+        $documento->expediente->agregarHistorial(
+            'Documento eliminado: ' . $documento->nombre,
+            $user->id,
+            [
+                'accion' => HistorialExpediente::ACCION_ADJUNTO,
+                'estado' => $documento->expediente->estado,
+                'id_area' => $documento->expediente->id_area,
+                'detalle' => 'Eliminado'
+            ]
+        );
 
         $documento->delete();
 

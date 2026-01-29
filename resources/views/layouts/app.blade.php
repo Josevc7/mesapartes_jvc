@@ -61,7 +61,7 @@
                             <a class="nav-link text-dark" href="{{ route('ciudadano.mis-expedientes') }}"><i class="fas fa-folder"></i> Mis Expedientes</a>
                         </li>
                         <li class="nav-item mb-1">
-                            <a class="nav-link text-dark" href="{{ route('ciudadano.seguimiento-form') }}"><i class="fas fa-search"></i> Seguimiento</a>
+                            <a class="nav-link text-dark" href="{{ route('panel.seguimiento.index') }}"><i class="fas fa-search-location"></i> Seguimiento</a>
                         </li>
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('ciudadano.notificaciones') }}"><i class="fas fa-bell"></i> Notificaciones</a>
@@ -121,7 +121,7 @@
                                     <a class="nav-link text-dark" href="{{ route('mesa-partes.registrar') }}"><i class="fas fa-plus"></i> Registrar</a>
                                 </li>
                                 <li class="nav-item mb-1">
-                                    <a class="nav-link text-dark" href="{{ route('seguimiento.form') }}"><i class="fas fa-search"></i> Seguimiento</a>
+                                    <a class="nav-link text-dark" href="{{ route('panel.seguimiento.index') }}"><i class="fas fa-search-location"></i> Seguimiento</a>
                                 </li>
                                 <li class="nav-item mb-1">
                                     <a class="nav-link text-dark" href="{{ route('mesa-partes.monitoreo') }}"><i class="fas fa-monitor"></i> Monitoreo</a>
@@ -295,7 +295,7 @@
                             <a class="nav-link text-dark" href="{{ route('mesa-partes.registrar') }}"><i class="fas fa-plus"></i> Registrar</a>
                         </li>
                         <li class="nav-item mb-1">
-                            <a class="nav-link text-dark" href="{{ route('seguimiento.form') }}"><i class="fas fa-search"></i> Seguimiento</a>
+                            <a class="nav-link text-dark" href="{{ route('panel.seguimiento.index') }}"><i class="fas fa-search-location"></i> Seguimiento</a>
                         </li>
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('mesa-partes.monitoreo') }}"><i class="fas fa-monitor"></i> Monitoreo</a>
@@ -337,6 +337,9 @@
                             <a class="nav-link text-dark" href="{{ route('jefe-area.reportes') }}"><i class="fas fa-file-alt"></i> Reportes</a>
                         </li>
                         <li class="nav-item mb-1">
+                            <a class="nav-link text-dark" href="{{ route('panel.seguimiento.index') }}"><i class="fas fa-search-location"></i> Seguimiento</a>
+                        </li>
+                        <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('resoluciones.index') }}"><i class="fas fa-gavel"></i> Resoluciones</a>
                         </li>
                     </ul>
@@ -353,6 +356,9 @@
                         </li>
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('funcionario.mis-expedientes') }}"><i class="fas fa-user-check"></i> Mis Asignados</a>
+                        </li>
+                        <li class="nav-item mb-1">
+                            <a class="nav-link text-dark" href="{{ route('panel.seguimiento.index') }}"><i class="fas fa-search-location"></i> Seguimiento</a>
                         </li>
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('resoluciones.index') }}"><i class="fas fa-gavel"></i> Resoluciones</a>

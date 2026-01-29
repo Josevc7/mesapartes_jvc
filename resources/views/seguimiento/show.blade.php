@@ -218,19 +218,21 @@
                     </div>
                     @endif
 
-                    <!-- Historial de Movimientos -->
-                    <div class="mb-4">
-                        <h6><i class="fas fa-history me-2"></i>Historial de Movimientos</h6>
+                    <!-- Historial de Movimientos (Vista limitada para ciudadano) -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0"><i class="fas fa-history me-2"></i>Historial de Movimientos</h6>
+                        </div>
+                        <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered table-striped">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th style="width: 12%">Fecha/Hora</th>
-                                        <th style="width: 18%">Funcionario</th>
-                                        <th style="width: 15%">Área</th>
-                                        <th style="width: 12%">Acción</th>
-                                        <th style="width: 12%">Estado</th>
-                                        <th style="width: 31%">Detalle</th>
+                                        <th style="width: 15%">Fecha/Hora</th>
+                                        <th style="width: 20%">Area</th>
+                                        <th style="width: 15%">Accion</th>
+                                        <th style="width: 15%">Estado</th>
+                                        <th style="width: 35%">Detalle</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -259,6 +261,8 @@
                                             'OBSERVACION' => 'warning',
                                             'ARCHIVO' => 'dark',
                                             'ASIGNACION' => 'info',
+                                            'ADJUNTO' => 'secondary',
+                                            'CAMBIO_ESTADO' => 'warning',
                                             default => 'secondary'
                                         };
                                     @endphp
@@ -268,11 +272,8 @@
                                             <small class="text-muted">{{ $historial->fecha->format('H:i') }}</small>
                                         </td>
                                         <td>
-                                            <i class="fas fa-user text-muted me-1"></i>
-                                            {{ $historial->usuario->name ?? 'Sistema' }}
-                                        </td>
-                                        <td>
-                                            {{ $historial->area->nombre ?? ($historial->usuario->area->nombre ?? 'N/A') }}
+                                            <i class="fas fa-building text-muted me-1"></i>
+                                            {{ $historial->area->nombre ?? 'Mesa de Partes' }}
                                         </td>
                                         <td class="text-center">
                                             <span class="badge bg-{{ $accionColor }}">
@@ -289,12 +290,12 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <small>{{ $historial->detalle ?? $historial->descripcion }}</small>
+                                            <small>{{ $historial->descripcion_publica }}</small>
                                         </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-3 text-muted">
+                                        <td colspan="5" class="text-center py-3 text-muted">
                                             <i class="fas fa-folder-open me-2"></i>No hay movimientos registrados.
                                         </td>
                                     </tr>
@@ -302,10 +303,13 @@
                                 </tbody>
                             </table>
                         </div>
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Total de movimientos: {{ $expediente->historial->count() }}
-                        </small>
+                        </div>
+                        <div class="card-footer">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Total de movimientos: {{ $expediente->historial->count() }}
+                            </small>
+                        </div>
                     </div>
 
                     <!-- Información de Contacto -->
