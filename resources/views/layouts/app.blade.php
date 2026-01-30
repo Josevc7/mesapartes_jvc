@@ -118,7 +118,7 @@
                                     </a>
                                 </li>
                                 <li class="nav-item mb-1">
-                                    <a class="nav-link text-dark" href="{{ route('mesa-partes.registrar') }}"><i class="fas fa-plus"></i> Registrar</a>
+                                    <a class="nav-link text-dark" href="{{ route('mesa-partes.registrar') }}"><i class="fas fa-plus"></i> Registrar Expediente</a>
                                 </li>
                                 <li class="nav-item mb-1">
                                     <a class="nav-link text-dark" href="{{ route('panel.seguimiento.index') }}"><i class="fas fa-search-location"></i> Seguimiento</a>
@@ -139,7 +139,7 @@
                     <!-- Supervisión -->
                     <div class="mb-2">
                         <a class="nav-link text-dark fw-bold" data-bs-toggle="collapse" href="#menuSupervision" role="button">
-                            <i class="fas fa-eye"></i> Supervisión <i class="fas fa-chevron-down float-end"></i>
+                            <i class="fas fa-eye"></i> Supervisión Jefe Area <i class="fas fa-chevron-down float-end"></i>
                         </a>
                         <div class="collapse" id="menuSupervision">
                             <ul class="nav flex-column ms-3">
@@ -310,7 +310,7 @@
                 @endif
 
                 @if(in_array(auth()->user()->role->nombre, ['Jefe de Área']) && auth()->user()->role->nombre != 'Administrador')
-                    <h6 class="text-muted mb-3 mt-4">SUPERVISIÓN</h6>
+                    <h6 class="text-muted mb-3 mt-4">SUPERVISIÓN JEFE DE AREA</h6>
                     <ul class="nav flex-column">
                         <li class="nav-item mb-1">
                             <a class="nav-link text-dark" href="{{ route('jefe-area.dashboard') }}"><i class="fas fa-home"></i> Dashboard</a>

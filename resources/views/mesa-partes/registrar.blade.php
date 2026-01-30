@@ -18,7 +18,7 @@
                     <i class="fas fa-plus-circle"></i>
                 </div>
                 <div class="modern-form-title">
-                    <h1>Registrar Documento Entrante</h1>
+                    <h1>Registrar Nuevo Expediente</h1>
                     <p>Mesa de Partes - Registro, Clasificación y Derivación de Expedientes</p>
                 </div>
             </div>
