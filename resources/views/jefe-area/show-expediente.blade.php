@@ -482,7 +482,6 @@
                     </div>
                 </div>
             </div>
-            @endif
 
             <!-- Derivaciones -->
             @if($expediente->derivaciones && $expediente->derivaciones->count() > 0)

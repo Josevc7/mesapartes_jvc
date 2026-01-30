@@ -73,9 +73,12 @@ class FuncionarioController extends Controller
 
             // Verificar que el expediente esté en estado derivado o asignado
             if (!in_array($expediente->estado, ['derivado', 'Derivado', 'asignado', 'Asignado'])) {
-                return response()->json([
-                    'error' => 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado
-                ], 400);
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'error' => 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado
+                    ], 400);
+                }
+                return back()->with('error', 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado);
             }
 
             // Actualizar estado del expediente
@@ -102,16 +105,25 @@ class FuncionarioController extends Controller
                 ]
             );
 
-            return response()->json(['success' => true, 'message' => 'Expediente recibido correctamente']);
+            if (request()->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Expediente recibido correctamente']);
+            }
+            return back()->with('success', 'Expediente recibido correctamente. Ahora puede procesarlo.');
 
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'error' => 'No tienes permisos para recibir este expediente. Solo puedes recibir expedientes asignados a ti.'
-            ], 403);
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'error' => 'No tienes permisos para recibir este expediente. Solo puedes recibir expedientes asignados a ti.'
+                ], 403);
+            }
+            return back()->with('error', 'No tienes permisos para recibir este expediente.');
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error interno del servidor: ' . $e->getMessage()
-            ], 500);
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'error' => 'Error interno del servidor: ' . $e->getMessage()
+                ], 500);
+            }
+            return back()->with('error', 'Error al recibir el expediente: ' . $e->getMessage());
         }
     }
 
