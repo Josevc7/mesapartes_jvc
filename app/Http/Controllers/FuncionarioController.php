@@ -182,28 +182,63 @@ class FuncionarioController extends Controller
             ->with('success', 'Expediente ' . strtolower($request->accion) . ' correctamente');
     }
 
+    /**
+     * Devolver expediente al Jefe de Área para revisión
+     * Requiere al menos un documento adjunto (informe/respuesta)
+     */
     public function resolver(Expediente $expediente)
     {
         $this->authorize('resolver', $expediente);
 
+        // Verificar que tenga al menos un documento adjunto (no de entrada)
+        $documentosAdjuntos = $expediente->documentos()
+            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
+            ->count();
+
+        if ($documentosAdjuntos === 0) {
+            return back()->with('error', 'Debe adjuntar al menos un documento (informe, respuesta, resolución u oficio) antes de devolver el expediente al Jefe de Área.');
+        }
+
+        // Obtener el último documento adjuntado para el historial
+        $ultimoDocumento = $expediente->documentos()
+            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
+            ->latest()
+            ->first();
+
+        // Obtener el jefe del área
+        $jefeArea = \App\Models\User::where('id_area', auth()->user()->id_area)
+            ->where('id_rol', 3) // Rol Jefe de Área
+            ->first();
+
         $expediente->update([
-            'estado' => 'resuelto',
+            'estado' => 'en_revision',
             'fecha_resolucion' => now()
         ]);
 
+        // Historial detallado
+        $descripcionHistorial = sprintf(
+            'Funcionario %s devolvió el expediente al Jefe de Área para revisión. Documento adjunto: %s (%s).',
+            auth()->user()->name,
+            $ultimoDocumento->nombre ?? 'N/A',
+            ucfirst($ultimoDocumento->tipo ?? 'documento')
+        );
+
         $expediente->agregarHistorial(
-            'Expediente resuelto',
+            $descripcionHistorial,
             auth()->user()->id,
             [
                 'accion' => HistorialExpediente::ACCION_RESOLUCION,
-                'estado' => 'resuelto',
+                'estado' => 'en_revision',
                 'id_area' => auth()->user()->id_area,
-                'detalle' => 'Resolucion emitida'
+                'detalle' => 'Expediente devuelto al Jefe de Área con documento: ' . ($ultimoDocumento->nombre ?? 'N/A'),
+                'documento_adjunto' => $ultimoDocumento->nombre ?? null,
+                'tipo_documento' => $ultimoDocumento->tipo ?? null,
+                'destinatario' => $jefeArea->name ?? 'Jefe de Área'
             ]
         );
 
         return redirect()->route('funcionario.index')
-            ->with('success', 'Expediente resuelto correctamente');
+            ->with('success', 'Expediente devuelto al Jefe de Área para revisión.');
     }
 
     public function solicitarInfo(Request $request, Expediente $expediente)

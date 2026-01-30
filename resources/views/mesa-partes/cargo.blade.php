@@ -276,18 +276,7 @@
             <div class="info-row">
                 <span class="info-label">Folios:</span>
                 <span class="info-value">
-                    @php
-                        $folios = $expediente->folios ?? 1;
-                        $numerosEnLetras = [
-                            1 => 'una', 2 => 'dos', 3 => 'tres', 4 => 'cuatro', 5 => 'cinco',
-                            6 => 'seis', 7 => 'siete', 8 => 'ocho', 9 => 'nueve', 10 => 'diez',
-                            11 => 'once', 12 => 'doce', 13 => 'trece', 14 => 'catorce', 15 => 'quince',
-                            16 => 'dieciséis', 17 => 'diecisiete', 18 => 'dieciocho', 19 => 'diecinueve', 20 => 'veinte'
-                        ];
-                        $enLetras = $numerosEnLetras[$folios] ?? $folios;
-                        $unidad = $folios == 1 ? 'hoja' : 'hojas';
-                    @endphp
-                    {{ $folios }} ({{ $enLetras }}) {{ $unidad }}
+                    {{ $expediente->folios ?? 1 }} {{ ($expediente->folios ?? 1) == 1 ? 'hoja' : 'hojas' }}
                 </span>
             </div>
         </div>
@@ -341,9 +330,12 @@
         <button onclick="window.print()" class="btn btn-primary">
             Imprimir Cargo
         </button>
-        <a href="{{ route('mesa-partes.index') }}" class="btn btn-secondary">
+        <!--<a href="{{ route('mesa-partes.index') }}" class="btn btn-secondary">
             Volver a Mesa de Partes
-        </a>
+        </a>-->
+        <button onclick="window.close()" class="btn btn-secondary">
+            Cerrar
+        </button>
     </div>
 </body>
 </html>

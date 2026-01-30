@@ -9,7 +9,15 @@
             <div class="card">
                 <div class="card-header">
                     <h4>Expediente: {{ $expediente->codigo_expediente }}</h4>
-                    <span class="badge bg-{{ $expediente->estado == 'derivado' ? 'warning' : 'info' }}">
+                    @php
+                        $badgeClass = match($expediente->estado) {
+                            'asignado' => 'primary',
+                            'en_proceso' => 'info',
+                            'en_revision' => 'warning',
+                            default => 'secondary'
+                        };
+                    @endphp
+                    <span class="badge bg-{{ $badgeClass }}">
                         {{ $expediente->getEstadoFormateado() }}
                     </span>
                 </div>
@@ -101,16 +109,22 @@
                     </a>
                 </div>
             </div>
-            @if($expediente->estado == 'derivado')
+            @if($expediente->estado == 'asignado')
             <div class="card">
-                <div class="card-header">
-                    <h5>Recibir Expediente</h5>
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-inbox me-2"></i>Expediente Asignado</h5>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        El Jefe de Área le ha asignado este expediente para su atención.
+                    </div>
                     <form method="POST" action="{{ route('funcionario.recibir', $expediente) }}">
                         @csrf
                         @method('PUT')
-                        <button type="submit" class="btn btn-success w-100">Recibir Expediente</button>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check-circle me-1"></i> Recibir y Comenzar a Procesar
+                        </button>
                     </form>
                 </div>
             </div>
@@ -122,14 +136,36 @@
                     <h5>Acciones</h5>
                 </div>
                 <div class="card-body">
-                    <a href="{{ route('funcionario.procesar', $expediente) }}" class="btn btn-primary w-100 mb-2">Procesar</a>
-                    <button type="button" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#resolverModal">Resolver</button>
-                    <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#solicitarInfoModal">Solicitar Info</button>
-                    <a href="{{ route('funcionario.derivar-form', $expediente) }}" class="btn btn-outline-warning w-100 mb-2">
-                        <i class="fas fa-share"></i> Derivar a Otra Área
+                    <a href="{{ route('funcionario.procesar', $expediente) }}" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-edit me-1"></i> Procesar Expediente
                     </a>
-                    <a href="{{ route('funcionario.historial', $expediente) }}" class="btn btn-outline-info w-100 mb-2">Ver Historial</a>
-                    <a href="{{ route('funcionario.documentos', $expediente) }}" class="btn btn-outline-secondary w-100">Gestionar Documentos</a>
+
+                    @php
+                        $tieneDocumentoAdjunto = $expediente->documentos()
+                            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
+                            ->exists();
+                    @endphp
+
+                    <button type="button" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#resolverModal">
+                        <i class="fas fa-paper-plane me-1"></i> Devolver al Jefe
+                    </button>
+
+                    @if(!$tieneDocumentoAdjunto)
+                    <div class="alert alert-warning py-2 small mb-2">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Debe adjuntar un documento antes de devolver al jefe.
+                    </div>
+                    @endif
+
+                    <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#solicitarInfoModal">
+                        <i class="fas fa-question-circle me-1"></i> Solicitar Info al Ciudadano
+                    </button>
+                    <a href="{{ route('funcionario.historial', $expediente) }}" class="btn btn-outline-info w-100 mb-2">
+                        <i class="fas fa-history me-1"></i> Ver Historial
+                    </a>
+                    <a href="{{ route('funcionario.documentos', $expediente) }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-folder-open me-1"></i> Gestionar Documentos
+                    </a>
                 </div>
             </div>
 
@@ -163,23 +199,56 @@
     </div>
 </div>
 
-<!-- Modal Resolver -->
+<!-- Modal Devolver al Jefe -->
 <div class="modal fade" id="resolverModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Resolver Expediente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-paper-plane me-2"></i>Devolver al Jefe de Área</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ route('funcionario.resolver', $expediente) }}">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
-                    <p>¿Está seguro de marcar este expediente como resuelto?</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        El expediente será enviado al <strong>Jefe de Área</strong> para su revisión y aprobación.
+                    </div>
+
+                    @php
+                        $docsAdjuntos = $expediente->documentos()
+                            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
+                            ->get();
+                    @endphp
+
+                    @if($docsAdjuntos->count() > 0)
+                    <p><strong>Documentos adjuntos:</strong></p>
+                    <ul class="list-group list-group-flush mb-3">
+                        @foreach($docsAdjuntos as $doc)
+                        <li class="list-group-item py-1">
+                            <i class="fas fa-file-pdf text-danger me-1"></i>
+                            {{ $doc->nombre }} <span class="badge bg-secondary">{{ ucfirst($doc->tipo) }}</span>
+                        </li>
+                        @endforeach
+                    </ul>
+                    @else
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Sin documentos adjuntos.</strong> Debe adjuntar al menos un documento (informe, respuesta, resolución u oficio) antes de devolver.
+                    </div>
+                    @endif
+
+                    <p class="text-muted small">
+                        <i class="fas fa-history me-1"></i>
+                        Se registrará en el historial: quién devolvió, fecha/hora y documento adjunto.
+                    </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Resolver</button>
+                    <button type="submit" class="btn btn-success" {{ $docsAdjuntos->count() === 0 ? 'disabled' : '' }}>
+                        <i class="fas fa-paper-plane me-1"></i> Devolver al Jefe
+                    </button>
                 </div>
             </form>
         </div>

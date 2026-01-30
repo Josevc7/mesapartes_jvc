@@ -63,7 +63,7 @@ class JefeAreaController extends Controller
 
         // Estadísticas adicionales para el dashboard
         $stats['por_aprobar'] = Expediente::where('id_area', $areaId)
-            ->where('estado', 'resuelto')
+            ->whereIn('estado', ['en_revision', 'resuelto'])
             ->count();
 
         $stats['sin_asignar'] = Expediente::where('id_area', $areaId)
@@ -74,7 +74,7 @@ class JefeAreaController extends Controller
         // Expedientes urgentes
         $stats['urgentes'] = Expediente::where('id_area', $areaId)
             ->where('prioridad', 'urgente')
-            ->whereNotIn('estado', ['archivado', 'resuelto', 'aprobado'])
+            ->whereNotIn('estado', ['archivado', 'en_revision', 'resuelto', 'aprobado'])
             ->count();
 
         // Expedientes críticos (vencidos o por vencer)
@@ -435,27 +435,76 @@ class JefeAreaController extends Controller
     {
         $this->authorize('approve', $expediente);
 
+        $estadoAnterior = $expediente->estado;
+        $funcionario = $expediente->funcionarioAsignado;
+
         $expediente->update([
             'estado' => 'aprobado',
             'aprobado_por' => auth()->user()->id,
             'fecha_aprobacion' => now()
         ]);
 
-        $expediente->agregarHistorial('Expediente aprobado por Jefe de Área', auth()->user()->id);
+        // Historial detallado
+        $descripcion = sprintf(
+            'Jefe de Área %s aprobó el expediente. Estado anterior: %s. Funcionario responsable: %s.',
+            auth()->user()->name,
+            $estadoAnterior,
+            $funcionario->name ?? 'N/A'
+        );
 
-        return back()->with('success', 'Expediente aprobado correctamente');
+        $expediente->agregarHistorial($descripcion, auth()->user()->id);
+
+        return back()->with('success', 'Expediente aprobado correctamente. Ahora puede resolver/finalizar el trámite.');
     }
 
     /**
-     * Archivar expediente aprobado
+     * Resolver/Finalizar expediente aprobado
+     * Cambia de aprobado → resuelto
+     */
+    public function resolverExpediente(Request $request, Expediente $expediente)
+    {
+        $this->authorize('update', $expediente);
+
+        // Solo se puede resolver desde estado aprobado
+        if ($expediente->estado !== 'aprobado') {
+            return back()->with('error', 'Solo se pueden resolver expedientes en estado aprobado.');
+        }
+
+        $request->validate([
+            'observaciones_resolucion' => 'nullable|string|max:500'
+        ]);
+
+        $expediente->update([
+            'estado' => 'resuelto',
+            'fecha_resolucion' => now(),
+            'observaciones_resolucion' => $request->observaciones_resolucion
+        ]);
+
+        $descripcion = sprintf(
+            'Jefe de Área %s resolvió/finalizó el expediente. El trámite ha cumplido su finalidad.',
+            auth()->user()->name
+        );
+
+        if ($request->observaciones_resolucion) {
+            $descripcion .= ' Observaciones: ' . $request->observaciones_resolucion;
+        }
+
+        $expediente->agregarHistorial($descripcion, auth()->user()->id);
+
+        return back()->with('success', 'Expediente resuelto/finalizado correctamente. Ahora puede archivarlo.');
+    }
+
+    /**
+     * Archivar expediente resuelto
+     * Solo se puede archivar desde estado resuelto
      */
     public function archivar(Expediente $expediente)
     {
         $this->authorize('update', $expediente);
 
-        // Verificar que el expediente esté aprobado
-        if ($expediente->estado !== 'aprobado') {
-            return back()->with('error', 'Solo se pueden archivar expedientes aprobados.');
+        // Verificar que el expediente esté resuelto
+        if ($expediente->estado !== 'resuelto') {
+            return back()->with('error', 'Solo se pueden archivar expedientes en estado resuelto.');
         }
 
         $expediente->update([
@@ -954,14 +1003,14 @@ class JefeAreaController extends Controller
         }
 
         $estadisticas = [
-            'pendientes_validacion' => (clone $queryEstadisticas)->where('estado', 'Resuelto')->count(),
-            'validados_hoy' => (clone $queryEstadisticas)->where('estado', 'Aprobado')->whereDate('updated_at', today())->count(),
-            'rechazados_hoy' => (clone $queryEstadisticas)->where('estado', 'Rechazado')->whereDate('updated_at', today())->count(),
+            'pendientes_validacion' => (clone $queryEstadisticas)->whereIn('estado', ['en_revision', 'resuelto'])->count(),
+            'validados_hoy' => (clone $queryEstadisticas)->where('estado', 'aprobado')->whereDate('updated_at', today())->count(),
+            'rechazados_hoy' => (clone $queryEstadisticas)->where('estado', 'rechazado')->whereDate('updated_at', today())->count(),
             'requieren_autorizacion' => 0
         ];
 
         $expedientesPendientes = $queryExpedientes
-            ->where('estado', 'Resuelto')
+            ->whereIn('estado', ['en_revision', 'resuelto'])
             ->with(['funcionarioAsignado', 'tipoTramite', 'area'])
             ->orderBy('fecha_resolucion', 'asc')
             ->get();
@@ -1183,7 +1232,7 @@ class JefeAreaController extends Controller
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'required|date|after:fecha_inicio'
         ]);
-        
+
         \App\Models\Meta::create([
             'id_area' => auth()->user()->id_area,
             'descripcion' => $request->descripcion,
@@ -1193,7 +1242,60 @@ class JefeAreaController extends Controller
             'fecha_inicio' => $request->fecha_inicio,
             'fecha_fin' => $request->fecha_fin
         ]);
-        
+
         return back()->with('success', 'Meta creada correctamente');
+    }
+
+    /**
+     * Mostrar formulario de derivación
+     */
+    public function derivarForm(Expediente $expediente)
+    {
+        $this->authorize('update', $expediente);
+
+        // Obtener todas las áreas activas para derivar
+        $areas = Area::where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('jefe-area.derivar', compact('expediente', 'areas'));
+    }
+
+    /**
+     * Derivar expediente a otra área
+     */
+    public function derivar(Request $request, Expediente $expediente)
+    {
+        $this->authorize('update', $expediente);
+
+        $request->validate([
+            'id_area_destino' => 'required|exists:areas,id_area',
+            'id_funcionario_destino' => 'nullable|exists:users,id',
+            'observaciones' => 'required|string|max:500',
+            'plazo_dias' => 'required|integer|min:1|max:30'
+        ], [
+            'id_area_destino.required' => 'Debe seleccionar un área de destino',
+            'observaciones.required' => 'Debe ingresar las observaciones de la derivación',
+            'plazo_dias.required' => 'Debe especificar el plazo en días'
+        ]);
+
+        try {
+            $this->derivacionService->derivarExpediente(
+                $expediente,
+                $request->id_area_destino,
+                $request->id_funcionario_destino,
+                $request->plazo_dias,
+                $expediente->prioridad ?? 'normal',
+                $request->observaciones
+            );
+
+            $area_destino = Area::find($request->id_area_destino);
+
+            return redirect()->route('jefe-area.expedientes')
+                ->with('success', 'Expediente derivado correctamente a ' . $area_destino->nombre);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al derivar expediente: ' . $e->getMessage());
+        }
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mesa de Partes DRTC - Iniciar Sesion</title>
+    <title>Consulta Publica de Expedientes - DRTC</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -173,7 +173,7 @@
             color: #6c757d;
             font-size: 0.95rem;
         }
-        .form-control {
+        .form-control, .form-select {
             border: 2px solid #e9ecef;
             border-radius: 12px;
             padding: 15px 20px;
@@ -181,7 +181,7 @@
             transition: all 0.3s ease;
             background: white;
         }
-        .form-control:focus {
+        .form-control:focus, .form-select:focus {
             border-color: #cc5500;
             box-shadow: 0 0 0 0.2rem rgba(204, 85, 0, 0.15);
         }
@@ -199,7 +199,7 @@
         .input-group:focus-within .input-group-text {
             border-color: #cc5500;
         }
-        .btn-login {
+        .btn-consulta {
             background: linear-gradient(135deg, #cc5500 0%, #ff7700 100%);
             border: none;
             padding: 15px;
@@ -209,21 +209,21 @@
             font-size: 1.1rem;
             color: white;
         }
-        .btn-login:hover {
+        .btn-consulta:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(204, 85, 0, 0.4);
             color: white;
         }
-        .btn-register {
-            border: 2px solid #cc5500;
-            color: #cc5500;
+        .btn-volver {
+            border: 2px solid #6c757d;
+            color: #6c757d;
             padding: 12px 24px;
             border-radius: 12px;
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        .btn-register:hover {
-            background: #cc5500;
+        .btn-volver:hover {
+            background: #6c757d;
             color: white;
         }
         .divider {
@@ -309,23 +309,23 @@
                     <img src="{{ asset('images/logo-drtc.png') }}" alt="Logo DRTC">
                 </div>
                 <h1 class="logo-title">Mesa de Partes DRTC-Apurimac</h1>
-                <p class="logo-subtitle"> Sistema de Trámite Documentario - DRTC Apurímac" </p>
+                <p class="logo-subtitle">Sistema de Tramite Documentario - DRTC Apurimac</p>
 
                 <ul class="logo-features list-unstyled">
-                    <li><i class="fas fa-check-circle"></i> Registro de expedientes por via virtual</li>
-                    <li><i class="fas fa-check-circle"></i> Seguimiento en tiempo real</li>
-                    <li><i class="fas fa-check-circle"></i> Notificaciones automaticas</li>
-                    <li><i class="fas fa-check-circle"></i> Gestion de expediente segura</li>
+                    <li><i class="fas fa-search"></i> Consulta el estado de tu expediente</li>
+                    <li><i class="fas fa-clock"></i> Seguimiento en tiempo real</li>
+                    <li><i class="fas fa-file-alt"></i> Historial de movimientos</li>
+                    <li><i class="fas fa-lock"></i> Acceso seguro con tu documento</li>
                 </ul>
             </div>
 
             <div class="text-center mt-auto pt-4" style="position: relative; z-index: 2;">
                 <div class="d-flex align-items-center justify-content-center mb-2">
                     <i class="fas fa-shield-alt text-white me-2"></i>
-                    <small class="text-white opacity-90 fw-semibold">Acceso Seguro</small>
+                    <small class="text-white opacity-90 fw-semibold">Consulta Segura</small>
                 </div>
                 <small class="text-white opacity-75">
-                    © 2026 Direccion Regional de Transportes y Comunicaciones Apurimac
+                    2026 Direccion Regional de Transportes y Comunicaciones Apurimac
                 </small>
             </div>
         </div>
@@ -334,8 +334,8 @@
         <div class="form-panel">
             <div class="form-container">
                 <div class="form-header">
-                    <h2><i class="fas fa-sign-in-alt me-2" style="color: #cc5500;"></i>Iniciar Sesion</h2>
-                    <p>Ingresa tus credenciales para acceder al sistema</p>
+                    <h2><i class="fas fa-search me-2" style="color: #cc5500;"></i>Consulta Publica de Expedientes</h2>
+                    <p>Ingresa los datos para consultar el estado de tu tramite</p>
                 </div>
 
                 @if ($errors->any())
@@ -346,58 +346,93 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('login') }}">
+                @if (session('error'))
+                    <div class="alert alert-danger border-0 mb-4" style="border-radius: 12px;">
+                        <p class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}</p>
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('seguimiento.buscar') }}">
                     @csrf
                     <div class="mb-4">
-                        <label for="email" class="form-label fw-semibold text-dark mb-2">
-                            <i class="fas fa-envelope me-2" style="color: #cc5500;"></i>Correo Electronico
+                        <label for="codigo_expediente" class="form-label fw-semibold text-dark mb-2">
+                            <i class="fas fa-file-alt me-2" style="color: #cc5500;"></i>Numero de Expediente <span class="text-danger">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="fas fa-envelope text-muted"></i>
+                                <i class="fas fa-hashtag text-muted"></i>
                             </span>
-                            <input type="email" class="form-control" id="email" name="email"
-                                   value="{{ old('email') }}" placeholder="usuario@ejemplo.com" required>
+                            <input type="text" class="form-control @error('codigo_expediente') is-invalid @enderror"
+                                   id="codigo_expediente" name="codigo_expediente"
+                                   value="{{ old('codigo_expediente') }}"
+                                   placeholder="Ej: 2025-000001" required>
                         </div>
+                        <small class="form-text text-muted ms-2">
+                            <i class="fas fa-info-circle me-1"></i>Ingrese el codigo completo o parcial
+                        </small>
+                        @error('codigo_expediente')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
+
                     <div class="mb-4">
-                        <label for="password" class="form-label fw-semibold text-dark mb-2">
-                            <i class="fas fa-lock me-2" style="color: #cc5500;"></i>Contrasena
+                        <label for="tipo_documento" class="form-label fw-semibold text-dark mb-2">
+                            <i class="fas fa-id-card me-2" style="color: #cc5500;"></i>Tipo de Documento <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select @error('tipo_documento') is-invalid @enderror"
+                                id="tipo_documento" name="tipo_documento" required onchange="cambiarTipoDocumento()">
+                            <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI (Persona Natural)</option>
+                            <option value="RUC" {{ old('tipo_documento') == 'RUC' ? 'selected' : '' }}>RUC (Persona Juridica)</option>
+                        </select>
+                        @error('tipo_documento')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="numero_documento" class="form-label fw-semibold text-dark mb-2">
+                            <i class="fas fa-keyboard me-2" style="color: #cc5500;"></i>
+                            <span id="label_documento">DNI</span> del Solicitante <span class="text-danger">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="fas fa-lock text-muted"></i>
+                                <i class="fas fa-user text-muted"></i>
                             </span>
-                            <input type="password" class="form-control" id="password" name="password"
-                                   placeholder="Ingrese su contrasena" required>
+                            <input type="text" class="form-control @error('numero_documento') is-invalid @enderror"
+                                   id="numero_documento" name="numero_documento"
+                                   value="{{ old('numero_documento') }}"
+                                   placeholder="Ingrese su documento" maxlength="8" required
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                         </div>
+                        <small id="ayuda_documento" class="form-text text-muted ms-2">
+                            <i class="fas fa-info-circle me-1"></i>Ingrese 8 digitos
+                        </small>
+                        @error('numero_documento')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
+
                     <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-login">
-                            <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesion
+                        <button type="submit" class="btn btn-consulta">
+                            <i class="fas fa-search me-2"></i>Consultar Expediente
                         </button>
                     </div>
                 </form>
 
                 <div class="divider">
-                    <span>¿No tienes cuenta?</span>
+                    <span>Opciones</span>
                 </div>
 
                 <div class="text-center">
-                    <a href="{{ route('register') }}" class="btn btn-register">
-                        <i class="fas fa-user-plus me-2"></i>Registrate como Ciudadano
+                    <a href="{{ route('login') }}" class="btn btn-volver">
+                        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesion
                     </a>
                     <div class="mt-3">
-                        <a href="{{ route('seguimiento.consulta-publica') }}" class="btn" style="border-radius: 12px; padding: 10px 20px; background-color: #cc5500; color: white; border: none;">
-                            <i class="fas fa-search me-2"></i>Consultar  Expediente
-                        </a>
-                    </div>
-                    <!--<div class="mt-2">
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Registro disponible solo para ciudadanos
+                            Ingrese el numero de expediente y su documento para consultar el estado de su tramite
                         </small>
-                    </div> -->
+                    </div>
                 </div>
 
             </div>
@@ -405,7 +440,29 @@
     </div>
 
     <script>
+        function cambiarTipoDocumento() {
+            const tipo = document.getElementById('tipo_documento').value;
+            const inputDoc = document.getElementById('numero_documento');
+            const labelDoc = document.getElementById('label_documento');
+            const ayudaDoc = document.getElementById('ayuda_documento');
+
+            if (tipo === 'RUC') {
+                inputDoc.maxLength = 11;
+                inputDoc.placeholder = 'Ingrese RUC';
+                labelDoc.textContent = 'RUC';
+                ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 11 digitos';
+            } else {
+                inputDoc.maxLength = 8;
+                inputDoc.placeholder = 'Ingrese DNI';
+                labelDoc.textContent = 'DNI';
+                ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 8 digitos';
+            }
+            inputDoc.value = '';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            cambiarTipoDocumento();
+
             const formContainer = document.querySelector('.form-container');
             formContainer.style.opacity = '0';
             formContainer.style.transform = 'translateX(30px)';

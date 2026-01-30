@@ -102,6 +102,7 @@ Route::get('/consulta/{codigo}', [SeguimientoController::class, 'consulta'])->na
 Route::get('/consulta', [SeguimientoController::class, 'consultaForm'])->name('seguimiento.form')->middleware('throttle:10,1');
 Route::post('/consulta/buscar', [SeguimientoController::class, 'buscar'])->name('seguimiento.buscar')->middleware('throttle:10,1');
 Route::get('/seguimiento/consulta', [SeguimientoController::class, 'consultaForm'])->name('seguimiento.consulta-form')->middleware('throttle:10,1');
+Route::get('/consulta-publica', [SeguimientoController::class, 'consultaPublicaForm'])->name('seguimiento.consulta-publica')->middleware('throttle:10,1');
 
 // API para obtener movimientos de un expediente (usado en consulta pública)
 Route::get('/api/seguimiento/{expediente}/movimientos', [SeguimientoController::class, 'getMovimientos'])
@@ -199,6 +200,7 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
     Route::post('/expedientes/{expediente}/aprobar', [JefeAreaController::class, 'aprobar'])->name('jefe-area.aprobar');
     Route::post('/expedientes/{expediente}/rechazar', [JefeAreaController::class, 'rechazar'])->name('jefe-area.rechazar');
     Route::post('/expedientes/{expediente}/recepcionar', [JefeAreaController::class, 'recepcionar'])->name('jefe-area.recepcionar');
+    Route::post('/expedientes/{expediente}/resolver', [JefeAreaController::class, 'resolverExpediente'])->name('jefe-area.resolver');
     Route::post('/expedientes/{expediente}/archivar', [JefeAreaController::class, 'archivar'])->name('jefe-area.archivar');
 
     // Asignación y Reasignación de expedientes
@@ -228,6 +230,10 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
     Route::get('/conflictos/{expediente}/detalle', [JefeAreaController::class, 'detalleConflicto'])->name('jefe-area.detalle-conflicto');
     Route::post('/conflictos/{expediente}/extender-plazo', [JefeAreaController::class, 'extenderPlazo'])->name('jefe-area.extender-plazo');
     Route::post('/conflictos/{expediente}/autorizar', [JefeAreaController::class, 'autorizarEspecial'])->name('jefe-area.autorizar-especial');
+
+    // Derivación de expedientes
+    Route::get('/expedientes/{expediente}/derivar', [JefeAreaController::class, 'derivarForm'])->name('jefe-area.derivar-form');
+    Route::post('/expedientes/{expediente}/derivar', [JefeAreaController::class, 'derivar'])->name('jefe-area.derivar');
 });
 
 // RUTAS INTERNAS (Funcionarios - Resolver y Procesar)

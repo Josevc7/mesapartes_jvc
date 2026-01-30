@@ -202,17 +202,125 @@
                             <i class="fas fa-user-edit me-1"></i> Reasignar
                         </button>
                     </form>
+
+                    <hr>
+                    <!-- Botón Derivar a otra área -->
+                    @if(in_array($expediente->estado, ['derivado', 'recepcionado', 'asignado', 'en_proceso']))
+                    <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#modalDerivar">
+                        <i class="fas fa-share me-1"></i> Derivar a otra Área
+                    </button>
+                    @endif
                 </div>
             </div>
 
-            <!-- Acciones -->
-            @if($expediente->estado === 'resuelto')
+            <!-- Modal Derivar -->
+            <div class="modal fade" id="modalDerivar" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ route('jefe-area.derivar', $expediente) }}">
+                            @csrf
+                            <div class="modal-header bg-warning">
+                                <h5 class="modal-title"><i class="fas fa-share me-2"></i>Derivar Expediente a otra Área</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Está derivando el expediente <strong>{{ $expediente->codigo_expediente }}</strong> a otra área.
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Área de Destino *</label>
+                                        <select name="id_area_destino" id="areaDestinoSelect" class="form-select" required>
+                                            <option value="">-- Seleccione Área --</option>
+                                            @php
+                                                $areas = \App\Models\Area::where('activo', true)->orderBy('nombre')->get();
+                                            @endphp
+                                            @foreach($areas as $area)
+                                                <option value="{{ $area->id_area }}">{{ $area->nombre }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Funcionario (Opcional)</label>
+                                        <select name="id_funcionario_destino" id="funcionarioDestinoSelect" class="form-select">
+                                            <option value="">-- Sin asignar específico --</option>
+                                        </select>
+                                        <small class="text-muted">El jefe del área destino podrá asignarlo</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Plazo (días) *</label>
+                                        <input type="number" name="plazo_dias" class="form-control" value="5" min="1" max="30" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Prioridad</label>
+                                        <input type="text" class="form-control" value="{{ ucfirst($expediente->prioridad ?? 'Normal') }}" disabled>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Observaciones / Motivo de Derivación *</label>
+                                    <textarea name="observaciones" class="form-control" rows="3" required minlength="10"
+                                              placeholder="Explique el motivo de la derivación..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-share me-1"></i> Derivar Expediente
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================= -->
+            <!-- ACCIONES SEGÚN ESTADO DEL EXPEDIENTE -->
+            <!-- ========================================= -->
+
+            <!-- ESTADO: EN_REVISION - Funcionario devolvió, jefe debe aprobar o rechazar -->
+            @if($expediente->estado === 'en_revision')
             <div class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Acciones de Validación</h5>
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-user-clock me-2"></i>Pendiente de Revisión</h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">Este expediente está listo para validación.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Expediente devuelto por el funcionario.</strong>
+                        <br>Revise los documentos adjuntos y decida si aprobar o devolver para correcciones.
+                    </div>
+
+                    @php
+                        $documentosFuncionario = $expediente->documentos()
+                            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
+                            ->get();
+                    @endphp
+
+                    @if($documentosFuncionario->count() > 0)
+                    <div class="mb-3">
+                        <strong><i class="fas fa-paperclip me-1"></i> Documentos del Funcionario:</strong>
+                        <ul class="list-group list-group-flush mt-2">
+                            @foreach($documentosFuncionario as $doc)
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                <span>
+                                    <i class="fas fa-file-pdf text-danger me-1"></i>
+                                    {{ $doc->nombre }}
+                                    <span class="badge bg-secondary">{{ ucfirst($doc->tipo) }}</span>
+                                </span>
+                                <a href="{{ asset('storage/' . $doc->ruta_pdf) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
 
                     @if($expediente->observaciones_funcionario)
                     <div class="alert alert-secondary">
@@ -229,10 +337,125 @@
                     </form>
 
                     <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#modalRechazar">
-                        <i class="fas fa-times me-1"></i> Rechazar Expediente
+                        <i class="fas fa-undo me-1"></i> Devolver al Funcionario (Observar)
                     </button>
                 </div>
             </div>
+            @endif
+
+            <!-- ESTADO: APROBADO - Jefe aprobó, ahora puede resolver/finalizar -->
+            @if($expediente->estado === 'aprobado')
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Expediente Aprobado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check me-1"></i>
+                        <strong>Contenido validado.</strong>
+                        <br>Ahora puede resolver/finalizar el trámite o derivar a otra área si es necesario.
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalResolver">
+                        <i class="fas fa-gavel me-1"></i> Resolver / Finalizar Trámite
+                    </button>
+
+                    <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalDerivar">
+                        <i class="fas fa-share me-1"></i> Derivar a otra Área
+                    </button>
+
+                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#modalRechazar">
+                        <i class="fas fa-undo me-1"></i> Devolver al Funcionario
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Resolver/Finalizar -->
+            <div class="modal fade" id="modalResolver" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ route('jefe-area.resolver', $expediente) }}">
+                            @csrf
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title"><i class="fas fa-gavel me-2"></i>Resolver / Finalizar Trámite</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    El expediente pasará a estado <strong>RESUELTO</strong>. Esto significa que el trámite ha cumplido su finalidad y la decisión está tomada.
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Observaciones de la Resolución (opcional)</label>
+                                    <textarea name="observaciones_resolucion" class="form-control" rows="3"
+                                              placeholder="Agregue observaciones sobre la resolución del trámite..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-gavel me-1"></i> Resolver Trámite
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- ESTADO: RESUELTO - Trámite finalizado, solo falta archivar -->
+            @if($expediente->estado === 'resuelto')
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-flag-checkered me-2"></i>Trámite Resuelto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-flag-checkered me-1"></i>
+                        <strong>El trámite ha sido resuelto.</strong>
+                        <br>La decisión final está tomada. Puede archivar el expediente para cerrar definitivamente.
+                    </div>
+
+                    @if($expediente->observaciones_resolucion)
+                    <div class="alert alert-secondary">
+                        <strong>Observaciones de la Resolución:</strong>
+                        <p class="mb-0">{{ $expediente->observaciones_resolucion }}</p>
+                    </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('jefe-area.archivar', $expediente) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-secondary w-100">
+                            <i class="fas fa-archive me-1"></i> Archivar Expediente
+                        </button>
+                    </form>
+                    <small class="text-muted d-block mt-2 text-center">
+                        <i class="fas fa-lock me-1"></i> Una vez archivado, el expediente será solo de lectura.
+                    </small>
+                </div>
+            </div>
+            @endif
+
+            <!-- ESTADO: ARCHIVADO - Solo lectura -->
+            @if($expediente->estado === 'archivado')
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-archive me-2"></i>Expediente Archivado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-secondary">
+                        <i class="fas fa-lock me-1"></i>
+                        <strong>Trámite cerrado definitivamente.</strong>
+                        <br>Este expediente está archivado y es solo de lectura.
+                    </div>
+                    <p class="text-muted small mb-0">
+                        <i class="fas fa-calendar me-1"></i>
+                        Archivado el: {{ $expediente->fecha_archivo ? $expediente->fecha_archivo->format('d/m/Y H:i') : 'N/A' }}
+                    </p>
+                </div>
+            </div>
+            @endif
 
             <!-- Modal Rechazar -->
             <div class="modal fade" id="modalRechazar" tabindex="-1">
@@ -324,4 +547,37 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const areaSelect = document.getElementById('areaDestinoSelect');
+    const funcionarioSelect = document.getElementById('funcionarioDestinoSelect');
+
+    if (areaSelect && funcionarioSelect) {
+        areaSelect.addEventListener('change', function() {
+            const areaId = this.value;
+            funcionarioSelect.innerHTML = '<option value="">-- Cargando... --</option>';
+
+            if (areaId) {
+                fetch(`/api/funcionarios/${areaId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        funcionarioSelect.innerHTML = '<option value="">-- Sin asignar específico --</option>';
+                        data.forEach(func => {
+                            funcionarioSelect.innerHTML += `<option value="${func.id}">${func.name}</option>`;
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        funcionarioSelect.innerHTML = '<option value="">-- Error al cargar --</option>';
+                    });
+            } else {
+                funcionarioSelect.innerHTML = '<option value="">-- Sin asignar específico --</option>';
+            }
+        });
+    }
+});
+</script>
+@endpush
 @endsection

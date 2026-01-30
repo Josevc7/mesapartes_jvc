@@ -39,6 +39,14 @@ class SeguimientoController extends Controller
     }
 
     /**
+     * Formulario de consulta pública con diseño estilo login
+     */
+    public function consultaPublicaForm()
+    {
+        return view('seguimiento.consulta-publica');
+    }
+
+    /**
      * Consulta directa por código (redirige al formulario con el código pre-llenado)
      * Esta ruta es para acceso directo por URL
      */

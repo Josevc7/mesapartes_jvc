@@ -259,14 +259,14 @@
                             <option value="archivado" {{ request('estado') == 'archivado' ? 'selected' : '' }}>Archivado</option>
                         </select>
                     </div>
-                    <div class="col-md-1">
+                    {{-- <div class="col-md-1">
                         <label class="form-label mb-1 small fw-bold">Canal</label>
                         <select name="canal" class="form-select form-select-sm">
                             <option value="">Todos</option>
                             <option value="presencial" {{ request('canal') == 'presencial' ? 'selected' : '' }}>Presencial</option>
                             <option value="virtual" {{ request('canal') == 'virtual' ? 'selected' : '' }}>Virtual</option>
                         </select>
-                    </div>
+                    </div> --}}
                     <div class="col-md-2">
                         <label class="form-label mb-1 small fw-bold">Area</label>
                         <select name="area" class="form-select form-select-sm">
@@ -309,8 +309,8 @@
                 <table class="table table-striped table-hover table-expedientes mb-0">
                     <thead>
                         <tr>
-                            <th style="width: 120px;">Codigo</th>
-                            <th style="width: 80px;">Canal</th>
+                            <th style="width: 120px;">Cod_Expediente</th>
+                            {{-- <th style="width: 80px;">Canal</th> --}}
                             <th style="width: 110px;">Dni</th>
                             <th style="width: 180px;">Solicitante</th>
                             <th style="width: 200px;">Asunto</th>
@@ -334,7 +334,7 @@
                                 @endif
                             </td>
 
-                            <!-- Canal -->
+                            {{-- <!-- Canal -->
                             <td>
                                 @if($expediente->canal == 'virtual')
                                     <span class="badge bg-light text-primary border border-primary">
@@ -345,7 +345,7 @@
                                         <i class="fas fa-building"></i> Presencial
                                     </span>
                                 @endif
-                            </td>
+                            </td> --}}
 
                             <!-- Documento -->
                             <td class="documento-info">
