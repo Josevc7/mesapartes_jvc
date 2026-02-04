@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\DB;
 
 class DerivacionService
 {
+    protected NumeracionService $numeracionService;
+
+    public function __construct(NumeracionService $numeracionService)
+    {
+        $this->numeracionService = $numeracionService;
+    }
     /**
      * Crea una nueva derivación de expediente
      */
@@ -32,11 +38,12 @@ class DerivacionService
         ) {
             $fechaLimite = now()->addDays($plazoDias);
 
-            // Crear la derivación
+            // Crear la derivación (sin número de registro aún - se genera al recepcionar)
             $derivacion = Derivacion::create([
                 'id_expediente' => $expediente->id_expediente,
                 'id_area_origen' => $expediente->id_area ?? auth()->user()->id_area,
                 'id_area_destino' => $areaDestinoId,
+                'numero_registro_area' => null,
                 'id_funcionario_origen' => auth()->id(),
                 'id_funcionario_asignado' => $funcionarioAsignadoId,
                 'fecha_derivacion' => now(),
@@ -121,14 +128,45 @@ class DerivacionService
     }
 
     /**
-     * Marca una derivación como atendida
+     * Recepciona un expediente derivado - genera el número de registro del área
+     * Este es el momento oficial donde el área acepta el documento
+     */
+    public function recepcionarExpediente(Derivacion $derivacion): Derivacion
+    {
+        return DB::transaction(function () use ($derivacion) {
+            // Generar número de registro para el área que recepciona
+            $numeroRegistroArea = $this->numeracionService->generarCodigoPorArea($derivacion->id_area_destino);
+
+            $derivacion->update([
+                'estado' => 'recepcionado',
+                'fecha_recepcion' => now(),
+                'numero_registro_area' => $numeroRegistroArea
+            ]);
+
+            // Actualizar estado del expediente
+            $derivacion->expediente->update([
+                'estado' => 'en_proceso'
+            ]);
+
+            $areaDestino = $derivacion->areaDestino->nombre ?? 'Área';
+            $derivacion->expediente->agregarHistorial(
+                "Expediente recepcionado por {$areaDestino}. Número de registro: {$numeroRegistroArea}",
+                auth()->id()
+            );
+
+            return $derivacion;
+        });
+    }
+
+    /**
+     * Marca una derivación como atendida (después de recepcionar)
      */
     public function marcarComoAtendida(Derivacion $derivacion): void
     {
         DB::transaction(function () use ($derivacion) {
             $derivacion->update([
                 'estado' => 'atendido',
-                'fecha_recepcion' => now()
+                'fecha_atencion' => now()
             ]);
 
             $derivacion->expediente->agregarHistorial(
@@ -145,6 +183,10 @@ class DerivacionService
     {
         $areaDestino = $derivacion->areaDestino->nombre ?? 'Sin área';
         $mensaje = "Expediente derivado a {$areaDestino}";
+
+        if ($derivacion->numero_registro_area) {
+            $mensaje .= " (Registro: {$derivacion->numero_registro_area})";
+        }
 
         if ($derivacion->funcionarioAsignado) {
             $funcionario = $derivacion->funcionarioAsignado->name;
@@ -205,7 +247,7 @@ class DerivacionService
     public function obtenerAreasParaDerivacion(User $usuario): array
     {
         $areaUsuario = $usuario->area;
-        $rol = $usuario->rol?->nombre ?? '';
+        $rol = $usuario->role?->nombre ?? '';
 
         // Administrador o Mesa de Partes: todas las áreas activas
         if (in_array($rol, ['Administrador', 'Mesa de Partes'])) {

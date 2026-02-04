@@ -234,6 +234,10 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
     // Derivación de expedientes
     Route::get('/expedientes/{expediente}/derivar', [JefeAreaController::class, 'derivarForm'])->name('jefe-area.derivar-form');
     Route::post('/expedientes/{expediente}/derivar', [JefeAreaController::class, 'derivar'])->name('jefe-area.derivar');
+
+    // AJAX para derivación
+    Route::get('/areas-para-derivacion', [JefeAreaController::class, 'areasParaDerivacion'])->name('jefe-area.areas-para-derivacion');
+    Route::get('/areas/{area}/funcionarios', [JefeAreaController::class, 'funcionariosDeArea'])->name('jefe-area.funcionarios-de-area');
 });
 
 // RUTAS INTERNAS (Funcionarios - Resolver y Procesar)

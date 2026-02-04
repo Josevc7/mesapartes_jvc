@@ -5,6 +5,7 @@ namespace App\Models;
 
 // Importar la clase base Model de Eloquent ORM
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 /**
  * Modelo Expediente - Representa un trámite en el sistema Mesa de Partes
@@ -293,7 +294,102 @@ class Expediente extends Model
             'rechazado' => 'danger',       // Rojo - Rechazado
             'archivado' => 'secondary'     // Gris - Finalizado
         ];
-        
+
         return $colores[$this->estado_inteligente] ?? 'secondary';
+    }
+
+    // ===== ACCESSORS PARA PLAZOS =====
+    // Eliminan la duplicación de código que se repetía 10+ veces en controladores
+
+    /**
+     * Obtener la derivación activa (pendiente más reciente)
+     * Usa relación cargada si existe para evitar N+1
+     */
+    public function getDerivacionActivaAttribute(): ?Derivacion
+    {
+        if ($this->relationLoaded('derivaciones')) {
+            return $this->derivaciones
+                ->where('estado', 'pendiente')
+                ->sortByDesc('created_at')
+                ->first();
+        }
+
+        return $this->derivaciones()
+            ->where('estado', 'pendiente')
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Obtener fecha límite de la derivación activa
+     */
+    public function getFechaLimiteDerivacionAttribute(): ?Carbon
+    {
+        return $this->derivacion_activa?->fecha_limite;
+    }
+
+    /**
+     * Calcular días vencidos (0 si no está vencido)
+     */
+    public function getDiasVencidoAttribute(): int
+    {
+        $fechaLimite = $this->fecha_limite_derivacion;
+
+        if (!$fechaLimite) {
+            return 0;
+        }
+
+        return $fechaLimite->isPast()
+            ? (int) $fechaLimite->diffInDays(now())
+            : 0;
+    }
+
+    /**
+     * Calcular días restantes (null si no hay fecha límite)
+     */
+    public function getDiasRestantesAttribute(): ?int
+    {
+        $fechaLimite = $this->fecha_limite_derivacion;
+
+        if (!$fechaLimite) {
+            return null;
+        }
+
+        return $fechaLimite->isFuture()
+            ? (int) now()->diffInDays($fechaLimite)
+            : 0;
+    }
+
+    /**
+     * Verificar si está vencido
+     */
+    public function getEstaVencidoAttribute(): bool
+    {
+        return $this->dias_vencido > 0;
+    }
+
+    /**
+     * Verificar si está próximo a vencer (3 días o menos)
+     */
+    public function getProximoAVencerAttribute(): bool
+    {
+        $diasRestantes = $this->dias_restantes;
+        return $diasRestantes !== null && $diasRestantes <= 3 && $diasRestantes > 0;
+    }
+
+    /**
+     * Verificar si es crítico (vencido o próximo a vencer)
+     */
+    public function getEsCriticoAttribute(): bool
+    {
+        return $this->esta_vencido || $this->proximo_a_vencer;
+    }
+
+    /**
+     * Obtener el plazo original de la derivación activa
+     */
+    public function getPlazoOriginalAttribute(): ?int
+    {
+        return $this->derivacion_activa?->plazo_dias;
     }
 }

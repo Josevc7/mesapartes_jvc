@@ -13,6 +13,7 @@ class Derivacion extends Model
         'id_expediente',
         'id_area_origen',
         'id_area_destino',
+        'numero_registro_area',
         'id_funcionario_origen',
         'id_funcionario_destino',
         'id_funcionario_asignado',

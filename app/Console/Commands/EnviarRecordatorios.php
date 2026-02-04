@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Expediente;
 use App\Services\NotificacionService;
+use App\Enums\EstadoExpediente;
 use Carbon\Carbon;
 
 class EnviarRecordatorios extends Command
@@ -15,9 +16,9 @@ class EnviarRecordatorios extends Command
     public function handle()
     {
         $notificacionService = new NotificacionService();
-        
+
         // Expedientes que vencen en 3 días
-        $expedientesPorVencer = Expediente::whereIn('estado', ['Derivado', 'En Proceso'])
+        $expedientesPorVencer = Expediente::whereIn('estado', EstadoExpediente::estadosPendientes())
             ->whereHas('derivaciones', function($q) {
                 $q->whereBetween('fecha_limite', [now(), now()->addDays(3)]);
             })
@@ -30,7 +31,7 @@ class EnviarRecordatorios extends Command
         }
 
         // Expedientes vencidos
-        $expedientesVencidos = Expediente::whereIn('estado', ['Derivado', 'En Proceso'])
+        $expedientesVencidos = Expediente::whereIn('estado', EstadoExpediente::estadosPendientes())
             ->whereHas('derivaciones', function($q) {
                 $q->where('fecha_limite', '<', now());
             })

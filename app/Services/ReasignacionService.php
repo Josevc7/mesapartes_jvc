@@ -5,19 +5,22 @@ namespace App\Services;
 use App\Models\Expediente;
 use App\Models\User;
 use App\Services\AuditoriaService;
+use App\Enums\EstadoExpediente;
+use App\Enums\PrioridadExpediente;
+use App\Enums\RolUsuario;
 
 class ReasignacionService
 {
     public function reasignarPorCarga()
     {
         $areas = \App\Models\Area::all();
-        
+
         foreach ($areas as $area) {
             $funcionarios = User::where('area_id', $area->id)
-                ->where('rol_id', 4)
+                ->where('rol_id', RolUsuario::FUNCIONARIO->value)
                 ->where('activo', true)
                 ->withCount(['expedientesAsignados as carga' => function($q) {
-                    $q->whereIn('estado', ['Derivado', 'En Proceso']);
+                    $q->whereIn('estado', EstadoExpediente::estadosPendientes());
                 }])
                 ->get();
 
@@ -25,7 +28,7 @@ class ReasignacionService
 
             // Encontrar funcionario sobrecargado (más de 10 expedientes)
             $sobrecargado = $funcionarios->where('carga', '>', 10)->first();
-            
+
             // Encontrar funcionario con menos carga
             $menosCarga = $funcionarios->sortBy('carga')->first();
 
@@ -38,14 +41,14 @@ class ReasignacionService
     private function redistribuirExpedientes($origen, $destino)
     {
         $expedientesParaReasignar = Expediente::where('funcionario_asignado_id', $origen->id)
-            ->whereIn('estado', ['Derivado', 'En Proceso'])
+            ->whereIn('estado', EstadoExpediente::estadosPendientes())
             ->orderBy('created_at', 'desc')
             ->limit(3)
             ->get();
 
         foreach ($expedientesParaReasignar as $expediente) {
             $datosAnteriores = $expediente->toArray();
-            
+
             $expediente->update([
                 'funcionario_asignado_id' => $destino->id
             ]);
@@ -63,7 +66,7 @@ class ReasignacionService
 
     public function reasignarPorVencimiento()
     {
-        $expedientesVencidos = Expediente::whereIn('estado', ['Derivado', 'En Proceso'])
+        $expedientesVencidos = Expediente::whereIn('estado', EstadoExpediente::estadosPendientes())
             ->whereHas('derivaciones', function($q) {
                 $q->where('fecha_limite', '<', now()->subDays(2));
             })
@@ -73,15 +76,15 @@ class ReasignacionService
         foreach ($expedientesVencidos as $expediente) {
             if ($expediente->area && $expediente->funcionarioAsignado) {
                 $jefeArea = User::where('area_id', $expediente->area_id)
-                    ->where('rol_id', 3)
+                    ->where('rol_id', RolUsuario::JEFE_AREA->value)
                     ->first();
 
                 if ($jefeArea) {
                     $datosAnteriores = $expediente->toArray();
-                    
+
                     $expediente->update([
                         'funcionario_asignado_id' => $jefeArea->id,
-                        'prioridad' => 'Urgente'
+                        'prioridad' => PrioridadExpediente::URGENTE->value
                     ]);
 
                     $expediente->agregarHistorial(

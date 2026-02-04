@@ -145,6 +145,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
+            'siglas' => 'required|string|max:20|unique:areas,siglas',
             'descripcion' => 'nullable|string',
             'id_jefe' => 'nullable|exists:users,id',
             'id_area_padre' => 'nullable|exists:areas,id_area',
@@ -153,6 +154,7 @@ class AdminController extends Controller
 
         $area = Area::create([
             'nombre' => $request->nombre,
+            'siglas' => strtoupper($request->siglas),
             'descripcion' => $request->descripcion,
             'id_jefe' => $request->id_jefe,
             'id_area_padre' => $request->id_area_padre,
@@ -186,6 +188,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'nombre' => 'required|string|max:255',
+            'siglas' => 'required|string|max:20|unique:areas,siglas,' . $id_area . ',id_area',
             'descripcion' => 'nullable|string',
             'id_jefe' => 'nullable|exists:users,id',
             'id_area_padre' => 'nullable|exists:areas,id_area',
@@ -219,6 +222,7 @@ class AdminController extends Controller
 
         $area->update([
             'nombre' => $request->nombre,
+            'siglas' => strtoupper($request->siglas),
             'descripcion' => $request->descripcion,
             'id_jefe' => $request->id_jefe,
             'id_area_padre' => $request->id_area_padre,

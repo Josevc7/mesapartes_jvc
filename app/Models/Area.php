@@ -11,6 +11,7 @@ class Area extends Model
 
     protected $fillable = [
         'nombre',
+        'siglas',
         'descripcion',
         'id_jefe',
         'activo',
@@ -191,6 +192,34 @@ class Area extends Model
     public function scopeDirecciones($query)
     {
         return $query->whereIn('nivel', [self::NIVEL_DIRECCION_REGIONAL, self::NIVEL_OCI, self::NIVEL_DIRECCION]);
+    }
+
+    /**
+     * Scope para obtener subdirecciones directas de un área
+     * Reemplaza: Area::where('id_area_padre', $areaId)->pluck('id_area')->toArray()
+     */
+    public function scopeSubdireccionesDeArea($query, int $areaId)
+    {
+        return $query->where('id_area_padre', $areaId)->where('activo', true);
+    }
+
+    /**
+     * Obtener IDs de subdirecciones como array (método estático)
+     * Uso: Area::getSubdireccionesIds($areaId)
+     */
+    public static function getSubdireccionesIds(int $areaId): array
+    {
+        return static::subdireccionesDeArea($areaId)->pluck('id_area')->toArray();
+    }
+
+    /**
+     * Obtener IDs del área y sus subdirecciones
+     * Uso: Area::getAreaYSubdireccionesIds($areaId)
+     */
+    public static function getAreaYSubdireccionesIds(int $areaId): array
+    {
+        $subdirecciones = static::getSubdireccionesIds($areaId);
+        return array_merge([$areaId], $subdirecciones);
     }
 
     /**

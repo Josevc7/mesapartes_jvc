@@ -234,6 +234,15 @@
                                 </td>
                                 <td>
                                     <strong>{{ $expediente->codigo_expediente }}</strong>
+                                    @php
+                                        $derivacionActual = $expediente->derivaciones->where('id_area_destino', auth()->user()->id_area)->first();
+                                        $numRegistroArea = $derivacionActual?->numero_registro_area;
+                                    @endphp
+                                    @if($numRegistroArea)
+                                        <br><small class="text-success" title="Número de Registro del Área">
+                                            <i class="fas fa-stamp"></i> {{ $numRegistroArea }}
+                                        </small>
+                                    @endif
                                     @if($expediente->prioridad === 'urgente')
                                         <br><span class="badge bg-danger">Urgente</span>
                                     @elseif($expediente->prioridad === 'alta')
@@ -322,6 +331,13 @@
                                                 data-funcionario-id="{{ $expediente->id_funcionario_asignado }}"
                                                 title="Asignar">
                                             <i class="fas fa-user-plus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-derivar"
+                                                data-expediente-id="{{ $expediente->id_expediente }}"
+                                                data-expediente-codigo="{{ $expediente->codigo_expediente }}"
+                                                data-expediente-asunto="{{ Str::limit($expediente->asunto, 50) }}"
+                                                title="Derivar a otra área">
+                                            <i class="fas fa-share"></i>
                                         </button>
                                         @endif
                                         @if($expediente->estado === 'resuelto')
@@ -536,11 +552,16 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <p>¿Confirma la recepción del expediente en el área?</p>
-                <p><strong>Expediente:</strong> <span id="recepcionarCodigo"></span></p>
+                <p>¿Confirma la recepción oficial del expediente en el área?</p>
+                <p><strong>Expediente:</strong> <span id="recepcionarCodigo" class="text-primary fw-bold"></span></p>
+                <div class="alert alert-success">
+                    <i class="fas fa-stamp me-1"></i>
+                    <strong>Al recepcionar se generará el NÚMERO DE REGISTRO DEL ÁREA</strong>
+                    <br><small>Este número identifica oficialmente el documento dentro del área.</small>
+                </div>
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-1"></i>
-                    Al recepcionar, el expediente quedará bajo responsabilidad del área y podrá ser asignado a un funcionario.
+                    El expediente quedará bajo responsabilidad del área, se iniciará el control de plazos y podrá ser asignado a un funcionario.
                 </div>
             </div>
             <div class="modal-footer">
@@ -584,6 +605,95 @@
                     </button>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Derivar Expediente a otra Área -->
+<div class="modal fade" id="modalDerivarExpediente" tabindex="-1" aria-labelledby="modalDerivarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="formDerivarExpediente" method="POST" action="">
+                @csrf
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="modalDerivarLabel">
+                        <i class="fas fa-share me-2"></i>
+                        Derivar Expediente a otra Área
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border mb-3">
+                        <p class="mb-1"><strong>Expediente:</strong> <span id="derivarCodigo" class="text-primary"></span></p>
+                        <p class="mb-0"><strong>Asunto:</strong> <span id="derivarAsunto"></span></p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-building text-info me-1"></i>Área de Destino *
+                            </label>
+                            <select name="id_area_destino" id="derivarAreaDestino" class="form-select" required>
+                                <option value="">-- Seleccione Área --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-user text-info me-1"></i>Funcionario (Opcional)
+                            </label>
+                            <select name="id_funcionario_destino" id="derivarFuncionarioDestino" class="form-select">
+                                <option value="">-- Sin asignar específico --</option>
+                            </select>
+                            <small class="text-muted">El jefe del área destino podrá asignarlo</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-alt text-info me-1"></i>Plazo (días) *
+                            </label>
+                            <input type="number" name="plazo_dias" id="derivarPlazoDias" class="form-control"
+                                   value="5" min="1" max="90" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-flag text-info me-1"></i>Prioridad
+                            </label>
+                            <select name="prioridad" id="derivarPrioridad" class="form-select">
+                                <option value="normal" selected>Normal</option>
+                                <option value="baja">Baja</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-clock text-info me-1"></i>Fecha Límite
+                            </label>
+                            <input type="text" id="derivarFechaLimite" class="form-control" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-comment text-info me-1"></i>Observaciones / Motivo de Derivación *
+                        </label>
+                        <textarea name="observaciones" id="derivarObservaciones" class="form-control" rows="3"
+                                  required minlength="10"
+                                  placeholder="Indique el motivo de la derivación..."></textarea>
+                        <small class="text-muted">Mínimo 10 caracteres</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-info text-white">
+                        <i class="fas fa-share me-1"></i>Derivar Expediente
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -715,6 +825,87 @@ document.addEventListener('DOMContentLoaded', function() {
                 '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/archivar';
 
             modalArchivar.show();
+        });
+    });
+
+    // Modal Derivar - Dinámico
+    const modalDerivar = new bootstrap.Modal(document.getElementById('modalDerivarExpediente'));
+    const selectAreaDestino = document.getElementById('derivarAreaDestino');
+    const selectFuncionarioDestino = document.getElementById('derivarFuncionarioDestino');
+    const inputPlazoDias = document.getElementById('derivarPlazoDias');
+    const inputFechaLimite = document.getElementById('derivarFechaLimite');
+
+    // Calcular fecha límite al cambiar plazo
+    function calcularFechaLimite() {
+        const dias = parseInt(inputPlazoDias.value) || 5;
+        const fecha = new Date();
+        fecha.setDate(fecha.getDate() + dias);
+        inputFechaLimite.value = fecha.toLocaleDateString('es-PE', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+    }
+
+    inputPlazoDias.addEventListener('change', calcularFechaLimite);
+    inputPlazoDias.addEventListener('input', calcularFechaLimite);
+
+    // Cargar funcionarios al seleccionar área
+    selectAreaDestino.addEventListener('change', function() {
+        const areaId = this.value;
+        selectFuncionarioDestino.innerHTML = '<option value="">-- Sin asignar específico --</option>';
+
+        if (areaId) {
+            fetch(`{{ url('jefe-area/areas') }}/${areaId}/funcionarios`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(func => {
+                        const option = document.createElement('option');
+                        option.value = func.id;
+                        option.textContent = `${func.nombre} - ${func.cargo || 'Funcionario'} (Carga: ${func.carga || 0})`;
+                        selectFuncionarioDestino.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error cargando funcionarios:', error));
+        }
+    });
+
+    // Abrir modal de derivar
+    document.querySelectorAll('.btn-derivar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const expedienteId = this.dataset.expedienteId;
+            const codigo = this.dataset.expedienteCodigo;
+            const asunto = this.dataset.expedienteAsunto;
+
+            document.getElementById('derivarCodigo').textContent = codigo;
+            document.getElementById('derivarAsunto').textContent = asunto;
+
+            // Resetear formulario
+            document.getElementById('formDerivarExpediente').reset();
+            selectFuncionarioDestino.innerHTML = '<option value="">-- Sin asignar específico --</option>';
+            inputPlazoDias.value = 5;
+            calcularFechaLimite();
+
+            // Actualizar la acción del formulario
+            document.getElementById('formDerivarExpediente').action =
+                '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/derivar';
+
+            // Cargar áreas disponibles
+            fetch('{{ route("jefe-area.areas-para-derivacion") }}')
+                .then(response => response.json())
+                .then(data => {
+                    selectAreaDestino.innerHTML = '<option value="">-- Seleccione Área --</option>';
+                    data.forEach(area => {
+                        const option = document.createElement('option');
+                        option.value = area.id;
+                        option.textContent = area.nombre;
+                        if (area.jefe) {
+                            option.textContent += ` (Jefe: ${area.jefe})`;
+                        }
+                        selectAreaDestino.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error cargando áreas:', error));
+
+            modalDerivar.show();
         });
     });
 });

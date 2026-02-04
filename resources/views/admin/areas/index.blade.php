@@ -171,12 +171,23 @@
                             <small class="text-muted">Seleccione el área superior en la jerarquía</small>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="fas fa-tag text-primary me-1"></i>Nombre del Área *
-                        </label>
-                        <input type="text" class="form-control" name="nombre" id="inputNombre" required
-                               placeholder="Ej: Subdirección de Recursos Humanos">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-tag text-primary me-1"></i>Nombre del Área *
+                            </label>
+                            <input type="text" class="form-control" name="nombre" id="inputNombre" required
+                                   placeholder="Ej: Subdirección de Recursos Humanos">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-font text-primary me-1"></i>Siglas *
+                            </label>
+                            <input type="text" class="form-control text-uppercase" name="siglas" id="inputSiglas"
+                                   required maxlength="20" placeholder="Ej: SDRH"
+                                   style="text-transform: uppercase;">
+                            <small class="text-muted">Para numeración de documentos</small>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
@@ -276,6 +287,7 @@ function editarArea(id) {
         .then(response => response.json())
         .then(data => {
             document.getElementById('inputNombre').value = data.area.nombre;
+            document.getElementById('inputSiglas').value = data.area.siglas || '';
             document.getElementById('inputDescripcion').value = data.area.descripcion || '';
             document.getElementById('inputJefe').value = data.area.id_jefe || '';
             document.getElementById('inputNivel').value = data.area.nivel || 'SUBDIRECCION';
