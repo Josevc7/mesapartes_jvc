@@ -854,7 +854,13 @@ document.addEventListener('DOMContentLoaded', function() {
         selectFuncionarioDestino.innerHTML = '<option value="">-- Sin asignar específico --</option>';
 
         if (areaId) {
-            fetch(`{{ url('jefe-area/areas') }}/${areaId}/funcionarios`)
+            fetch(`{{ url('jefe-area/areas') }}/${areaId}/funcionarios`, {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     data.forEach(func => {
@@ -889,7 +895,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 '{{ url("jefe-area/expedientes") }}/' + expedienteId + '/derivar';
 
             // Cargar áreas disponibles
-            fetch('{{ route("jefe-area.areas-para-derivacion") }}')
+            fetch('{{ route("jefe-area.areas-para-derivacion") }}', {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     selectAreaDestino.innerHTML = '<option value="">-- Seleccione Área --</option>';

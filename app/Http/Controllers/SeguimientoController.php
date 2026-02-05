@@ -66,17 +66,41 @@ class SeguimientoController extends Controller
     {
         $request->validate([
             'codigo_expediente' => 'required|string|min:1',
-            'tipo_documento' => 'required|in:DNI,RUC',
+            'tipo_documento' => 'required|in:DNI,CE,PASAPORTE,RUC',
             'numero_documento' => [
                 'required',
                 'string',
-                'regex:/^[0-9]+$/',
                 function ($attribute, $value, $fail) use ($request) {
                     $tipo = $request->input('tipo_documento');
-                    if ($tipo === 'DNI' && strlen($value) !== 8) {
-                        $fail('El DNI debe contener exactamente 8 dígitos.');
-                    } elseif ($tipo === 'RUC' && strlen($value) !== 11) {
-                        $fail('El RUC debe contener exactamente 11 dígitos.');
+                    switch ($tipo) {
+                        case 'DNI':
+                            if (!preg_match('/^[0-9]+$/', $value)) {
+                                $fail('El DNI solo debe contener números.');
+                            } elseif (strlen($value) !== 8) {
+                                $fail('El DNI debe contener exactamente 8 dígitos.');
+                            }
+                            break;
+                        case 'CE':
+                            if (!preg_match('/^[0-9]+$/', $value)) {
+                                $fail('El Carné de Extranjería solo debe contener números.');
+                            } elseif (strlen($value) !== 9) {
+                                $fail('El Carné de Extranjería debe contener exactamente 9 dígitos.');
+                            }
+                            break;
+                        case 'PASAPORTE':
+                            if (!preg_match('/^[a-zA-Z0-9]+$/', $value)) {
+                                $fail('El Pasaporte solo debe contener caracteres alfanuméricos.');
+                            } elseif (strlen($value) < 6 || strlen($value) > 12) {
+                                $fail('El Pasaporte debe contener entre 6 y 12 caracteres.');
+                            }
+                            break;
+                        case 'RUC':
+                            if (!preg_match('/^[0-9]+$/', $value)) {
+                                $fail('El RUC solo debe contener números.');
+                            } elseif (strlen($value) !== 11) {
+                                $fail('El RUC debe contener exactamente 11 dígitos.');
+                            }
+                            break;
                     }
                 },
             ],
@@ -84,9 +108,8 @@ class SeguimientoController extends Controller
             'codigo_expediente.required' => 'El número de expediente es obligatorio.',
             'codigo_expediente.min' => 'Ingrese al menos un carácter para buscar.',
             'tipo_documento.required' => 'Debe seleccionar el tipo de documento.',
-            'tipo_documento.in' => 'El tipo de documento debe ser DNI o RUC.',
+            'tipo_documento.in' => 'El tipo de documento debe ser DNI, Carné de Extranjería, Pasaporte o RUC.',
             'numero_documento.required' => 'El número de documento es obligatorio.',
-            'numero_documento.regex' => 'El documento solo debe contener números.',
         ]);
 
         // Búsqueda con LIKE para permitir códigos parciales
@@ -106,9 +129,30 @@ class SeguimientoController extends Controller
             ->paginate(10);
 
         if ($expedientes->isEmpty()) {
-            $tipoDoc = $request->tipo_documento === 'RUC' ? 'RUC' : 'DNI';
+            $tiposDocumento = [
+                'DNI' => 'DNI',
+                'CE' => 'Carné de Extranjería',
+                'PASAPORTE' => 'Pasaporte',
+                'RUC' => 'RUC'
+            ];
+            $tipoDoc = $tiposDocumento[$request->tipo_documento] ?? $request->tipo_documento;
             return back()->withInput()->withErrors([
                 'numero_documento' => "No se encontraron expedientes con el código '{$request->codigo_expediente}' o el {$tipoDoc} no coincide con el solicitante."
+            ]);
+        }
+
+        // Si es consulta pública (no autenticado), mostrar vista simplificada para ciudadanos
+        if (!auth()->check()) {
+            // Cargar relaciones adicionales para la vista pública
+            $expedientes->load(['historial' => function($q) {
+                $q->orderBy('created_at', 'desc')->take(10);
+            }, 'documentos']);
+
+            return view('seguimiento.resultado-publico', [
+                'expedientes' => $expedientes,
+                'documento_busqueda' => $request->numero_documento,
+                'tipo_documento' => $request->tipo_documento,
+                'codigo_busqueda' => $request->codigo_expediente
             ]);
         }
 

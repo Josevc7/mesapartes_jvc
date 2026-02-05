@@ -139,7 +139,7 @@
                     <!-- Supervisión -->
                     <div class="mb-2">
                         <a class="nav-link text-dark fw-bold" data-bs-toggle="collapse" href="#menuSupervision" role="button">
-                            <i class="fas fa-eye"></i> Supervisión Jefe Area <i class="fas fa-chevron-down float-end"></i>
+                            <i class="fas fa-eye"></i> Jefe de Area <i class="fas fa-chevron-down float-end"></i>
                         </a>
                         <div class="collapse" id="menuSupervision">
                             <ul class="nav flex-column ms-3">
@@ -177,7 +177,7 @@
                     <!-- Mis Expedientes -->
                     <div class="mb-2">
                         <a class="nav-link text-dark fw-bold" data-bs-toggle="collapse" href="#menuExpedientes" role="button">
-                            <i class="fas fa-user-check"></i> Mis Expedientes <i class="fas fa-chevron-down float-end"></i>
+                            <i class="fas fa-user-check"></i> Funcionario<i class="fas fa-chevron-down float-end"></i>
                         </a>
                         <div class="collapse" id="menuExpedientes">
                             <ul class="nav flex-column ms-3">

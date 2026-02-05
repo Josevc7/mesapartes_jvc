@@ -381,8 +381,14 @@
                         </label>
                         <select class="form-select @error('tipo_documento') is-invalid @enderror"
                                 id="tipo_documento" name="tipo_documento" required onchange="cambiarTipoDocumento()">
-                            <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI (Persona Natural)</option>
-                            <option value="RUC" {{ old('tipo_documento') == 'RUC' ? 'selected' : '' }}>RUC (Persona Juridica)</option>
+                            <optgroup label="Persona Natural">
+                                <option value="DNI" {{ old('tipo_documento', 'DNI') == 'DNI' ? 'selected' : '' }}>DNI</option>
+                                <option value="CE" {{ old('tipo_documento') == 'CE' ? 'selected' : '' }}>Carne de Extranjeria</option>
+                                <option value="PASAPORTE" {{ old('tipo_documento') == 'PASAPORTE' ? 'selected' : '' }}>Pasaporte</option>
+                            </optgroup>
+                            <optgroup label="Persona Juridica">
+                                <option value="RUC" {{ old('tipo_documento') == 'RUC' ? 'selected' : '' }}>RUC</option>
+                            </optgroup>
                         </select>
                         @error('tipo_documento')
                             <div class="text-danger small mt-1">{{ $message }}</div>
@@ -446,18 +452,39 @@
             const labelDoc = document.getElementById('label_documento');
             const ayudaDoc = document.getElementById('ayuda_documento');
 
-            if (tipo === 'RUC') {
-                inputDoc.maxLength = 11;
-                inputDoc.placeholder = 'Ingrese RUC';
-                labelDoc.textContent = 'RUC';
-                ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 11 digitos';
-            } else {
-                inputDoc.maxLength = 8;
-                inputDoc.placeholder = 'Ingrese DNI';
-                labelDoc.textContent = 'DNI';
-                ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 8 digitos';
-            }
+            // Resetear el input
             inputDoc.value = '';
+
+            switch(tipo) {
+                case 'DNI':
+                    inputDoc.maxLength = 8;
+                    inputDoc.placeholder = 'Ingrese DNI';
+                    labelDoc.textContent = 'DNI';
+                    ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 8 digitos';
+                    inputDoc.oninput = function() { this.value = this.value.replace(/[^0-9]/g, ''); };
+                    break;
+                case 'CE':
+                    inputDoc.maxLength = 9;
+                    inputDoc.placeholder = 'Ingrese Carne de Extranjeria';
+                    labelDoc.textContent = 'Carne de Extranjeria';
+                    ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 9 digitos';
+                    inputDoc.oninput = function() { this.value = this.value.replace(/[^0-9]/g, ''); };
+                    break;
+                case 'PASAPORTE':
+                    inputDoc.maxLength = 12;
+                    inputDoc.placeholder = 'Ingrese Pasaporte';
+                    labelDoc.textContent = 'Pasaporte';
+                    ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese hasta 12 caracteres alfanumericos';
+                    inputDoc.oninput = function() { this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(); };
+                    break;
+                case 'RUC':
+                    inputDoc.maxLength = 11;
+                    inputDoc.placeholder = 'Ingrese RUC';
+                    labelDoc.textContent = 'RUC';
+                    ayudaDoc.innerHTML = '<i class="fas fa-info-circle me-1"></i>Ingrese 11 digitos';
+                    inputDoc.oninput = function() { this.value = this.value.replace(/[^0-9]/g, ''); };
+                    break;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {

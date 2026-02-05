@@ -388,9 +388,15 @@
                         <i class="fas fa-user-plus me-2"></i>Registrate como Ciudadano
                     </a>
                     <div class="mt-3">
-                        <a href="{{ route('seguimiento.consulta-publica') }}" class="btn" style="border-radius: 12px; padding: 10px 20px; background-color: #cc5500; color: white; border: none;">
-                            <i class="fas fa-search me-2"></i>Consultar  Expediente
+                        <a href="{{ route('seguimiento.consulta-publica') }}" class="btn" style="border-radius: 12px; padding: 12px 24px; background-color: #198754; color: white; border: none;">
+                            <i class="fas fa-search me-2"></i>Consulta Pública de Expediente
                         </a>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Consulta el estado de tu trámite sin iniciar sesión
+                            </small>
+                        </div>
                     </div>
                     <!--<div class="mt-2">
                         <small class="text-muted">

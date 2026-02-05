@@ -131,8 +131,8 @@ class JefeAreaController extends Controller
         $areaId = auth()->user()->id_area;
 
         $query = Expediente::where('id_area', $areaId)
-            ->with(['tipoTramite', 'ciudadano', 'funcionarioAsignado', 'derivaciones' => function($q) {
-                $q->where('estado', 'pendiente')->latest();
+            ->with(['tipoTramite', 'ciudadano', 'funcionarioAsignado', 'derivaciones' => function($q) use ($areaId) {
+                $q->where('id_area_destino', $areaId)->latest();
             }, 'persona']);
 
         // Filtro por estado
