@@ -16,17 +16,23 @@ class Expediente extends Model
     // Usar clave primaria personalizada
     protected $primaryKey = 'id_expediente';
     
-    // FLUJO OFICIAL DE MESA DE PARTES - Estados según normativa gubernamental
+    // ESTADOS: Ahora se obtienen de la tabla estados_expediente via relación
+    // La constante se mantiene para compatibilidad, pero la fuente de verdad es la BD
     const ESTADOS = [
-        'recepcionado' => 'Recepcionado',   // 1. Documento recibido por Mesa de Partes
-        'registrado' => 'Registrado',       // 2. Registrado con número de expediente
-        'clasificado' => 'Clasificado',     // 3. Clasificado según tipo de trámite
-        'derivado' => 'Derivado',           // 4. Derivado a área competente
-        'en_proceso' => 'En Proceso',       // 5. En procesamiento por funcionario
-        'observado' => 'Observado',         // 5a. Requiere subsanación/información adicional
-        'resuelto' => 'Resuelto',           // 6. Resuelto con respuesta oficial
-        'notificado' => 'Notificado',       // 7. Notificado al administrado
-        'archivado' => 'Archivado'          // 8. Archivado definitivamente
+        'pendiente' => 'Pendiente',
+        'recepcionado' => 'Recepcionado',
+        'registrado' => 'Registrado',
+        'clasificado' => 'Clasificado',
+        'derivado' => 'Derivado',
+        'asignado' => 'Asignado',
+        'en_proceso' => 'En Proceso',
+        'en_revision' => 'En Revisión',
+        'observado' => 'Observado',
+        'resuelto' => 'Resuelto',
+        'aprobado' => 'Aprobado',
+        'rechazado' => 'Rechazado',
+        'notificado' => 'Notificado',
+        'archivado' => 'Archivado'
     ];
     
     protected $fillable = [
@@ -42,7 +48,7 @@ class Expediente extends Model
         'id_ciudadano',
         'id_persona',
         'fecha_registro',
-        'estado',
+        'id_estado',
         'prioridad',
         'canal',
         'id_area',
@@ -145,6 +151,37 @@ class Expediente extends Model
         return $this->hasOne(Resolucion::class, 'id_expediente', 'id_expediente');
     }
 
+    /**
+     * Relación: Un expediente tiene un estado (FK a estados_expediente)
+     */
+    public function estadoExpediente()
+    {
+        return $this->belongsTo(EstadoExpediente::class, 'id_estado', 'id_estado');
+    }
+
+    /**
+     * Accessor para compatibilidad: devuelve el slug del estado
+     * Permite seguir usando $expediente->estado en lugar de $expediente->estadoExpediente->slug
+     */
+    public function getEstadoAttribute(): ?string
+    {
+        return $this->estadoExpediente?->slug;
+    }
+
+    /**
+     * Mutator: permite asignar estado por slug o por id
+     * $expediente->estado = 'derivado' o $expediente->estado = 4
+     */
+    public function setEstadoAttribute($value): void
+    {
+        if (is_numeric($value)) {
+            $this->attributes['id_estado'] = $value;
+        } else {
+            $estado = EstadoExpediente::where('slug', $value)->first();
+            $this->attributes['id_estado'] = $estado?->id_estado;
+        }
+    }
+
     // ===== MÉTODOS AUXILIARES =====
     // Funciones de utilidad para operaciones comunes del expediente
     
@@ -215,20 +252,36 @@ class Expediente extends Model
         return false;
     }
     
-    // Método para validar estados
+    // Método para validar estados (ahora consulta la BD)
     public static function getEstadosValidos()
     {
-        return array_keys(self::ESTADOS);
+        return EstadoExpediente::where('activo', true)->pluck('slug')->toArray();
     }
-    
+
     public function getEstadoFormateado()
     {
-        return self::ESTADOS[$this->estado] ?? $this->estado;
+        return $this->estadoExpediente?->nombre ?? $this->estado;
     }
-    
+
     public function esEstadoValido($estado)
     {
-        return array_key_exists($estado, self::ESTADOS);
+        return EstadoExpediente::where('slug', $estado)->where('activo', true)->exists();
+    }
+
+    /**
+     * Obtiene el color del estado desde la BD
+     */
+    public function getColorEstadoAttribute(): string
+    {
+        return $this->estadoExpediente?->color ?? '#6c757d';
+    }
+
+    /**
+     * Obtiene el badge HTML del estado
+     */
+    public function getBadgeEstadoAttribute(): string
+    {
+        return $this->estadoExpediente?->badge_html ?? '<span class="badge bg-secondary">' . $this->estado . '</span>';
     }
     
     // Estado inteligente basado en el proceso real

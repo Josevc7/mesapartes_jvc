@@ -30,9 +30,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'dni',
-        'telefono',
-        'direccion',
         'id_rol',
         'id_area',
         'id_persona',
@@ -116,5 +113,47 @@ class User extends Authenticatable
     public function persona()
     {
         return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
+    }
+
+    // ===== ACCESSORS PARA DATOS PERSONALES (desde tabla personas) =====
+
+    /**
+     * Obtiene el DNI desde la persona vinculada
+     */
+    public function getDniAttribute(): ?string
+    {
+        return $this->persona?->numero_documento;
+    }
+
+    /**
+     * Obtiene el teléfono desde la persona vinculada
+     */
+    public function getTelefonoAttribute(): ?string
+    {
+        return $this->persona?->telefono;
+    }
+
+    /**
+     * Obtiene la dirección desde la persona vinculada
+     */
+    public function getDireccionAttribute(): ?string
+    {
+        return $this->persona?->direccion;
+    }
+
+    /**
+     * Obtiene el nombre completo desde la persona vinculada
+     */
+    public function getNombreCompletoAttribute(): ?string
+    {
+        if (!$this->persona) {
+            return $this->name;
+        }
+
+        if ($this->persona->tipo_persona === 'JURIDICA') {
+            return $this->persona->razon_social;
+        }
+
+        return trim("{$this->persona->nombres} {$this->persona->apellido_paterno} {$this->persona->apellido_materno}");
     }
 }
