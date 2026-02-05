@@ -946,7 +946,7 @@ class AdminController extends Controller
 
     public function numeracion()
     {
-        $numeraciones = Numeracion::orderBy('año', 'desc')->get();
+        $numeraciones = Numeracion::orderBy('anio', 'desc')->get();
         $configuraciones = Configuracion::all()->pluck('valor', 'clave');
 
         return view('admin.numeracion.index', compact('numeraciones', 'configuraciones'));
@@ -955,7 +955,7 @@ class AdminController extends Controller
     public function storeNumeracion(Request $request)
     {
         $request->validate([
-            'año' => 'required|integer|min:2020|max:2100|unique:numeracion,año',
+            'anio' => 'required|integer|min:2020|max:2100|unique:numeracion,anio',
             'ultimo_numero' => 'required|integer|min:0',
             'prefijo' => 'nullable|string|max:20',
         ]);

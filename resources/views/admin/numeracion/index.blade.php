@@ -27,17 +27,17 @@
                             </thead>
                             <tbody>
                                 @forelse($numeraciones as $numeracion)
-                                <tr class="{{ $numeracion->año == date('Y') ? 'table-primary' : '' }}">
+                                <tr class="{{ $numeracion->anio == date('Y') ? 'table-primary' : '' }}">
                                     <td>
-                                        <strong>{{ $numeracion->año }}</strong>
-                                        @if($numeracion->año == date('Y'))
+                                        <strong>{{ $numeracion->anio }}</strong>
+                                        @if($numeracion->anio == date('Y'))
                                             <span class="badge bg-success ms-2">Actual</span>
                                         @endif
                                     </td>
                                     <td>{{ $numeracion->prefijo ?? 'EXP' }}</td>
                                     <td>{{ $numeracion->ultimo_numero }}</td>
                                     <td>
-                                        <code>{{ $numeracion->año }}-{{ str_pad($numeracion->ultimo_numero + 1, 6, '0', STR_PAD_LEFT) }}</code>
+                                        <code>{{ $numeracion->anio }}-{{ str_pad($numeracion->ultimo_numero + 1, 6, '0', STR_PAD_LEFT) }}</code>
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-warning" onclick="editarNumeracion({{ json_encode($numeracion) }})">
@@ -106,7 +106,7 @@
                     <p class="mb-2">
                         <strong>Próximo Código:</strong>
                         @php
-                            $numActual = $numeraciones->firstWhere('año', date('Y'));
+                            $numActual = $numeraciones->firstWhere('anio', date('Y'));
                             $siguiente = $numActual ? $numActual->ultimo_numero + 1 : 1;
                         @endphp
                         <code>{{ date('Y') }}-{{ str_pad($siguiente, 6, '0', STR_PAD_LEFT) }}</code>
@@ -132,7 +132,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Año *</label>
-                        <input type="number" class="form-control" name="año" id="numAño" min="2020" max="2100" value="{{ date('Y') }}" required>
+                        <input type="number" class="form-control" name="anio" id="numAnio" min="2020" max="2100" value="{{ date('Y') }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Último Número *</label>
@@ -160,8 +160,8 @@ function editarNumeracion(numeracion) {
     document.getElementById('formNumeracion').action = '/admin/numeracion/' + numeracion.id_numeracion;
     document.getElementById('methodFieldNum').innerHTML = '<input type="hidden" name="_method" value="PUT">';
 
-    document.getElementById('numAño').value = numeracion.año;
-    document.getElementById('numAño').readOnly = true;
+    document.getElementById('numAnio').value = numeracion.anio;
+    document.getElementById('numAnio').readOnly = true;
     document.getElementById('numUltimoNumero').value = numeracion.ultimo_numero;
     document.getElementById('numPrefijo').value = numeracion.prefijo || '';
 
@@ -172,7 +172,7 @@ document.getElementById('modalNumeracion').addEventListener('hidden.bs.modal', f
     document.getElementById('modalNumeracionTitle').textContent = 'Nueva Numeración';
     document.getElementById('formNumeracion').action = '{{ route("admin.numeracion.store") }}';
     document.getElementById('methodFieldNum').innerHTML = '';
-    document.getElementById('numAño').readOnly = false;
+    document.getElementById('numAnio').readOnly = false;
     document.getElementById('formNumeracion').reset();
 });
 </script>

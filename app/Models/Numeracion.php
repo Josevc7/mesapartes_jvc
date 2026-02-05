@@ -10,7 +10,7 @@ class Numeracion extends Model
     protected $primaryKey = 'id_numeracion';
 
     protected $fillable = [
-        'año',
+        'anio',
         'id_area',
         'ultimo_numero',
         'prefijo'
