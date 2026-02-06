@@ -59,7 +59,8 @@ class ResolucionController extends Controller
 
         // Actualizar estado del expediente
         $expediente = Expediente::where('id_expediente', $request->id_expediente)->first();
-        $expediente->update(['estado' => 'resuelto']);
+        $expediente->estado = 'resuelto';
+        $expediente->save();
         
         // Agregar al historial
         $expediente->agregarHistorial(

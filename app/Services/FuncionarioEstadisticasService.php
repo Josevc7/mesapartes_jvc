@@ -35,16 +35,16 @@ class FuncionarioEstadisticasService
             ->withCount([
                 'expedientesAsignados as total_asignados',
                 'expedientesAsignados as resueltos' => fn($q) =>
-                    $q->whereIn('estado', $estadosFinalizados),
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', $estadosFinalizados)),
                 'expedientesAsignados as pendientes' => fn($q) =>
-                    $q->whereIn('estado', $estadosPendientes),
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', $estadosPendientes)),
                 'expedientesAsignados as vencidos' => fn($q) =>
                     $q->whereHas('derivaciones', fn($d) =>
                         $d->where('estado', 'pendiente')
                           ->where('fecha_limite', '<', now())
                     ),
                 'expedientesAsignados as resueltos_mes' => fn($q) =>
-                    $q->whereIn('estado', ['resuelto', 'aprobado'])
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', ['resuelto', 'aprobado']))
                       ->whereMonth('updated_at', now()->month),
             ])
             // Tiempo promedio con subquery (OPTIMIZACIÓN CLAVE)
@@ -52,7 +52,7 @@ class FuncionarioEstadisticasService
             ->addSelect([
                 'tiempo_promedio_dias' => Expediente::selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at))')
                     ->whereColumn('id_funcionario_asignado', 'users.id')
-                    ->whereIn('estado', ['resuelto', 'aprobado'])
+                    ->whereIn('id_estado', \App\Models\EstadoExpediente::whereIn('slug', ['resuelto', 'aprobado'])->pluck('id_estado'))
                     ->whereNotNull('fecha_resolucion')
             ])
             ->get()
@@ -79,7 +79,7 @@ class FuncionarioEstadisticasService
             ->with('area')
             ->withCount([
                 'expedientesAsignados as carga_trabajo' => fn($q) =>
-                    $q->whereIn('estado', EstadoExpediente::estadosPendientes())
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ])
             ->orderBy('name')
             ->get();
@@ -92,10 +92,10 @@ class FuncionarioEstadisticasService
     public function obtenerExpedientesActuales(int $funcionarioId, int $limite = 10): Collection
     {
         return Expediente::where('id_funcionario_asignado', $funcionarioId)
-            ->whereIn('estado', EstadoExpediente::estadosPendientes())
+            ->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->orWhere(function($q) use ($funcionarioId) {
                 $q->where('id_funcionario_asignado', $funcionarioId)
-                  ->where('estado', 'resuelto');
+                  ->whereHas('estadoExpediente', fn($eq) => $eq->where('slug', 'resuelto'));
             })
             ->with(['tipoTramite', 'derivaciones' => fn($q) =>
                 $q->where('estado', 'pendiente')->latest()
@@ -117,7 +117,7 @@ class FuncionarioEstadisticasService
             ->with('area')
             ->withCount([
                 'expedientesAsignados as carga_trabajo' => fn($q) =>
-                    $q->whereIn('estado', EstadoExpediente::estadosPendientes())
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ])
             ->orderBy('carga_trabajo', $orden)
             ->get();
@@ -138,9 +138,9 @@ class FuncionarioEstadisticasService
             ->withCount([
                 'expedientesAsignados as total_asignados',
                 'expedientesAsignados as resueltos' => fn($q) =>
-                    $q->whereIn('estado', $estadosFinalizados),
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', $estadosFinalizados)),
                 'expedientesAsignados as pendientes' => fn($q) =>
-                    $q->whereIn('estado', EstadoExpediente::estadosPendientes()),
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes())),
                 'expedientesAsignados as vencidos' => fn($q) =>
                     $q->whereHas('derivaciones', fn($d) =>
                         $d->where('estado', 'pendiente')
@@ -150,7 +150,7 @@ class FuncionarioEstadisticasService
             ->addSelect([
                 'tiempo_promedio_dias' => Expediente::selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at))')
                     ->whereColumn('id_funcionario_asignado', 'users.id')
-                    ->whereIn('estado', ['resuelto', 'aprobado'])
+                    ->whereIn('id_estado', \App\Models\EstadoExpediente::whereIn('slug', ['resuelto', 'aprobado'])->pluck('id_estado'))
                     ->whereNotNull('fecha_resolucion')
             ])
             ->get()

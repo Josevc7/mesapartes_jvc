@@ -22,13 +22,16 @@ class CiudadanoController extends Controller
         $ciudadanoId = auth()->user()->id;
 
         // OPTIMIZACIÓN: Una sola consulta para todas las estadísticas (antes eran 4 consultas)
+        $idEnProceso = \App\Models\EstadoExpediente::whereIn('slug', ['registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado'])->pluck('id_estado')->toArray();
+        $idResuelto = \App\Models\EstadoExpediente::where('slug', 'resuelto')->value('id_estado');
+        $idObservado = \App\Models\EstadoExpediente::where('slug', 'observado')->value('id_estado');
         $estadisticas = Expediente::where('id_ciudadano', $ciudadanoId)
             ->selectRaw("
                 COUNT(*) as total_expedientes,
-                SUM(CASE WHEN estado IN ('registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado') THEN 1 ELSE 0 END) as en_proceso,
-                SUM(CASE WHEN estado = 'resuelto' THEN 1 ELSE 0 END) as resueltos,
-                SUM(CASE WHEN estado = 'observado' THEN 1 ELSE 0 END) as observados
-            ")
+                SUM(CASE WHEN id_estado IN (" . implode(',', $idEnProceso) . ") THEN 1 ELSE 0 END) as en_proceso,
+                SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as resueltos,
+                SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as observados
+            ", [$idResuelto, $idObservado])
             ->first();
 
         $stats = [
@@ -408,7 +411,7 @@ class CiudadanoController extends Controller
 
         // Obtener expedientes con observaciones pendientes del ciudadano
         $expedientes = Expediente::where('id_ciudadano', $ciudadanoId)
-            ->where('estado', 'observado')
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'observado'))
             ->with(['observaciones' => function($query) {
                 $query->where('estado', 'pendiente')
                       ->orderBy('created_at', 'desc');
@@ -482,7 +485,8 @@ class CiudadanoController extends Controller
             }
 
             // Cambiar estado del expediente a "en_proceso" para que el funcionario lo revise
-            $expediente->update(['estado' => 'en_proceso']);
+            $expediente->estado = 'en_proceso';
+            $expediente->save();
 
             // Registrar en historial
             $expediente->agregarHistorial(

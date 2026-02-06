@@ -89,24 +89,24 @@ class JefeAreaController extends Controller
 
         // Estadísticas adicionales para el dashboard
         $stats['por_aprobar'] = Expediente::where('id_area', $areaId)
-            ->whereIn('estado', ['en_revision', 'resuelto'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['en_revision', 'resuelto']))
             ->count();
 
         $stats['sin_asignar'] = Expediente::where('id_area', $areaId)
             ->whereNull('id_funcionario_asignado')
-            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->count();
 
         // Expedientes urgentes
         $stats['urgentes'] = Expediente::where('id_area', $areaId)
             ->where('prioridad', 'urgente')
-            ->whereNotIn('estado', ['archivado', 'en_revision', 'resuelto', 'aprobado'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereNotIn('slug', ['archivado', 'en_revision', 'resuelto', 'aprobado']))
             ->count();
 
         // Expedientes críticos (vencidos o por vencer)
         // OPTIMIZADO: Usa accessors del modelo en lugar de lógica duplicada
         $expedientesCriticos = Expediente::where('id_area', $areaId)
-            ->whereIn('estado', EstadoExpediente::estadosPendientes())
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->with(['funcionarioAsignado', 'derivaciones' => function($q) {
                 $q->where('estado', 'pendiente')->latest();
             }])
@@ -137,7 +137,7 @@ class JefeAreaController extends Controller
 
         // Filtro por estado
         if ($request->estado) {
-            $query->where('estado', $request->estado);
+            $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $request->estado));
         }
 
         // Filtro por funcionario
@@ -212,12 +212,12 @@ class JefeAreaController extends Controller
         $estadisticas = [
             'total' => Expediente::where('id_area', $areaId)->count(),
             'pendientes' => Expediente::where('id_area', $areaId)
-                ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+                ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))->count(),
             'resueltos' => Expediente::where('id_area', $areaId)
-                ->where('estado', 'resuelto')->count(),
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))->count(),
             'sin_asignar' => Expediente::where('id_area', $areaId)
                 ->whereNull('id_funcionario_asignado')
-                ->whereIn('estado', ['derivado', 'en_proceso'])->count(),
+                ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))->count(),
         ];
 
         return view('jefe-area.expedientes', compact('expedientes', 'funcionarios', 'tiposTramite', 'estadisticas'));
@@ -288,10 +288,11 @@ class JefeAreaController extends Controller
 
             // Si es primera asignación y viene de recepcionado, cambiar estado a asignado
             if ($esNuevaAsignacion && in_array($expediente->estado, ['recepcionado', 'derivado'])) {
-                $datosActualizar['estado'] = 'asignado';
+                $expediente->estado = 'asignado';
             }
 
             $expediente->update($datosActualizar);
+            $expediente->save();
 
             // Actualizar la derivación activa
             $derivacionActiva = $expediente->derivaciones()
@@ -422,11 +423,8 @@ class JefeAreaController extends Controller
         $estadoAnterior = $expediente->estado;
         $funcionario = $expediente->funcionarioAsignado;
 
-        $expediente->update([
-            'estado' => 'aprobado',
-            'aprobado_por' => auth()->user()->id,
-            'fecha_aprobacion' => now()
-        ]);
+        $expediente->estado = 'aprobado';
+        $expediente->save();
 
         // Historial detallado
         $descripcion = sprintf(

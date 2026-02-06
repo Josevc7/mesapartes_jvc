@@ -35,8 +35,8 @@ class DashboardController extends Controller
     {
         $stats = [
             'total_expedientes' => Expediente::count(),
-            'expedientes_pendientes' => Expediente::whereIn('estado', ['pendiente', 'clasificado'])->count(),
-            'expedientes_proceso' => Expediente::where('estado', 'en_proceso')->count(),
+            'expedientes_pendientes' => Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['pendiente', 'clasificado']))->count(),
+            'expedientes_proceso' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
             'total_usuarios' => User::where('activo', true)->count()
         ];
 

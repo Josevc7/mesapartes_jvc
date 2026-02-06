@@ -24,9 +24,9 @@ class FuncionarioController extends Controller
 
         // Filtros
         if ($request->estado) {
-            $query->where('estado', $request->estado);
+            $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $request->estado));
         } else {
-            $query->whereIn('estado', ['asignado', 'derivado', 'en_proceso', 'observado', 'resuelto']);
+            $query->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['asignado', 'derivado', 'en_proceso', 'observado', 'resuelto']));
         }
 
         if ($request->prioridad) {
@@ -44,14 +44,14 @@ class FuncionarioController extends Controller
         
         // Estadísticas
         $stats = [
-            'asignados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'asignado')->count(),
-            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'derivado')->count(),
-            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'en_proceso')->count(),
+            'asignados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'asignado'))->count(),
+            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
+            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
             'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
                 ->whereHas('derivaciones', function($q) {
                     $q->where('fecha_limite', '<', now());
                 })->count(),
-            'resueltos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'resuelto')->count()
+            'resueltos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))->count()
         ];
             
         return view('funcionario.mis-expedientes', compact('expedientes', 'stats'));
@@ -82,7 +82,8 @@ class FuncionarioController extends Controller
             }
 
             // Actualizar estado del expediente
-            $expediente->update(['estado' => 'en_proceso']);
+            $expediente->estado = 'en_proceso';
+            $expediente->save();
 
             // Actualizar la última derivación con fecha de recepción y estado
             $ultimaDerivacion = $expediente->derivacionActual();
@@ -270,8 +271,9 @@ class FuncionarioController extends Controller
             'estado' => 'pendiente'
         ]);
 
-        $expediente->update(['estado' => 'observado']);
-        
+        $expediente->estado = 'observado';
+        $expediente->save();
+
         $expediente->agregarHistorial(
             'Solicitud de informacion adicional: ' . $request->observaciones,
             auth()->user()->id,
@@ -345,20 +347,20 @@ class FuncionarioController extends Controller
     public function dashboard()
     {
         $estadisticas = [
-            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'derivado')->count(),
-            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->where('estado', 'en_proceso')->count(),
+            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
+            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
             'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
                 ->whereHas('derivaciones', function($q) {
                     $q->where('fecha_limite', '<', now());
                 })->count(),
             'resueltos_mes' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
-                ->where('estado', 'resuelto')
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                 ->whereMonth('updated_at', now()->month)
                 ->count()
         ];
 
         $expedientesPrioritarios = Expediente::where('id_funcionario_asignado', auth()->user()->id)
-            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereIn('prioridad', ['alta', 'urgente'])
             ->with(['tipoTramite', 'derivaciones'])
             ->orderByRaw("FIELD(prioridad, 'urgente', 'alta')")
@@ -369,7 +371,7 @@ class FuncionarioController extends Controller
         $rendimiento = [
             'resueltos_mes' => $estadisticas['resueltos_mes'],
             'tiempo_promedio' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
-                ->where('estado', 'resuelto')
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                 ->whereNotNull('fecha_resolucion')
                 ->get()
                 ->avg(function($exp) {
@@ -403,7 +405,7 @@ class FuncionarioController extends Controller
 
         $expedientes = $query
             ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona', 'funcionarioAsignado'])
-            ->whereIn('estado', ['derivado', 'en_proceso', 'observado'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso', 'observado']))
             ->get()
             ->map(function($expediente) {
                 $derivacion = $expediente->derivaciones->first();

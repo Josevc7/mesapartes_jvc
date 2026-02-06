@@ -18,7 +18,7 @@ class EnviarRecordatorios extends Command
         $notificacionService = new NotificacionService();
 
         // Expedientes que vencen en 3 días
-        $expedientesPorVencer = Expediente::whereIn('estado', EstadoExpediente::estadosPendientes())
+        $expedientesPorVencer = Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->whereHas('derivaciones', function($q) {
                 $q->whereBetween('fecha_limite', [now(), now()->addDays(3)]);
             })
@@ -31,7 +31,7 @@ class EnviarRecordatorios extends Command
         }
 
         // Expedientes vencidos
-        $expedientesVencidos = Expediente::whereIn('estado', EstadoExpediente::estadosPendientes())
+        $expedientesVencidos = Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->whereHas('derivaciones', function($q) {
                 $q->where('fecha_limite', '<', now());
             })

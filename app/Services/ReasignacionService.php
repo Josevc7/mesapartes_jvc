@@ -20,7 +20,7 @@ class ReasignacionService
                 ->where('rol_id', RolUsuario::FUNCIONARIO->value)
                 ->where('activo', true)
                 ->withCount(['expedientesAsignados as carga' => function($q) {
-                    $q->whereIn('estado', EstadoExpediente::estadosPendientes());
+                    $q->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes()));
                 }])
                 ->get();
 
@@ -41,7 +41,7 @@ class ReasignacionService
     private function redistribuirExpedientes($origen, $destino)
     {
         $expedientesParaReasignar = Expediente::where('funcionario_asignado_id', $origen->id)
-            ->whereIn('estado', EstadoExpediente::estadosPendientes())
+            ->whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->orderBy('created_at', 'desc')
             ->limit(3)
             ->get();
@@ -66,7 +66,7 @@ class ReasignacionService
 
     public function reasignarPorVencimiento()
     {
-        $expedientesVencidos = Expediente::whereIn('estado', EstadoExpediente::estadosPendientes())
+        $expedientesVencidos = Expediente::whereHas('estadoExpediente', fn($eq) => $eq->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->whereHas('derivaciones', function($q) {
                 $q->where('fecha_limite', '<', now()->subDays(2));
             })

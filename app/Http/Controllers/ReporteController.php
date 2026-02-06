@@ -83,8 +83,8 @@ class ReporteController extends Controller
         $stats = [
             'total_expedientes' => (clone $baseQuery)->count(),
             'expedientes_mes' => (clone $baseQuery)->whereMonth('created_at', now()->month)->count(),
-            'pendientes' => (clone $baseQuery)->whereIn('estado', ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso'])->count(),
-            'resueltos' => (clone $baseQuery)->where('estado', 'resuelto')->count()
+            'pendientes' => (clone $baseQuery)->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['recepcionado', 'registrado', 'clasificado', 'derivado', 'en_proceso']))->count(),
+            'resueltos' => (clone $baseQuery)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))->count()
         ];
 
         // Estadísticas adicionales según rol
@@ -101,8 +101,8 @@ class ReporteController extends Controller
 
         if ($rolNombre === 'Funcionario') {
             $statsAdicionales = [
-                'por_recibir' => (clone $baseQuery)->where('estado', 'derivado')->count(),
-                'en_proceso' => (clone $baseQuery)->where('estado', 'en_proceso')->count(),
+                'por_recibir' => (clone $baseQuery)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
+                'en_proceso' => (clone $baseQuery)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
             ];
         }
 
@@ -135,7 +135,7 @@ class ReporteController extends Controller
             $query->where('id_area', $area);
         }
         if ($estado) {
-            $query->where('estado', $estado);
+            $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $estado));
         }
 
         $expedientes = $query->orderBy('created_at', 'desc')->paginate(20);
@@ -146,7 +146,7 @@ class ReporteController extends Controller
 
         if ($tipoTramite) $statsQuery->where('id_tipo_tramite', $tipoTramite);
         if ($area) $statsQuery->where('id_area', $area);
-        if ($estado) $statsQuery->where('estado', $estado);
+        if ($estado) $statsQuery->whereHas('estadoExpediente', fn($q) => $q->where('slug', $estado));
 
         $estadisticas = [
             'total' => (clone $statsQuery)->count(),

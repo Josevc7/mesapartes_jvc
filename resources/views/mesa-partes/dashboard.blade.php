@@ -84,7 +84,7 @@
                             <i class="fas fa-globe"></i> Expedientes Virtuales
                             @php
                                 $virtualesPendientes = \App\Models\Expediente::where('canal', 'virtual')
-                                    ->where('estado', 'recepcionado')
+                                    ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))
                                     ->count();
                             @endphp
                             @if($virtualesPendientes > 0)

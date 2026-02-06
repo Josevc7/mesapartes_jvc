@@ -506,8 +506,8 @@ class AdminController extends Controller
         $metricas = [
             'total_expedientes' => \App\Models\Expediente::count(),
             'usuarios_activos' => User::where('activo', true)->count(),
-            'expedientes_pendientes' => \App\Models\Expediente::whereIn('estado', $estadosActivos)->count(),
-            'expedientes_vencidos' => \App\Models\Expediente::whereIn('estado', ['derivado', 'en_proceso'])
+            'expedientes_pendientes' => \App\Models\Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', $estadosActivos))->count(),
+            'expedientes_vencidos' => \App\Models\Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
                 ->whereHas('derivaciones', function($q) {
                     $q->where('fecha_limite', '<', now())->where('estado', 'pendiente');
                 })->count()
@@ -531,7 +531,7 @@ class AdminController extends Controller
             $alertas[] = ['tipo' => 'danger', 'titulo' => 'Expedientes Vencidos', 'mensaje' => "Hay {$metricas['expedientes_vencidos']} expedientes vencidos."];
         }
 
-        $pendientesClasificar = \App\Models\Expediente::where('estado', 'recepcionado')->count();
+        $pendientesClasificar = \App\Models\Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))->count();
         if ($pendientesClasificar > 0) {
             $alertas[] = ['tipo' => 'warning', 'titulo' => 'Pendientes de Clasificar', 'mensaje' => "Hay {$pendientesClasificar} expedientes pendientes de clasificar."];
         }
@@ -558,7 +558,7 @@ class AdminController extends Controller
 
         $graficoEstados = ['labels' => [], 'data' => []];
         foreach ($estadosGrafico as $label => $estado) {
-            $count = \App\Models\Expediente::where('estado', $estado)->count();
+            $count = \App\Models\Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', $estado))->count();
             if ($count > 0) {
                 $graficoEstados['labels'][] = $label;
                 $graficoEstados['data'][] = $count;
@@ -577,11 +577,11 @@ class AdminController extends Controller
             ->map(function($area) {
                 $total = $area->expedientes_count;
                 $resueltos = \App\Models\Expediente::where('id_area', $area->id_area)
-                    ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+                    ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))->count();
                 $pendientes = \App\Models\Expediente::where('id_area', $area->id_area)
-                    ->whereIn('estado', ['derivado', 'en_proceso', 'clasificado'])->count();
+                    ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso', 'clasificado']))->count();
                 $vencidos = \App\Models\Expediente::where('id_area', $area->id_area)
-                    ->whereIn('estado', ['derivado', 'en_proceso'])
+                    ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
                     ->whereHas('derivaciones', function($q) {
                         $q->where('fecha_limite', '<', now());
                     })->count();
@@ -696,18 +696,18 @@ class AdminController extends Controller
         // KPIs con consultas separadas para evitar problemas de query builder
         $totalExpedientes = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])->count();
         $resueltos = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
-            ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))->count();
         $enProceso = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
-            ->whereIn('estado', ['derivado', 'en_proceso', 'clasificado'])->count();
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso', 'clasificado']))->count();
         $vencidos = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
-            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($q) {
                 $q->where('fecha_limite', '<', now());
             })->count();
 
         // Calcular tiempo promedio real
         $tiempoPromedio = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
-            ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))
             ->whereNotNull('fecha_resolucion')
             ->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as promedio')
             ->value('promedio') ?? 0;
@@ -731,7 +731,7 @@ class AdminController extends Controller
             $graficoTendencia['labels'][] = $fecha->format('d/m');
             $graficoTendencia['registrados'][] = \App\Models\Expediente::whereDate('created_at', $fecha)->count();
             $graficoTendencia['completados'][] = \App\Models\Expediente::whereDate('updated_at', $fecha)
-                ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+                ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))->count();
         }
 
         // Gráfico por estados reales
@@ -747,7 +747,7 @@ class AdminController extends Controller
         $graficoEstados = ['labels' => [], 'data' => []];
         foreach ($estadosGrafico as $label => $estado) {
             $count = \App\Models\Expediente::whereBetween('created_at', [$fechaInicio, $fechaFin])
-                ->where('estado', $estado)->count();
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', $estado))->count();
             $graficoEstados['labels'][] = $label;
             $graficoEstados['data'][] = $count;
         }
@@ -785,7 +785,7 @@ class AdminController extends Controller
                     ->whereBetween('created_at', [$fechaInicio, $fechaFin])->count();
                 $completados = \App\Models\Expediente::where('id_funcionario_asignado', $usuario->id)
                     ->whereBetween('created_at', [$fechaInicio, $fechaFin])
-                    ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count();
+                    ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))->count();
 
                 return [
                     'nombre' => $usuario->name,
@@ -801,7 +801,7 @@ class AdminController extends Controller
         $analisisTiempos = \App\Models\TipoTramite::where('activo', true)->get()->map(function($tipo) use ($fechaInicio, $fechaFin) {
             $expedientes = \App\Models\Expediente::where('id_tipo_tramite', $tipo->id_tipo_tramite)
                 ->whereBetween('created_at', [$fechaInicio, $fechaFin])
-                ->whereIn('estado', ['resuelto', 'notificado', 'archivado'])
+                ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))
                 ->whereNotNull('fecha_resolucion');
 
             $promedio = $expedientes->clone()->selectRaw('AVG(DATEDIFF(fecha_resolucion, created_at)) as prom')->value('prom') ?? 0;
@@ -997,7 +997,7 @@ class AdminController extends Controller
 
         // Filtros
         if ($request->estado) {
-            $query->where('estado', $request->estado);
+            $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $request->estado));
         }
         if ($request->id_area) {
             $query->where('id_area', $request->id_area);
@@ -1042,7 +1042,8 @@ class AdminController extends Controller
         ]);
 
         $estadoAnterior = $expediente->estado;
-        $expediente->update(['estado' => $request->estado]);
+        $expediente->estado = $request->estado;
+        $expediente->save();
 
         // Registrar en historial
         $expediente->historial()->create([
@@ -1098,7 +1099,7 @@ class AdminController extends Controller
 
         // Filtros
         if ($request->estado) {
-            $query->where('estado', $request->estado);
+            $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $request->estado));
         }
         if ($request->fecha_desde) {
             $query->whereDate('created_at', '>=', $request->fecha_desde);
@@ -1112,10 +1113,10 @@ class AdminController extends Controller
         // Estadísticas de mesa virtual
         $estadisticas = [
             'total' => Expediente::where('canal', 'virtual')->count(),
-            'pendientes' => Expediente::where('canal', 'virtual')->whereIn('estado', ['recepcionado', 'registrado'])->count(),
-            'clasificados' => Expediente::where('canal', 'virtual')->where('estado', 'clasificado')->count(),
-            'en_proceso' => Expediente::where('canal', 'virtual')->whereIn('estado', ['derivado', 'en_proceso'])->count(),
-            'resueltos' => Expediente::where('canal', 'virtual')->whereIn('estado', ['resuelto', 'notificado', 'archivado'])->count(),
+            'pendientes' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['recepcionado', 'registrado']))->count(),
+            'clasificados' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'clasificado'))->count(),
+            'en_proceso' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))->count(),
+            'resueltos' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'notificado', 'archivado']))->count(),
         ];
 
         return view('admin.mesa-virtual.index', compact('expedientesVirtuales', 'estadisticas'));
@@ -1132,18 +1133,19 @@ class AdminController extends Controller
 
         switch ($request->accion) {
             case 'validar':
-                $expediente->update(['estado' => 'clasificado']);
+                $expediente->estado = 'clasificado';
                 $mensaje = 'Expediente virtual validado y clasificado';
                 break;
             case 'rechazar':
-                $expediente->update(['estado' => 'archivado']);
+                $expediente->estado = 'archivado';
                 $mensaje = 'Expediente virtual rechazado';
                 break;
             case 'observar':
-                $expediente->update(['estado' => 'observado']);
+                $expediente->estado = 'observado';
                 $mensaje = 'Expediente virtual marcado con observaciones';
                 break;
         }
+        $expediente->save();
 
         // Registrar en historial
         $expediente->historial()->create([

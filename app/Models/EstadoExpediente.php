@@ -58,4 +58,20 @@ class EstadoExpediente extends Model
     {
         return '<span class="badge" style="background-color: ' . $this->color . '">' . $this->nombre . '</span>';
     }
+
+    /**
+     * Retorna los slugs de estados pendientes (no finalizados)
+     */
+    public static function estadosPendientes(): array
+    {
+        return ['derivado', 'en_proceso', 'asignado', 'observado'];
+    }
+
+    /**
+     * Retorna los slugs de estados finalizados
+     */
+    public static function estadosFinalizados(): array
+    {
+        return ['resuelto', 'aprobado', 'notificado', 'archivado'];
+    }
 }

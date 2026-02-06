@@ -23,7 +23,7 @@ class TiemposAtencionExport implements FromCollection, WithHeadings, WithMapping
     public function collection()
     {
         $query = Expediente::with(['ciudadano', 'tipoTramite', 'derivaciones'])
-            ->whereIn('estado', ['resuelto', 'archivado']);
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['resuelto', 'archivado']));
 
         if ($this->fechaInicio) {
             $query->where('fecha_registro', '>=', $this->fechaInicio);

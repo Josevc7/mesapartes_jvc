@@ -35,7 +35,7 @@ class ExpedientesExport implements FromCollection, WithHeadings, WithMapping, Wi
         }
 
         if ($this->estado) {
-            $query->where('estado', $this->estado);
+            $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $this->estado));
         }
 
         return $query->orderBy('fecha_registro', 'desc')->get();

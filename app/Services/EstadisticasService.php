@@ -22,11 +22,13 @@ class EstadisticasService
             $hoy = today();
 
             // Una sola consulta optimizada para todas las estadísticas
+            $idsPendientes = \App\Models\EstadoExpediente::whereIn('slug', ['recepcionado', 'registrado'])->pluck('id_estado')->toArray();
+            $idClasificado = \App\Models\EstadoExpediente::where('slug', 'clasificado')->value('id_estado');
             $stats = Expediente::selectRaw("
                 SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as registrados_hoy,
-                SUM(CASE WHEN estado IN ('recepcionado', 'registrado') THEN 1 ELSE 0 END) as pendientes_clasificar,
-                SUM(CASE WHEN estado = 'clasificado' THEN 1 ELSE 0 END) as pendientes_derivar
-            ", [$hoy])->first();
+                SUM(CASE WHEN id_estado IN (" . implode(',', $idsPendientes) . ") THEN 1 ELSE 0 END) as pendientes_clasificar,
+                SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as pendientes_derivar
+            ", [$hoy, $idClasificado])->first();
 
             return [
                 'registrados_hoy' => (int) ($stats->registrados_hoy ?? 0),
@@ -45,11 +47,11 @@ class EstadisticasService
         return [
             'total_expedientes' => Expediente::where('id_area', $areaId)->count(),
             'pendientes' => Expediente::where('id_area', $areaId)
-                ->whereIn('estado', ['derivado', 'en_proceso'])
+                ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
                 ->count(),
             'vencidos' => $this->contarExpedientesVencidosPorArea($areaId),
             'resueltos_mes' => Expediente::where('id_area', $areaId)
-                ->where('estado', 'resuelto')
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                 ->whereMonth('updated_at', now()->month)
                 ->count(),
             'promedio_atencion' => $this->calcularPromedioAtencionArea($areaId)
@@ -63,10 +65,10 @@ class EstadisticasService
     {
         return [
             'asignados' => Expediente::where('id_funcionario_asignado', $funcionarioId)
-                ->whereIn('estado', ['derivado', 'en_proceso'])
+                ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
                 ->count(),
             'completados_mes' => Expediente::where('id_funcionario_asignado', $funcionarioId)
-                ->where('estado', 'resuelto')
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                 ->whereMonth('updated_at', now()->month)
                 ->count(),
             'vencidos' => $this->contarExpedientesVencidosPorFuncionario($funcionarioId),
@@ -79,7 +81,7 @@ class EstadisticasService
      */
     protected function contarExpedientesVencidos(): int
     {
-        return Expediente::whereIn('estado', ['derivado', 'en_proceso'])
+        return Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($query) {
                 $query->where('fecha_limite', '<', now())
                       ->where('estado', 'pendiente');
@@ -93,7 +95,7 @@ class EstadisticasService
     protected function contarExpedientesVencidosPorArea(int $areaId): int
     {
         return Expediente::where('id_area', $areaId)
-            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($query) {
                 $query->where('fecha_limite', '<', now())
                       ->where('estado', 'pendiente');
@@ -107,7 +109,7 @@ class EstadisticasService
     protected function contarExpedientesVencidosPorFuncionario(int $funcionarioId): int
     {
         return Expediente::where('id_funcionario_asignado', $funcionarioId)
-            ->whereIn('estado', ['derivado', 'en_proceso'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($query) {
                 $query->where('fecha_limite', '<', now())
                       ->where('estado', 'pendiente');
@@ -121,7 +123,7 @@ class EstadisticasService
     protected function calcularPromedioAtencionArea(int $areaId): float
     {
         $resueltos = Expediente::where('id_area', $areaId)
-            ->where('estado', 'resuelto')
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
             ->whereNotNull('fecha_resolucion')
             ->select(
                 DB::raw('AVG(DATEDIFF(fecha_resolucion, fecha_registro)) as promedio')
@@ -137,7 +139,7 @@ class EstadisticasService
     protected function calcularPromedioAtencionFuncionario(int $funcionarioId): float
     {
         $resueltos = Expediente::where('id_funcionario_asignado', $funcionarioId)
-            ->where('estado', 'resuelto')
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
             ->whereNotNull('fecha_resolucion')
             ->select(
                 DB::raw('AVG(DATEDIFF(fecha_resolucion, fecha_registro)) as promedio')
@@ -152,17 +154,18 @@ class EstadisticasService
      */
     public function obtenerGraficoEstados(?int $areaId = null): array
     {
-        $query = Expediente::select('estado', DB::raw('count(*) as total'))
-            ->groupBy('estado');
+        $query = Expediente::join('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
+            ->select('estados_expediente.nombre as estado_nombre', DB::raw('count(*) as total'))
+            ->groupBy('estados_expediente.nombre');
 
         if ($areaId) {
-            $query->where('id_area', $areaId);
+            $query->where('expedientes.id_area', $areaId);
         }
 
         $datos = $query->get();
 
         return [
-            'labels' => $datos->pluck('estado')->toArray(),
+            'labels' => $datos->pluck('estado_nombre')->toArray(),
             'values' => $datos->pluck('total')->toArray()
         ];
     }
@@ -201,11 +204,12 @@ class EstadisticasService
         return Cache::remember($cacheKey, 300, function () use ($dias, $areaId) {
             $fechaInicio = now()->subDays($dias - 1)->startOfDay();
 
+            $idDerivado = \App\Models\EstadoExpediente::where('slug', 'derivado')->value('id_estado');
             $query = Expediente::selectRaw("
                 DATE(created_at) as fecha,
                 COUNT(*) as registrados,
-                SUM(CASE WHEN estado = 'derivado' THEN 1 ELSE 0 END) as derivados
-            ")->where('created_at', '>=', $fechaInicio);
+                SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as derivados
+            ", [$idDerivado])->where('created_at', '>=', $fechaInicio);
 
             if ($areaId) {
                 $query->where('id_area', $areaId);
@@ -248,7 +252,8 @@ class EstadisticasService
             )
             ->join('expedientes', 'users.id', '=', 'expedientes.id_funcionario_asignado')
             ->where('users.id_area', $areaId)
-            ->where('expedientes.estado', 'resuelto')
+            ->join('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
+            ->where('estados_expediente.slug', 'resuelto')
             ->whereMonth('expedientes.updated_at', now()->month)
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('total_resueltos')

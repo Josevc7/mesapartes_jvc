@@ -54,12 +54,13 @@ class DerivacionService
             ]);
 
             // Actualizar el expediente
+            $expediente->estado = 'derivado';
             $expediente->update([
-                'estado' => 'derivado',
                 'id_area' => $areaDestinoId,
                 'id_funcionario_asignado' => $funcionarioAsignadoId,
                 'prioridad' => $prioridad
             ]);
+            $expediente->save();
 
             // Registrar en historial
             $mensaje = $this->generarMensajeHistorial($derivacion);
@@ -144,9 +145,8 @@ class DerivacionService
             ]);
 
             // Actualizar estado del expediente
-            $derivacion->expediente->update([
-                'estado' => 'en_proceso'
-            ]);
+            $derivacion->expediente->estado = 'en_proceso';
+            $derivacion->expediente->save();
 
             $areaDestino = $derivacion->areaDestino->nombre ?? 'Área';
             $derivacion->expediente->agregarHistorial(

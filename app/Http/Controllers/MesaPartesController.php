@@ -48,10 +48,10 @@ class MesaPartesController extends Controller
             if ($request->estado === 'todos') {
                 // No filtrar por estado
             } else {
-                $query->where('estado', $request->estado);
+                $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $request->estado));
             }
         } else {
-            $query->whereIn('estado', $estadosDefault);
+            $query->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', $estadosDefault));
         }
 
         // Filtro por canal
@@ -111,12 +111,12 @@ class MesaPartesController extends Controller
         // Estadísticas rápidas (con caché de 1 minuto para datos en tiempo real)
         $estadisticas = \Cache::remember('mesa_partes_estadisticas', 60, function() use ($estadosDefault) {
             return [
-                'total' => Expediente::whereIn('estado', $estadosDefault)->count(),
-                'pendientes' => Expediente::where('estado', 'recepcionado')->count(),
-                'clasificados' => Expediente::where('estado', 'clasificado')->count(),
-                'derivados' => Expediente::where('estado', 'derivado')->count(),
-                'en_proceso' => Expediente::where('estado', 'en_proceso')->count(),
-                'virtuales' => Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count(),
+                'total' => Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', $estadosDefault))->count(),
+                'pendientes' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))->count(),
+                'clasificados' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'clasificado'))->count(),
+                'derivados' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
+                'en_proceso' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
+                'virtuales' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))->count(),
             ];
         });
 
@@ -299,7 +299,7 @@ class MesaPartesController extends Controller
 
     public function monitoreo()
     {
-        $vencidos = Expediente::whereIn('estado', ['derivado', 'en_proceso'])
+        $vencidos = Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($q) {
                 $q->where('fecha_limite', '<', now())
                   ->where('estado', 'Pendiente');
@@ -317,7 +317,7 @@ class MesaPartesController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(15, ['*'], 'vencidos_page');
 
-        $porVencer = Expediente::whereIn('estado', ['derivado', 'en_proceso'])
+        $porVencer = Expediente::whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($q) {
                 $q->whereBetween('fecha_limite', [now(), now()->addDays(3)])
                   ->where('estado', 'Pendiente');
@@ -355,7 +355,7 @@ class MesaPartesController extends Controller
         $estadisticas = $this->estadisticasService->obtenerEstadisticasMesaPartes();
 
         $expedientesRecientes = Expediente::with(['ciudadano', 'tipoTramite', 'persona'])
-            ->whereIn('estado', ['recepcionado', 'registrado', 'derivado'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['recepcionado', 'registrado', 'derivado']))
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -375,11 +375,13 @@ class MesaPartesController extends Controller
     {
         // Optimización: Una sola consulta para estadísticas de hoy
         $hoy = today();
+        $slugDerivado = \App\Models\EstadoExpediente::where('slug', 'derivado')->value('id_estado');
+        $slugArchivado = \App\Models\EstadoExpediente::where('slug', 'archivado')->value('id_estado');
         $estadisticasHoy = Expediente::selectRaw("
             SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as registrados_hoy,
-            SUM(CASE WHEN DATE(updated_at) = ? AND estado = 'derivado' THEN 1 ELSE 0 END) as derivados_hoy,
-            SUM(CASE WHEN DATE(updated_at) = ? AND estado = 'archivado' THEN 1 ELSE 0 END) as archivados_hoy
-        ", [$hoy, $hoy, $hoy])->first();
+            SUM(CASE WHEN DATE(updated_at) = ? AND id_estado = ? THEN 1 ELSE 0 END) as derivados_hoy,
+            SUM(CASE WHEN DATE(updated_at) = ? AND id_estado = ? THEN 1 ELSE 0 END) as archivados_hoy
+        ", [$hoy, $hoy, $slugDerivado, $hoy, $slugArchivado])->first();
 
         $estadisticas = [
             'registrados_hoy' => $estadisticasHoy->registrados_hoy ?? 0,
@@ -394,7 +396,7 @@ class MesaPartesController extends Controller
             ->get();
 
         $expedientesPendientes = Expediente::with(['ciudadano', 'tipoTramite', 'area'])
-            ->whereIn('estado', ['recepcionado'])
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -403,8 +405,8 @@ class MesaPartesController extends Controller
         $datosGrafico = Expediente::selectRaw("
             DATE(created_at) as fecha,
             COUNT(*) as registrados,
-            SUM(CASE WHEN estado = 'derivado' THEN 1 ELSE 0 END) as derivados
-        ")
+            SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as derivados
+        ", [$slugDerivado])
             ->where('created_at', '>=', $fechaInicio)
             ->groupBy(\DB::raw('DATE(created_at)'))
             ->orderBy('fecha')
@@ -498,7 +500,7 @@ class MesaPartesController extends Controller
     public function expedientesVirtuales()
     {
         $expedientes = Expediente::where('canal', 'virtual')
-            ->where('estado', 'recepcionado')
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))
             ->with(['persona', 'tipoTramite', 'documentos'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);

@@ -110,7 +110,7 @@
                                     <a class="nav-link text-dark" href="{{ route('mesa-partes.expedientes-virtuales') }}">
                                         <i class="fas fa-globe"></i> Expedientes Virtuales
                                         @php
-                                            $pendientesVirtuales = \App\Models\Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count();
+                                            $pendientesVirtuales = \App\Models\Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))->count();
                                         @endphp
                                         @if($pendientesVirtuales > 0)
                                             <span class="badge bg-danger ms-1">{{ $pendientesVirtuales }}</span>
@@ -284,7 +284,7 @@
                             <a class="nav-link text-dark" href="{{ route('mesa-partes.expedientes-virtuales') }}">
                                 <i class="fas fa-globe"></i> Expedientes Virtuales
                                 @php
-                                    $pendientesVirtuales = \App\Models\Expediente::where('canal', 'virtual')->where('estado', 'recepcionado')->count();
+                                    $pendientesVirtuales = \App\Models\Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))->count();
                                 @endphp
                                 @if($pendientesVirtuales > 0)
                                     <span class="badge bg-danger ms-1">{{ $pendientesVirtuales }}</span>

@@ -17,8 +17,8 @@
                             if ($user->role->nombre === 'Administrador') {
                                 $canEditAll = true;
                             } elseif ($user->role->nombre === 'Ciudadano') {
-                                $expedientesEnTramite = \App\Models\Expediente::where('ciudadano_id', $user->id)
-                                    ->whereNotIn('estado', ['archivado', 'resuelto'])
+                                $expedientesEnTramite = \App\Models\Expediente::where('id_ciudadano', $user->id)
+                                    ->whereHas('estadoExpediente', fn($q) => $q->whereNotIn('slug', ['archivado', 'resuelto']))
                                     ->exists();
                                 $canEditAll = !$expedientesEnTramite;
                             }
