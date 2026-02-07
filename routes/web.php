@@ -248,7 +248,7 @@ Route::prefix('funcionario')->middleware(['auth', 'role:Funcionario,Jefe de Áre
     
     // Expedientes asignados
     Route::get('/expedientes', [FuncionarioController::class, 'index'])->name('funcionario.index');
-    Route::get('/mis-expedientes', [FuncionarioController::class, 'misExpedientes'])->name('funcionario.mis-expedientes');
+    Route::get('/mis-expedientes', [FuncionarioController::class, 'index'])->name('funcionario.mis-expedientes');
     Route::get('/expedientes/{expediente}', [FuncionarioController::class, 'show'])->name('funcionario.show');
     
     // Recibir expediente

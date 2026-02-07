@@ -177,9 +177,28 @@
 
 <script>
 function verDetalleValidacion(expedienteId) {
+    document.getElementById('contenidoValidacion').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>`;
+
     fetch(`/jefe-area/expedientes/${expedienteId}/detalle-validacion`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Error al cargar los datos');
+            return response.json();
+        })
         .then(data => {
+            const docs = Array.isArray(data.documentos) ? data.documentos : Object.values(data.documentos || {});
+            const docsHtml = docs.length > 0
+                ? docs.map(doc => `
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span>${doc.nombre}</span>
+                        <a href="${doc.url}" target="_blank" class="btn btn-sm btn-outline-primary">Ver</a>
+                    </div>`).join('')
+                : '<p class="text-muted">Sin documentos adjuntos</p>';
+
             document.getElementById('contenidoValidacion').innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
@@ -191,14 +210,7 @@ function verDetalleValidacion(expedienteId) {
                     </div>
                     <div class="col-md-6">
                         <h6>Documentos de Resolución</h6>
-                        <div class="list-group">
-                            ${data.documentos.map(doc => `
-                                <div class="list-group-item d-flex justify-content-between">
-                                    <span>${doc.nombre}</span>
-                                    <a href="${doc.url}" target="_blank" class="btn btn-sm btn-outline-primary">Ver</a>
-                                </div>
-                            `).join('')}
-                        </div>
+                        <div class="list-group">${docsHtml}</div>
                     </div>
                 </div>
                 <hr>
@@ -209,9 +221,16 @@ function verDetalleValidacion(expedienteId) {
                     </div>
                 </div>
             `;
-            
+
             document.getElementById('btnValidar').onclick = () => validarExpediente(expedienteId, 'aprobar');
             document.getElementById('btnRechazar').onclick = () => validarExpediente(expedienteId, 'rechazar');
+        })
+        .catch(error => {
+            document.getElementById('contenidoValidacion').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    No se pudo cargar el detalle del expediente. Intente nuevamente.
+                </div>`;
         });
 }
 

@@ -47,13 +47,15 @@ class DocumentoAccessService
             case 'Funcionario':
                 // El funcionario puede ver documentos de expedientes asignados a él
                 // o que están en su área
-                return $expediente->id_funcionario_asignado === $user->id
-                    || $expediente->id_area === $user->id_area;
+                //return $expediente->id_funcionario_asignado === $user->id
+                //    || $expediente->id_area === $user->id_area;
+                return $expediente->id_funcionario_asignado === $user->id;
 
             case 'Ciudadano':
                 // El ciudadano solo puede ver documentos de sus propios expedientes
-                return $expediente->id_ciudadano === $user->id
-                    || $expediente->id_persona === $user->id_persona;
+                //return $expediente->id_ciudadano === $user->id
+                 //   || $expediente->id_persona === $user->id_persona;
+                return $expediente->id_ciudadano === $user->id;
 
             case 'Soporte':
                 // Soporte puede ver documentos para diagnóstico
@@ -70,6 +72,7 @@ class DocumentoAccessService
     public function puedeSubir(User $user, Expediente $expediente): bool
     {
         $rol = $user->role?->nombre;
+        $slug = $expediente->estadoExpediente?->slug;
 
         // Administrador siempre puede
         if ($rol === 'Administrador') {
@@ -79,12 +82,15 @@ class DocumentoAccessService
         switch ($rol) {
             case 'Mesa de Partes':
                 // Mesa de Partes puede subir en estados iniciales
-                return in_array($expediente->estado, ['recepcionado', 'registrado', 'clasificado']);
+                //return in_array($expediente->estado, ['recepcionado', 'registrado', 'clasificado']);
+                return in_array($slug, ['recepcionado', 'registrado', 'clasificado']);
 
             case 'Funcionario':
                 // Funcionario puede subir si tiene el expediente asignado
+                //return $expediente->id_funcionario_asignado === $user->id
+                 //   && in_array($expediente->estado, ['derivado', 'en_proceso']);
                 return $expediente->id_funcionario_asignado === $user->id
-                    && in_array($expediente->estado, ['derivado', 'en_proceso']);
+                    && in_array($slug, ['derivado', 'en_proceso', 'en_revision']);
 
             case 'Jefe de Área':
                 // Jefe puede subir si el expediente está en su área
@@ -92,8 +98,10 @@ class DocumentoAccessService
 
             case 'Ciudadano':
                 // Ciudadano puede subir si es su expediente y está en estado permitido
-                return ($expediente->id_ciudadano === $user->id || $expediente->id_persona === $user->id_persona)
-                    && in_array($expediente->estado, ['recepcionado', 'observado']);
+                //return ($expediente->id_ciudadano === $user->id || $expediente->id_persona === $user->id_persona)
+                //    && in_array($expediente->estado, ['recepcionado', 'observado']);
+                return $expediente->id_ciudadano === $user->id
+                    && in_array($slug, ['recepcionado', 'observado']);
 
             default:
                 return false;
@@ -121,6 +129,8 @@ class DocumentoAccessService
         return false;
     }
 
+    
+
     /**
      * Obtiene los documentos accesibles para un usuario
      */
@@ -145,15 +155,17 @@ class DocumentoAccessService
 
             case 'Funcionario':
                 $query->whereHas('expediente', function ($q) use ($user) {
-                    $q->where('id_funcionario_asignado', $user->id)
-                        ->orWhere('id_area', $user->id_area);
+                    // $q->where('id_funcionario_asignado', $user->id)
+                    //     ->orWhere('id_area', $user->id_area);
+                    $q->where('id_funcionario_asignado', $user->id);
                 });
                 break;
 
             case 'Ciudadano':
                 $query->whereHas('expediente', function ($q) use ($user) {
-                    $q->where('id_ciudadano', $user->id)
-                        ->orWhere('id_persona', $user->id_persona);
+                    // $q->where('id_ciudadano', $user->id)
+                    //     ->orWhere('id_persona', $user->id_persona);
+                    $q->where('id_ciudadano', $user->id);
                 });
                 break;
 

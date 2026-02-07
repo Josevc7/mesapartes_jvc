@@ -102,7 +102,7 @@
 
     <!-- Segunda fila de estadísticas -->
     <div class="row mb-4">
-        <div class="col-md-4 col-sm-6 mb-3">
+        <div class="col-md-3 col-sm-6 mb-3">
             <div class="card border-info h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -117,7 +117,22 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 col-sm-6 mb-3">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="text-warning mb-0">{{ $stats['devueltos'] ?? 0 }}</h4>
+                            <p class="mb-0 text-muted">Devueltos / En Revisión</p>
+                        </div>
+                        <a href="{{ route('jefe-area.expedientes', ['estado' => 'devuelto_jefe']) }}" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-undo-alt"></i> Ver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
             <div class="card border-secondary h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -132,7 +147,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4 col-sm-6 mb-3">
+        <div class="col-md-3 col-sm-6 mb-3">
             <div class="card border-danger h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">

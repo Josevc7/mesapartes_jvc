@@ -8,6 +8,7 @@ use App\Models\TipoTramite;
 use App\Models\Documento;
 use App\Models\Observacion;
 use App\Services\NumeracionService;
+use App\Enums\EstadoExpediente;
 use Illuminate\Support\Facades\Storage;
 
 class CiudadanoController extends Controller
@@ -251,7 +252,7 @@ class CiudadanoController extends Controller
             'remitente' => $persona->nombre_completo,                   // Nombre completo para búsquedas rápidas
             'dni_remitente' => $persona->numero_documento,              // Documento para búsquedas rápidas
             'fecha_registro' => now(),                                  // Fecha y hora actual de registro
-            'estado' => 'recepcionado',                                 // Estado inicial del expediente
+            'estado' => EstadoExpediente::RECEPCIONADO->value,              // Estado inicial (via mutator → id_estado)
             'prioridad' => $request->prioridad ?? 'normal',              // Prioridad por defecto
             'canal' => 'virtual'                                        // Canal de ingreso (virtual/presencial)
         ]);
@@ -411,7 +412,7 @@ class CiudadanoController extends Controller
 
         // Obtener expedientes con observaciones pendientes del ciudadano
         $expedientes = Expediente::where('id_ciudadano', $ciudadanoId)
-            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'observado'))
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', EstadoExpediente::OBSERVADO->value))
             ->with(['observaciones' => function($query) {
                 $query->where('estado', 'pendiente')
                       ->orderBy('created_at', 'desc');
@@ -485,7 +486,7 @@ class CiudadanoController extends Controller
             }
 
             // Cambiar estado del expediente a "en_proceso" para que el funcionario lo revise
-            $expediente->estado = 'en_proceso';
+            $expediente->estado = EstadoExpediente::EN_PROCESO->value;
             $expediente->save();
 
             // Registrar en historial

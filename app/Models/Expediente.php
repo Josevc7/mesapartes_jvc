@@ -59,7 +59,8 @@ class Expediente extends Model
         'observaciones',
         'observaciones_funcionario',
         'fecha_archivo',
-        'fecha_resolucion'
+        'fecha_resolucion',
+        'estado'
     ];
 
     protected $casts = [

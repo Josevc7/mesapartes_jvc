@@ -85,32 +85,35 @@ class JefeAreaController extends Controller
             return redirect()->route('dashboard')->with('error', 'No tiene un área asignada.');
         }
 
-        $stats = $this->estadisticasService->obtenerEstadisticasJefeArea($areaId);
+        // Incluir área del jefe + subdirecciones para ver expedientes derivados a sub-áreas
+        $areasIds = $this->getAreaYSubdireccionesIds($areaId);
+
+        $stats = $this->estadisticasService->obtenerEstadisticasJefeArea($areasIds);
 
         // Estadísticas adicionales para el dashboard
-        $stats['por_aprobar'] = Expediente::where('id_area', $areaId)
+        $stats['por_aprobar'] = Expediente::whereIn('id_area', $areasIds)
             ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['en_revision', 'resuelto']))
             ->count();
 
-        $stats['sin_asignar'] = Expediente::where('id_area', $areaId)
+        $stats['sin_asignar'] = Expediente::whereIn('id_area', $areasIds)
             ->whereNull('id_funcionario_asignado')
             ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso', 'devuelto_jefe']))
             ->count();
 
         // Expedientes devueltos por funcionarios
-        $stats['devueltos'] = Expediente::where('id_area', $areaId)
+        $stats['devueltos'] = Expediente::whereIn('id_area', $areasIds)
             ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'devuelto_jefe'))
             ->count();
 
         // Expedientes urgentes
-        $stats['urgentes'] = Expediente::where('id_area', $areaId)
+        $stats['urgentes'] = Expediente::whereIn('id_area', $areasIds)
             ->where('prioridad', 'urgente')
             ->whereHas('estadoExpediente', fn($q) => $q->whereNotIn('slug', ['archivado', 'en_revision', 'resuelto', 'aprobado']))
             ->count();
 
         // Expedientes críticos (vencidos o por vencer)
         // OPTIMIZADO: Usa accessors del modelo en lugar de lógica duplicada
-        $expedientesCriticos = Expediente::where('id_area', $areaId)
+        $expedientesCriticos = Expediente::whereIn('id_area', $areasIds)
             ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', EstadoExpediente::estadosPendientes()))
             ->with(['funcionarioAsignado', 'derivaciones' => function($q) {
                 $q->where('estado', 'pendiente')->latest();
@@ -134,10 +137,11 @@ class JefeAreaController extends Controller
     public function expedientes(Request $request)
     {
         $areaId = auth()->user()->id_area;
+        $areasIds = $this->getAreaYSubdireccionesIds($areaId);
 
-        $query = Expediente::where('id_area', $areaId)
-            ->with(['tipoTramite', 'ciudadano', 'funcionarioAsignado', 'derivaciones' => function($q) use ($areaId) {
-                $q->where('id_area_destino', $areaId)->latest();
+        $query = Expediente::whereIn('id_area', $areasIds)
+            ->with(['tipoTramite', 'ciudadano', 'funcionarioAsignado', 'derivaciones' => function($q) use ($areasIds) {
+                $q->whereIn('id_area_destino', $areasIds)->latest();
             }, 'persona']);
 
         // Filtro por estado
@@ -207,23 +211,23 @@ class JefeAreaController extends Controller
         $subdireccionesIds = $this->getSubdireccionesIds($areaId);
         $funcionarios = $this->funcionarioEstadisticasService->obtenerFuncionariosParaSelect($subdireccionesIds);
 
-        // Tipos de trámite del área
-        $tiposTramite = TipoTramite::where('id_area', $areaId)
+        // Tipos de trámite del área y subdirecciones
+        $tiposTramite = TipoTramite::whereIn('id_area', $areasIds)
             ->where('activo', true)
             ->orderBy('nombre')
             ->get();
 
         // Estadísticas rápidas
         $estadisticas = [
-            'total' => Expediente::where('id_area', $areaId)->count(),
-            'pendientes' => Expediente::where('id_area', $areaId)
+            'total' => Expediente::whereIn('id_area', $areasIds)->count(),
+            'pendientes' => Expediente::whereIn('id_area', $areasIds)
                 ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))->count(),
-            'resueltos' => Expediente::where('id_area', $areaId)
+            'resueltos' => Expediente::whereIn('id_area', $areasIds)
                 ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))->count(),
-            'sin_asignar' => Expediente::where('id_area', $areaId)
+            'sin_asignar' => Expediente::whereIn('id_area', $areasIds)
                 ->whereNull('id_funcionario_asignado')
                 ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso', 'devuelto_jefe']))->count(),
-            'devueltos' => Expediente::where('id_area', $areaId)
+            'devueltos' => Expediente::whereIn('id_area', $areasIds)
                 ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'devuelto_jefe'))->count(),
         ];
 
@@ -933,7 +937,7 @@ class JefeAreaController extends Controller
             'funcionario' => $expediente->funcionarioAsignado->name ?? 'N/A',
             'fecha_resolucion' => $expediente->fecha_resolucion ? $expediente->fecha_resolucion->format('d/m/Y H:i') : 'N/A',
             'observaciones_funcionario' => $expediente->observaciones_funcionario ?? 'Sin observaciones',
-            'documentos' => $expediente->documentos->where('tipo', '!=', 'entrada')->map(function($doc) {
+            'documentos' => $expediente->documentos->where('tipo', '!=', 'entrada')->values()->map(function($doc) {
                 return [
                     'nombre' => $doc->nombre,
                     'url' => asset('storage/' . $doc->ruta_archivo)

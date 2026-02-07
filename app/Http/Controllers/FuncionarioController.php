@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Expediente;
-use App\Models\Derivacion;
 use App\Models\Documento;
 use App\Models\HistorialExpediente;
 use App\Services\DerivacionService;
+use App\Enums\EstadoExpediente;
+use Illuminate\Support\Facades\DB;
 
 class FuncionarioController extends Controller
 {
@@ -35,24 +36,64 @@ class FuncionarioController extends Controller
             ->count();
 
         return [
-            'asignados' => $conteosPorEstado->get('asignado', 0),
-            'derivados' => $conteosPorEstado->get('derivado', 0),
-            'en_proceso' => $conteosPorEstado->get('en_proceso', 0),
-            'resueltos' => $conteosPorEstado->get('resuelto', 0),
+            'asignados' => $conteosPorEstado->get(EstadoExpediente::ASIGNADO->value, 0),
+            'derivados' => $conteosPorEstado->get(EstadoExpediente::DERIVADO->value, 0),
+            'en_proceso' => $conteosPorEstado->get(EstadoExpediente::EN_PROCESO->value, 0),
+            'resueltos' => $conteosPorEstado->get(EstadoExpediente::RESUELTO->value, 0),
             'vencidos' => $vencidos,
         ];
     }
 
+    /**
+     * Centraliza transición de estado: update + historial en transacción
+     */
+    private function cambiarEstado(
+        Expediente $expediente,
+        EstadoExpediente $nuevoEstado,
+        string $descripcion,
+        string $accionHistorial,
+        array $extraData = [],
+        ?string $detalle = null
+    ): void {
+        DB::transaction(function() use ($expediente, $nuevoEstado, $descripcion, $accionHistorial, $extraData, $detalle) {
+            $expediente->update(array_merge(
+                ['estado' => $nuevoEstado->value],
+                $extraData
+            ));
+
+            $expediente->agregarHistorial($descripcion, auth()->id(), [
+                'accion' => $accionHistorial,
+                'estado' => $nuevoEstado->value,
+                'id_area' => auth()->user()->id_area,
+                'detalle' => $detalle,
+            ]);
+        });
+    }
+
     public function index(Request $request)
     {
-        $query = Expediente::where('id_funcionario_asignado', auth()->user()->id)
-            ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona']);
+        $user = auth()->user();
+        $esAdministrador = $user->role?->nombre === 'Administrador';
+
+        $query = Expediente::query();
+
+        if (!$esAdministrador) {
+            $query->where('id_funcionario_asignado', $user->id);
+        }
+
+        $query->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona', 'funcionarioAsignado']);
 
         // Filtros
         if ($request->estado) {
             $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $request->estado));
         } else {
-            $query->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['asignado', 'derivado', 'en_proceso', 'observado', 'resuelto']));
+            $query->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', [
+                EstadoExpediente::ASIGNADO->value,
+                EstadoExpediente::DERIVADO->value,
+                EstadoExpediente::EN_PROCESO->value,
+                EstadoExpediente::OBSERVADO->value,
+                EstadoExpediente::RESUELTO->value,
+            ]));
         }
 
         if ($request->prioridad) {
@@ -60,17 +101,29 @@ class FuncionarioController extends Controller
         }
 
         if ($request->buscar) {
-            $query->where(function($q) use ($request) {
-                $q->where('codigo_expediente', 'like', '%' . $request->buscar . '%')
-                  ->orWhere('asunto', 'like', '%' . $request->buscar . '%');
+            $buscar = $request->buscar;
+            $query->where(function($q) use ($buscar) {
+                $q->where('codigo_expediente', 'like', "%{$buscar}%")
+                  ->orWhere('asunto', 'like', "%{$buscar}%");
             });
         }
 
-        $expedientes = $query->orderBy('created_at', 'desc')->paginate(10);
-        
-        $stats = $this->getEstadisticasFuncionario(auth()->user()->id);
-            
-        return view('funcionario.mis-expedientes', compact('expedientes', 'stats'));
+        $expedientes = $query->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($expediente) {
+                $derivacion = $expediente->derivaciones->sortByDesc('created_at')->first();
+
+                if ($derivacion && $derivacion->fecha_limite) {
+                    $expediente->dias_restantes = (int) now()->diffInDays($derivacion->fecha_limite, false);
+                } else {
+                    $expediente->dias_restantes = 0;
+                }
+
+                $expediente->fecha_derivacion = $derivacion?->fecha_derivacion;
+                return $expediente;
+            });
+
+        return view('funcionario.mis-expedientes', compact('expedientes'));
     }
 
     public function show(Expediente $expediente)
@@ -84,63 +137,43 @@ class FuncionarioController extends Controller
     public function recibir(Expediente $expediente)
     {
         try {
-            // Verificar permisos
             $this->authorize('process', $expediente);
 
-            // Verificar que el expediente esté en estado derivado o asignado
-            if (!in_array($expediente->estado, ['derivado', 'asignado'])) {
-                if (request()->expectsJson()) {
-                    return response()->json([
-                        'error' => 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado
-                    ], 400);
-                }
-                return back()->with('error', 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado);
+            $estadosValidos = [EstadoExpediente::DERIVADO->value, EstadoExpediente::ASIGNADO->value];
+            if (!in_array($expediente->estado, $estadosValidos)) {
+                $msg = 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado;
+                return request()->expectsJson()
+                    ? response()->json(['error' => $msg], 400)
+                    : back()->with('error', $msg);
             }
 
-            // Actualizar estado del expediente
-            $expediente->estado = 'en_proceso';
-            $expediente->save();
+            DB::transaction(function() use ($expediente) {
+                $expediente->update(['estado' => EstadoExpediente::EN_PROCESO->value]);
 
-            // Actualizar la última derivación con fecha de recepción y estado
-            $ultimaDerivacion = $expediente->derivacionActual();
-            if ($ultimaDerivacion) {
-                $ultimaDerivacion->update([
-                    'fecha_recepcion' => now(),
-                    'estado' => 'recibido'
-                ]);
-            }
+                $ultimaDerivacion = $expediente->derivacionActual();
+                $ultimaDerivacion?->update(['fecha_recepcion' => now(), 'estado' => 'recibido']);
 
-            // Agregar al historial con información completa
-            $expediente->agregarHistorial(
-                'Expediente recepcionado',
-                auth()->id(),
-                [
-                    'accion' => \App\Models\HistorialExpediente::ACCION_RECEPCION,
+                $expediente->agregarHistorial('Expediente recepcionado', auth()->id(), [
+                    'accion' => HistorialExpediente::ACCION_RECEPCION,
+                    'estado' => EstadoExpediente::EN_PROCESO->value,
                     'id_area' => auth()->user()->id_area,
-                    'estado' => 'en_proceso',
-                    'detalle' => 'Expediente recibido para procesamiento'
-                ]
-            );
+                    'detalle' => 'Expediente recibido para procesamiento',
+                ]);
+            });
 
-            if (request()->expectsJson()) {
-                return response()->json(['success' => true, 'message' => 'Expediente recibido correctamente']);
-            }
-            return back()->with('success', 'Expediente recibido correctamente. Ahora puede procesarlo.');
+            return request()->expectsJson()
+                ? response()->json(['success' => true, 'message' => 'Expediente recibido correctamente'])
+                : back()->with('success', 'Expediente recibido correctamente. Ahora puede procesarlo.');
 
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'error' => 'No tienes permisos para recibir este expediente. Solo puedes recibir expedientes asignados a ti.'
-                ], 403);
-            }
-            return back()->with('error', 'No tienes permisos para recibir este expediente.');
+            $msg = 'No tienes permisos para recibir este expediente.';
+            return request()->expectsJson()
+                ? response()->json(['error' => $msg], 403)
+                : back()->with('error', $msg);
         } catch (\Exception $e) {
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'error' => 'Error interno del servidor: ' . $e->getMessage()
-                ], 500);
-            }
-            return back()->with('error', 'Error al recibir el expediente: ' . $e->getMessage());
+            return request()->expectsJson()
+                ? response()->json(['error' => 'Error: ' . $e->getMessage()], 500)
+                : back()->with('error', 'Error al recibir el expediente: ' . $e->getMessage());
         }
     }
 
@@ -161,7 +194,6 @@ class FuncionarioController extends Controller
         ]);
 
         if ($request->hasFile('documento_respuesta')) {
-            // Estructura: expedientes/{año}/{codigo_expediente}/
             $año = $expediente->created_at->year;
             $carpeta = "expedientes/{$año}/{$expediente->codigo_expediente}";
 
@@ -180,31 +212,23 @@ class FuncionarioController extends Controller
         }
 
         $estado = match($request->accion) {
-            'procesar' => 'en_proceso',
-            'resolver' => 'resuelto',
-            'solicitar_info' => 'observado'
+            'procesar' => EstadoExpediente::EN_PROCESO,
+            'resolver' => EstadoExpediente::RESUELTO,
+            'solicitar_info' => EstadoExpediente::OBSERVADO,
         };
 
-        $expediente->update([
-            'observaciones_funcionario' => $request->observaciones_funcionario,
-            'estado' => $estado
-        ]);
-
-        // Registrar en historial con accion correspondiente
         $accionHistorial = match($request->accion) {
             'resolver' => HistorialExpediente::ACCION_RESOLUCION,
             'solicitar_info' => HistorialExpediente::ACCION_OBSERVACION,
-            default => HistorialExpediente::ACCION_CAMBIO_ESTADO
+            default => HistorialExpediente::ACCION_CAMBIO_ESTADO,
         };
 
-        $expediente->agregarHistorial(
+        $this->cambiarEstado(
+            $expediente,
+            $estado,
             'Procesado por funcionario: ' . $request->observaciones_funcionario,
-            auth()->user()->id,
-            [
-                'accion' => $accionHistorial,
-                'estado' => $estado,
-                'id_area' => auth()->user()->id_area,
-            ]
+            $accionHistorial,
+            ['observaciones_funcionario' => $request->observaciones_funcionario]
         );
 
         return redirect()->route('funcionario.index')
@@ -219,51 +243,29 @@ class FuncionarioController extends Controller
     {
         $this->authorize('enviarARevision', $expediente);
 
-        // Verificar que tenga al menos un documento adjunto (no de entrada)
         $documentosAdjuntos = $expediente->documentos()
-            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
-            ->count();
+            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio']);
 
-        if ($documentosAdjuntos === 0) {
+        if ($documentosAdjuntos->count() === 0) {
             return back()->with('error', 'Debe adjuntar al menos un documento (informe, respuesta, resolución u oficio) antes de devolver el expediente al Jefe de Área.');
         }
 
-        // Obtener el último documento adjuntado para el historial
-        $ultimoDocumento = $expediente->documentos()
-            ->whereIn('tipo', ['informe', 'respuesta', 'resolucion', 'oficio'])
-            ->latest()
-            ->first();
+        $ultimoDocumento = $documentosAdjuntos->latest()->first();
 
-        // Obtener el jefe del área
-        $jefeArea = \App\Models\User::where('id_area', auth()->user()->id_area)
-            ->where('id_rol', 3) // Rol Jefe de Área
-            ->first();
-
-        $expediente->update([
-            'estado' => 'en_revision',
-            'fecha_resolucion' => now()
-        ]);
-
-        // Historial detallado
-        $descripcionHistorial = sprintf(
+        $descripcion = sprintf(
             'Funcionario %s devolvió el expediente al Jefe de Área para revisión. Documento adjunto: %s (%s).',
             auth()->user()->name,
             $ultimoDocumento->nombre ?? 'N/A',
             ucfirst($ultimoDocumento->tipo ?? 'documento')
         );
 
-        $expediente->agregarHistorial(
-            $descripcionHistorial,
-            auth()->user()->id,
-            [
-                'accion' => HistorialExpediente::ACCION_RESOLUCION,
-                'estado' => 'en_revision',
-                'id_area' => auth()->user()->id_area,
-                'detalle' => 'Expediente devuelto al Jefe de Área con documento: ' . ($ultimoDocumento->nombre ?? 'N/A'),
-                'documento_adjunto' => $ultimoDocumento->nombre ?? null,
-                'tipo_documento' => $ultimoDocumento->tipo ?? null,
-                'destinatario' => $jefeArea->name ?? 'Jefe de Área'
-            ]
+        $this->cambiarEstado(
+            $expediente,
+            EstadoExpediente::EN_REVISION,
+            $descripcion,
+            HistorialExpediente::ACCION_RESOLUCION,
+            ['fecha_resolucion' => now()],
+            'Documento: ' . ($ultimoDocumento->nombre ?? 'N/A')
         );
 
         return redirect()->route('funcionario.index')
@@ -278,8 +280,7 @@ class FuncionarioController extends Controller
     {
         $this->authorize('process', $expediente);
 
-        // Solo desde en_proceso
-        if ($expediente->estado !== 'en_proceso') {
+        if ($expediente->estado !== EstadoExpediente::EN_PROCESO->value) {
             return back()->with('error', 'Solo se pueden devolver expedientes en estado "En Proceso".');
         }
 
@@ -302,9 +303,6 @@ class FuncionarioController extends Controller
 
         $motivoTexto = $motivosTexto[$request->motivo_devolucion] ?? $request->motivo_devolucion;
 
-        $expediente->estado = 'devuelto_jefe';
-        $expediente->save();
-
         $descripcion = sprintf(
             'Funcionario %s devolvió el expediente al Jefe de Área. Motivo: %s. Detalle: %s',
             auth()->user()->name,
@@ -312,12 +310,14 @@ class FuncionarioController extends Controller
             $request->observaciones_devolucion
         );
 
-        $expediente->agregarHistorial($descripcion, auth()->id(), [
-            'accion' => HistorialExpediente::ACCION_DEVOLUCION_JEFE,
-            'estado' => 'devuelto_jefe',
-            'id_area' => auth()->user()->id_area,
-            'detalle' => "Motivo: {$motivoTexto}",
-        ]);
+        $this->cambiarEstado(
+            $expediente,
+            EstadoExpediente::DEVUELTO_JEFE,
+            $descripcion,
+            HistorialExpediente::ACCION_DEVOLUCION_JEFE,
+            [],
+            "Motivo: {$motivoTexto}"
+        );
 
         return redirect()->route('funcionario.index')
             ->with('success', 'Expediente devuelto al Jefe de Área correctamente.');
@@ -332,26 +332,22 @@ class FuncionarioController extends Controller
             'plazo_respuesta' => 'required|integer|min:1|max:30'
         ]);
 
-        $expediente->observaciones()->create([
-            'id_usuario' => auth()->user()->id,
-            'tipo' => 'subsanacion',
-            'descripcion' => $request->observaciones,
-            'fecha_limite' => now()->addDays($request->plazo_respuesta),
-            'estado' => 'pendiente'
-        ]);
+        DB::transaction(function() use ($expediente, $request) {
+            $expediente->observaciones()->create([
+                'id_usuario' => auth()->id(),
+                'tipo' => 'subsanacion',
+                'descripcion' => $request->observaciones,
+                'fecha_limite' => now()->addDays($request->plazo_respuesta),
+                'estado' => 'pendiente'
+            ]);
 
-        $expediente->estado = 'observado';
-        $expediente->save();
-
-        $expediente->agregarHistorial(
-            'Solicitud de informacion adicional: ' . $request->observaciones,
-            auth()->user()->id,
-            [
-                'accion' => HistorialExpediente::ACCION_OBSERVACION,
-                'estado' => 'observado',
-                'id_area' => auth()->user()->id_area,
-            ]
-        );
+            $this->cambiarEstado(
+                $expediente,
+                EstadoExpediente::OBSERVADO,
+                'Solicitud de información adicional: ' . $request->observaciones,
+                HistorialExpediente::ACCION_OBSERVACION
+            );
+        });
 
         return redirect()->route('funcionario.index')
             ->with('success', 'Solicitud de información enviada');
@@ -420,12 +416,12 @@ class FuncionarioController extends Controller
 
         // Resueltos este mes (específico del dashboard)
         $estadisticas['resueltos_mes'] = Expediente::where('id_funcionario_asignado', $userId)
-            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', EstadoExpediente::RESUELTO->value))
             ->whereMonth('updated_at', now()->month)
             ->count();
 
         $expedientesPrioritarios = Expediente::where('id_funcionario_asignado', $userId)
-            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', [EstadoExpediente::DERIVADO->value, EstadoExpediente::EN_PROCESO->value]))
             ->whereIn('prioridad', ['alta', 'urgente'])
             ->with(['tipoTramite', 'derivaciones'])
             ->orderByRaw("FIELD(prioridad, 'urgente', 'alta')")
@@ -436,7 +432,7 @@ class FuncionarioController extends Controller
         $rendimiento = [
             'resueltos_mes' => $estadisticas['resueltos_mes'],
             'tiempo_promedio' => Expediente::where('id_funcionario_asignado', $userId)
-                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
+                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', EstadoExpediente::RESUELTO->value))
                 ->whereNotNull('fecha_resolucion')
                 ->get()
                 ->avg(function($exp) {
@@ -457,38 +453,6 @@ class FuncionarioController extends Controller
         return view('funcionario.dashboard', compact('estadisticas', 'expedientesPrioritarios', 'rendimiento', 'alertas'));
     }
 
-    public function misExpedientes()
-    {
-        $user = auth()->user();
-        $esAdministrador = $user->role?->nombre === 'Administrador';
-
-        // Si es administrador, mostrar todos los expedientes; si no, solo los asignados
-        $query = Expediente::query();
-        if (!$esAdministrador) {
-            $query->where('id_funcionario_asignado', $user->id);
-        }
-
-        $expedientes = $query
-            ->with(['tipoTramite', 'ciudadano', 'area', 'derivaciones', 'persona', 'funcionarioAsignado'])
-            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso', 'observado']))
-            ->get()
-            ->map(function($expediente) {
-                $derivacion = $expediente->derivaciones->first();
-
-                // Calcular días restantes como número entero
-                if ($derivacion && $derivacion->fecha_limite) {
-                    $diasRestantes = now()->diffInDays($derivacion->fecha_limite, false);
-                    $expediente->dias_restantes = (int) $diasRestantes;
-                } else {
-                    $expediente->dias_restantes = 0;
-                }
-
-                $expediente->fecha_derivacion = $derivacion ? $derivacion->fecha_derivacion : null;
-                return $expediente;
-            });
-
-        return view('funcionario.mis-expedientes', compact('expedientes'));
-    }
 
     public function solicitarInfoForm(Expediente $expediente)
     {

@@ -41,20 +41,21 @@ class EstadisticasService
 
     /**
      * Obtiene estadísticas del dashboard de Jefe de Área
+     * @param array $areasIds IDs del área principal + subdirecciones
      */
-    public function obtenerEstadisticasJefeArea(int $areaId): array
+    public function obtenerEstadisticasJefeArea(array $areasIds): array
     {
         return [
-            'total_expedientes' => Expediente::where('id_area', $areaId)->count(),
-            'pendientes' => Expediente::where('id_area', $areaId)
+            'total_expedientes' => Expediente::whereIn('id_area', $areasIds)->count(),
+            'pendientes' => Expediente::whereIn('id_area', $areasIds)
                 ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
                 ->count(),
-            'vencidos' => $this->contarExpedientesVencidosPorArea($areaId),
-            'resueltos_mes' => Expediente::where('id_area', $areaId)
+            'vencidos' => $this->contarExpedientesVencidosPorArea($areasIds),
+            'resueltos_mes' => Expediente::whereIn('id_area', $areasIds)
                 ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                 ->whereMonth('updated_at', now()->month)
                 ->count(),
-            'promedio_atencion' => $this->calcularPromedioAtencionArea($areaId)
+            'promedio_atencion' => $this->calcularPromedioAtencionArea($areasIds)
         ];
     }
 
@@ -90,11 +91,11 @@ class EstadisticasService
     }
 
     /**
-     * Cuenta expedientes vencidos por área
+     * Cuenta expedientes vencidos por área(s)
      */
-    protected function contarExpedientesVencidosPorArea(int $areaId): int
+    protected function contarExpedientesVencidosPorArea(array $areasIds): int
     {
-        return Expediente::where('id_area', $areaId)
+        return Expediente::whereIn('id_area', $areasIds)
             ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereHas('derivaciones', function($query) {
                 $query->where('fecha_limite', '<', now())
@@ -118,11 +119,11 @@ class EstadisticasService
     }
 
     /**
-     * Calcula el promedio de días de atención en un área
+     * Calcula el promedio de días de atención en área(s)
      */
-    protected function calcularPromedioAtencionArea(int $areaId): float
+    protected function calcularPromedioAtencionArea(array $areasIds): float
     {
-        $resueltos = Expediente::where('id_area', $areaId)
+        $resueltos = Expediente::whereIn('id_area', $areasIds)
             ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
             ->whereNotNull('fecha_resolucion')
             ->select(
