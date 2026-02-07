@@ -17,13 +17,13 @@ class NumeracionService
         return DB::transaction(function () {
             $year = now()->year;
 
-            $numeracion = Numeracion::where('año', $year)
+            $numeracion = Numeracion::where('anio', $year)
                 ->whereNull('id_area')
                 ->first();
 
             if (!$numeracion) {
                 $numeracion = Numeracion::create([
-                    'año' => $year,
+                    'anio' => $year,
                     'id_area' => null,
                     'ultimo_numero' => 1
                 ]);
@@ -51,13 +51,13 @@ class NumeracionService
             $siglas = $area->siglas ?? 'AREA' . $idArea;
 
             // Buscar o crear numeración para este área y año
-            $numeracion = Numeracion::where('año', $year)
+            $numeracion = Numeracion::where('anio', $year)
                 ->where('id_area', $idArea)
                 ->first();
 
             if (!$numeracion) {
                 $numeracion = Numeracion::create([
-                    'año' => $year,
+                    'anio' => $year,
                     'id_area' => $idArea,
                     'ultimo_numero' => 1
                 ]);

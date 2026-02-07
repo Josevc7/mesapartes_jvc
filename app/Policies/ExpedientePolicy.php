@@ -136,11 +136,11 @@ class ExpedientePolicy
     }
 
     /**
-     * Determine si el usuario puede resolver el expediente
+     * Determine si el usuario puede enviar el expediente a revisión del Jefe
      */
-    public function resolver(User $user, Expediente $expediente): bool
+    public function enviarARevision(User $user, Expediente $expediente): bool
     {
-        // Solo funcionarios asignados pueden resolver
+        // Solo funcionarios asignados pueden enviar a revisión
         return $user->role->nombre === 'Funcionario'
             && $expediente->id_funcionario_asignado === $user->id;
     }

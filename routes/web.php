@@ -258,8 +258,11 @@ Route::prefix('funcionario')->middleware(['auth', 'role:Funcionario,Jefe de Áre
     Route::get('/expedientes/{expediente}/procesar', [FuncionarioController::class, 'procesar'])->name('funcionario.procesar');
     Route::put('/expedientes/{expediente}/procesar', [FuncionarioController::class, 'updateProcesar'])->name('funcionario.update-procesar');
     
-    // Resolver expediente
-    Route::put('/expedientes/{expediente}/resolver', [FuncionarioController::class, 'resolver'])->name('funcionario.resolver');
+    // Enviar expediente a revisión del Jefe de Área (con documento adjunto)
+    Route::put('/expedientes/{expediente}/enviar-revision', [FuncionarioController::class, 'enviarARevision'])->name('funcionario.enviar-revision');
+
+    // Devolver expediente al Jefe de Área (sin documento obligatorio)
+    Route::put('/expedientes/{expediente}/devolver-jefe', [FuncionarioController::class, 'devolverAlJefe'])->name('funcionario.devolver-jefe');
     
     // Solicitar información adicional
     Route::get('/expedientes/{expediente}/solicitar-info', [FuncionarioController::class, 'solicitarInfoForm'])->name('funcionario.solicitar-info-form');

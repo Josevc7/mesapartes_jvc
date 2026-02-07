@@ -15,6 +15,7 @@ enum EstadoExpediente: string
     case DERIVADO = 'derivado';
     case ASIGNADO = 'asignado';
     case EN_PROCESO = 'en_proceso';
+    case DEVUELTO_JEFE = 'devuelto_jefe';
     case EN_REVISION = 'en_revision';
     case OBSERVADO = 'observado';
     case RESUELTO = 'resuelto';
@@ -32,6 +33,7 @@ enum EstadoExpediente: string
             self::DERIVADO->value,
             self::ASIGNADO->value,
             self::EN_PROCESO->value,
+            self::DEVUELTO_JEFE->value,
         ];
     }
 
@@ -70,6 +72,7 @@ enum EstadoExpediente: string
             self::DERIVADO->value,
             self::ASIGNADO->value,
             self::EN_PROCESO->value,
+            self::DEVUELTO_JEFE->value,
             self::EN_REVISION->value,
             self::OBSERVADO->value,
         ];
@@ -87,6 +90,7 @@ enum EstadoExpediente: string
             self::DERIVADO => 'Derivado',
             self::ASIGNADO => 'Asignado',
             self::EN_PROCESO => 'En Proceso',
+            self::DEVUELTO_JEFE => 'Devuelto al Jefe',
             self::EN_REVISION => 'En Revisión',
             self::OBSERVADO => 'Observado',
             self::RESUELTO => 'Resuelto',
@@ -109,6 +113,7 @@ enum EstadoExpediente: string
             self::DERIVADO => 'primary',
             self::ASIGNADO => 'primary',
             self::EN_PROCESO => 'warning',
+            self::DEVUELTO_JEFE => 'warning',
             self::EN_REVISION => 'warning',
             self::OBSERVADO => 'danger',
             self::RESUELTO => 'success',
@@ -131,6 +136,7 @@ enum EstadoExpediente: string
             self::DERIVADO => 'send',
             self::ASIGNADO => 'user-check',
             self::EN_PROCESO => 'clock',
+            self::DEVUELTO_JEFE => 'undo-alt',
             self::EN_REVISION => 'eye',
             self::OBSERVADO => 'alert-circle',
             self::RESUELTO => 'check-circle',

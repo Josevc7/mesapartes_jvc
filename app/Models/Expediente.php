@@ -26,6 +26,7 @@ class Expediente extends Model
         'derivado' => 'Derivado',
         'asignado' => 'Asignado',
         'en_proceso' => 'En Proceso',
+        'devuelto_jefe' => 'Devuelto al Jefe',
         'en_revision' => 'En Revisión',
         'observado' => 'Observado',
         'resuelto' => 'Resuelto',
@@ -322,6 +323,8 @@ class Expediente extends Model
             'por_recibir' => 'Por Recibir',
             'derivado' => 'Derivado',
             'en_proceso' => 'En Proceso',
+            'devuelto_jefe' => 'Devuelto al Jefe',
+            'en_revision' => 'En Revisión',
             'observado' => 'Observado',
             'resuelto' => 'Resuelto',
             'aprobado' => 'Aprobado',
@@ -341,6 +344,8 @@ class Expediente extends Model
             'por_recibir' => 'secondary',  // Gris - Esperando recepción
             'derivado' => 'success',       // Verde - Derivado correctamente
             'en_proceso' => 'primary',     // Azul - Trabajando en él
+            'devuelto_jefe' => 'warning',  // Naranja - Devuelto al jefe
+            'en_revision' => 'info',       // Azul - En revisión del jefe
             'observado' => 'warning',      // Amarillo - Requiere atención
             'resuelto' => 'success',       // Verde - Completado
             'aprobado' => 'success',       // Verde - Aprobado
@@ -445,4 +450,15 @@ class Expediente extends Model
     {
         return $this->derivacion_activa?->plazo_dias;
     }
+    public function cambiarEstadoPorSlug(string $slug): void
+    {
+      $estado = \App\Models\EstadoExpediente::where('slug', $slug)->firstOrFail();
+      $this->id_estado_expediente = $estado->id_estado_expediente; // ajusta el nombre real del PK
+      $this->save();
+     }
+
+     public function getEstadoSlugAttribute(): ?string
+     {
+      return $this->estadoExpediente->slug ?? null;
+     }
 }

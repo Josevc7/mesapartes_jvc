@@ -37,6 +37,7 @@ class HistorialExpediente extends Model
     const ACCION_ARCHIVO = 'ARCHIVO';
     const ACCION_ASIGNACION = 'ASIGNACION';
     const ACCION_ADJUNTO = 'ADJUNTO';
+    const ACCION_DEVOLUCION_JEFE = 'DEVOLUCION_JEFE';
     const ACCION_CAMBIO_ESTADO = 'CAMBIO_ESTADO';
 
     public function expediente()
@@ -72,6 +73,7 @@ class HistorialExpediente extends Model
             self::ACCION_ARCHIVO => 'ARCHIVÓ',
             self::ACCION_ASIGNACION => 'ASIGNÓ A FUNCIONARIO',
             self::ACCION_ADJUNTO => 'ADJUNTÓ DOCUMENTO',
+            self::ACCION_DEVOLUCION_JEFE => 'DEVUELTO AL JEFE DE ÁREA',
             self::ACCION_CAMBIO_ESTADO => 'CAMBIÓ ESTADO',
             default => $this->accion ?? 'ACCIÓN'
         };
@@ -120,6 +122,7 @@ class HistorialExpediente extends Model
             self::ACCION_ARCHIVO => 'Expediente archivado',
             self::ACCION_ASIGNACION => 'Asignado para atención',
             self::ACCION_ADJUNTO => 'Documento adjuntado',
+            self::ACCION_DEVOLUCION_JEFE => 'Expediente devuelto al Jefe de Área',
             self::ACCION_CAMBIO_ESTADO => 'Estado actualizado a: ' . ($this->estado ?? ''),
             default => 'Acción registrada'
         };

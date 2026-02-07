@@ -32,6 +32,7 @@
                         $estadoColor = match($expediente->estado) {
                             'derivado' => 'primary',
                             'en_proceso' => 'info',
+                            'devuelto_jefe' => 'warning',
                             'resuelto' => 'success',
                             'aprobado' => 'success',
                             'observado' => 'warning',
@@ -205,7 +206,7 @@
 
                     <hr>
                     <!-- Botón Derivar a otra área -->
-                    @if(in_array($expediente->estado, ['derivado', 'recepcionado', 'asignado', 'en_proceso']))
+                    @if(in_array($expediente->estado, ['derivado', 'recepcionado', 'asignado', 'en_proceso', 'devuelto_jefe']))
                     <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#modalDerivar">
                         <i class="fas fa-share me-1"></i> Derivar a otra Área
                     </button>
@@ -282,6 +283,46 @@
             <!-- ========================================= -->
             <!-- ACCIONES SEGÚN ESTADO DEL EXPEDIENTE -->
             <!-- ========================================= -->
+
+            <!-- ESTADO: DEVUELTO_JEFE - Funcionario devolvió sin documento, jefe decide -->
+            @if($expediente->estado === 'devuelto_jefe')
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-undo-alt me-2"></i>Expediente Devuelto por Funcionario</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Un funcionario ha devuelto este expediente.</strong>
+                        <br>Revise el historial para conocer el motivo. Puede reasignar a otro funcionario o derivar a otra área.
+                    </div>
+
+                    @php
+                        $ultimoHistorialDevolucion = $expediente->historial
+                            ->where('accion', 'DEVOLUCION_JEFE')
+                            ->sortByDesc('created_at')
+                            ->first();
+                    @endphp
+
+                    @if($ultimoHistorialDevolucion)
+                    <div class="alert alert-secondary">
+                        <strong><i class="fas fa-comment me-1"></i>Motivo de devolución:</strong>
+                        <p class="mb-0 mt-1">{{ $ultimoHistorialDevolucion->descripcion }}</p>
+                        <small class="text-muted">{{ $ultimoHistorialDevolucion->created_at->format('d/m/Y H:i') }}</small>
+                    </div>
+                    @endif
+
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Al reasignar, el expediente volverá a estado <strong>En Proceso</strong>.
+                    </p>
+
+                    <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalDerivar">
+                        <i class="fas fa-share me-1"></i> Derivar a otra Área
+                    </button>
+                </div>
+            </div>
+            @endif
 
             <!-- ESTADO: EN_REVISION - Funcionario devolvió, jefe debe aprobar o rechazar -->
             @if($expediente->estado === 'en_revision')

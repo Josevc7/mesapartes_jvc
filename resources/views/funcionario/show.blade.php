@@ -14,6 +14,7 @@
                             'asignado' => 'primary',
                             'en_proceso' => 'info',
                             'en_revision' => 'warning',
+                            'devuelto_jefe' => 'warning',
                             default => 'secondary'
                         };
                     @endphp
@@ -157,6 +158,9 @@
                     </div>
                     @endif
 
+                    <button type="button" class="btn btn-outline-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#devolverJefeModal">
+                        <i class="fas fa-undo-alt me-1"></i> Devolver al Jefe (sin resolver)
+                    </button>
                     <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#solicitarInfoModal">
                         <i class="fas fa-question-circle me-1"></i> Solicitar Info al Ciudadano
                     </button>
@@ -207,7 +211,7 @@
                 <h5 class="modal-title"><i class="fas fa-paper-plane me-2"></i>Devolver al Jefe de Área</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('funcionario.resolver', $expediente) }}">
+            <form method="POST" action="{{ route('funcionario.enviar-revision', $expediente) }}">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
@@ -248,6 +252,53 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success" {{ $docsAdjuntos->count() === 0 ? 'disabled' : '' }}>
                         <i class="fas fa-paper-plane me-1"></i> Devolver al Jefe
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Devolver al Jefe (sin documento obligatorio) -->
+<div class="modal fade" id="devolverJefeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-undo-alt me-2"></i>Devolver al Jefe de Área</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('funcionario.devolver-jefe', $expediente) }}">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Use esta opción cuando <strong>no pueda continuar</strong> con el expediente y necesite la intervención del Jefe de Área.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo de la devolución *</label>
+                        <select class="form-select" name="motivo_devolucion" required>
+                            <option value="">-- Seleccione motivo --</option>
+                            <option value="falta_informacion">Falta información o documentación</option>
+                            <option value="error_asignacion">Error en la asignación (no corresponde a mi área)</option>
+                            <option value="caso_complejo">Caso complejo que requiere decisión del Jefe</option>
+                            <option value="ampliacion_plazo">Se requiere ampliación de plazo</option>
+                            <option value="otro">Otro motivo</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Detalle / Observación técnica *</label>
+                        <textarea class="form-control" name="observaciones_devolucion" rows="4" required minlength="10"
+                                  placeholder="Explique detalladamente por qué devuelve el expediente..."></textarea>
+                        <div class="form-text">Mínimo 10 caracteres</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-undo-alt me-1"></i> Devolver al Jefe
                     </button>
                 </div>
             </form>

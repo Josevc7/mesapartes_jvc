@@ -17,6 +17,32 @@ class FuncionarioController extends Controller
     {
         $this->derivacionService = $derivacionService;
     }
+
+    /**
+     * Estadísticas del funcionario en una sola query agrupada
+     * Reemplaza 5+ queries individuales por 2 queries (groupBy + vencidos)
+     */
+    private function getEstadisticasFuncionario(int $userId): array
+    {
+        $conteosPorEstado = Expediente::where('id_funcionario_asignado', $userId)
+            ->join('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
+            ->selectRaw('estados_expediente.slug, COUNT(*) as total')
+            ->groupBy('estados_expediente.slug')
+            ->pluck('total', 'slug');
+
+        $vencidos = Expediente::where('id_funcionario_asignado', $userId)
+            ->whereHas('derivaciones', fn($q) => $q->where('fecha_limite', '<', now()))
+            ->count();
+
+        return [
+            'asignados' => $conteosPorEstado->get('asignado', 0),
+            'derivados' => $conteosPorEstado->get('derivado', 0),
+            'en_proceso' => $conteosPorEstado->get('en_proceso', 0),
+            'resueltos' => $conteosPorEstado->get('resuelto', 0),
+            'vencidos' => $vencidos,
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = Expediente::where('id_funcionario_asignado', auth()->user()->id)
@@ -42,17 +68,7 @@ class FuncionarioController extends Controller
 
         $expedientes = $query->orderBy('created_at', 'desc')->paginate(10);
         
-        // Estadísticas
-        $stats = [
-            'asignados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'asignado'))->count(),
-            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
-            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
-            'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
-                ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now());
-                })->count(),
-            'resueltos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))->count()
-        ];
+        $stats = $this->getEstadisticasFuncionario(auth()->user()->id);
             
         return view('funcionario.mis-expedientes', compact('expedientes', 'stats'));
     }
@@ -72,7 +88,7 @@ class FuncionarioController extends Controller
             $this->authorize('process', $expediente);
 
             // Verificar que el expediente esté en estado derivado o asignado
-            if (!in_array($expediente->estado, ['derivado', 'Derivado', 'asignado', 'Asignado'])) {
+            if (!in_array($expediente->estado, ['derivado', 'asignado'])) {
                 if (request()->expectsJson()) {
                     return response()->json([
                         'error' => 'El expediente no está listo para recibir. Estado actual: ' . $expediente->estado
@@ -199,9 +215,9 @@ class FuncionarioController extends Controller
      * Devolver expediente al Jefe de Área para revisión
      * Requiere al menos un documento adjunto (informe/respuesta)
      */
-    public function resolver(Expediente $expediente)
+    public function enviarARevision(Expediente $expediente)
     {
-        $this->authorize('resolver', $expediente);
+        $this->authorize('enviarARevision', $expediente);
 
         // Verificar que tenga al menos un documento adjunto (no de entrada)
         $documentosAdjuntos = $expediente->documentos()
@@ -252,6 +268,59 @@ class FuncionarioController extends Controller
 
         return redirect()->route('funcionario.index')
             ->with('success', 'Expediente devuelto al Jefe de Área para revisión.');
+    }
+
+    /**
+     * Devolver expediente al Jefe de Área (sin necesidad de documento)
+     * Para casos: falta información, error de asignación, caso complejo, ampliación de plazo
+     */
+    public function devolverAlJefe(Request $request, Expediente $expediente)
+    {
+        $this->authorize('process', $expediente);
+
+        // Solo desde en_proceso
+        if ($expediente->estado !== 'en_proceso') {
+            return back()->with('error', 'Solo se pueden devolver expedientes en estado "En Proceso".');
+        }
+
+        $request->validate([
+            'motivo_devolucion' => 'required|string|in:falta_informacion,error_asignacion,caso_complejo,ampliacion_plazo,otro',
+            'observaciones_devolucion' => 'required|string|min:10|max:500',
+        ], [
+            'motivo_devolucion.required' => 'Debe seleccionar un motivo de devolución.',
+            'observaciones_devolucion.required' => 'Debe detallar el motivo de la devolución.',
+            'observaciones_devolucion.min' => 'La observación debe tener al menos 10 caracteres.',
+        ]);
+
+        $motivosTexto = [
+            'falta_informacion' => 'Falta información o documentación',
+            'error_asignacion' => 'Error en la asignación (no corresponde)',
+            'caso_complejo' => 'Caso complejo que requiere decisión del Jefe',
+            'ampliacion_plazo' => 'Se requiere ampliación de plazo',
+            'otro' => 'Otro motivo',
+        ];
+
+        $motivoTexto = $motivosTexto[$request->motivo_devolucion] ?? $request->motivo_devolucion;
+
+        $expediente->estado = 'devuelto_jefe';
+        $expediente->save();
+
+        $descripcion = sprintf(
+            'Funcionario %s devolvió el expediente al Jefe de Área. Motivo: %s. Detalle: %s',
+            auth()->user()->name,
+            $motivoTexto,
+            $request->observaciones_devolucion
+        );
+
+        $expediente->agregarHistorial($descripcion, auth()->id(), [
+            'accion' => HistorialExpediente::ACCION_DEVOLUCION_JEFE,
+            'estado' => 'devuelto_jefe',
+            'id_area' => auth()->user()->id_area,
+            'detalle' => "Motivo: {$motivoTexto}",
+        ]);
+
+        return redirect()->route('funcionario.index')
+            ->with('success', 'Expediente devuelto al Jefe de Área correctamente.');
     }
 
     public function solicitarInfo(Request $request, Expediente $expediente)
@@ -346,20 +415,16 @@ class FuncionarioController extends Controller
 
     public function dashboard()
     {
-        $estadisticas = [
-            'derivados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
-            'en_proceso' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
-            'vencidos' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
-                ->whereHas('derivaciones', function($q) {
-                    $q->where('fecha_limite', '<', now());
-                })->count(),
-            'resueltos_mes' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
-                ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
-                ->whereMonth('updated_at', now()->month)
-                ->count()
-        ];
+        $userId = auth()->user()->id;
+        $estadisticas = $this->getEstadisticasFuncionario($userId);
 
-        $expedientesPrioritarios = Expediente::where('id_funcionario_asignado', auth()->user()->id)
+        // Resueltos este mes (específico del dashboard)
+        $estadisticas['resueltos_mes'] = Expediente::where('id_funcionario_asignado', $userId)
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
+            ->whereMonth('updated_at', now()->month)
+            ->count();
+
+        $expedientesPrioritarios = Expediente::where('id_funcionario_asignado', $userId)
             ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['derivado', 'en_proceso']))
             ->whereIn('prioridad', ['alta', 'urgente'])
             ->with(['tipoTramite', 'derivaciones'])
@@ -370,14 +435,14 @@ class FuncionarioController extends Controller
 
         $rendimiento = [
             'resueltos_mes' => $estadisticas['resueltos_mes'],
-            'tiempo_promedio' => Expediente::where('id_funcionario_asignado', auth()->user()->id)
+            'tiempo_promedio' => Expediente::where('id_funcionario_asignado', $userId)
                 ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                 ->whereNotNull('fecha_resolucion')
                 ->get()
                 ->avg(function($exp) {
                     return $exp->created_at->diffInDays($exp->fecha_resolucion);
                 }) ?? 0,
-            'total_asignados' => Expediente::where('id_funcionario_asignado', auth()->user()->id)->count(),
+            'total_asignados' => Expediente::where('id_funcionario_asignado', $userId)->count(),
             'pendientes' => $estadisticas['derivados'] + $estadisticas['en_proceso']
         ];
 

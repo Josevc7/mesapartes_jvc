@@ -15,6 +15,7 @@ use App\Http\Requests\Derivacion\StoreDerivacionRequest;
 use App\Services\ExpedienteService;
 use App\Services\DerivacionService;
 use App\Services\EstadisticasService;
+use App\Models\EstadoExpediente;
 
 class MesaPartesController extends Controller
 {
@@ -160,11 +161,18 @@ class MesaPartesController extends Controller
             $tipoTramite = TipoTramite::find($request->id_tipo_tramite);
             $area = Area::find($request->id_area);
 
-            $expediente->update([
-                'id_area' => $request->id_area,
-                'prioridad' => $request->prioridad,
-                'estado' => 'derivado' // Cambiar directamente a derivado
-            ]);
+           // $expediente->update([
+           //     'id_area' => $request->id_area,
+           //     'prioridad' => $request->prioridad,
+           //     'estado' => 'derivado' // Cambiar directamente a derivado
+           // ]);
+             $idDerivado = EstadoExpediente::where('slug', 'derivado')->value('id_estado');
+
+             $expediente->update([
+            'id_area' => $request->id_area,
+            'prioridad' => $request->prioridad,
+            'id_estado' => $idDerivado,
+             ]);
 
             $descripcionClasificacion = "Expediente registrado y clasificado automáticamente - Tipo: {$tipoTramite->nombre}, Área: {$area->nombre}, Prioridad: {$request->prioridad}";
 
@@ -231,12 +239,20 @@ class MesaPartesController extends Controller
             'observaciones_clasificacion' => 'nullable|string|max:500'
         ]);
 
-        $expediente->update([
-            'id_tipo_tramite' => $request->id_tipo_tramite,
-            'id_area' => $request->id_area,
-            'prioridad' => $request->prioridad,
-            'estado' => 'clasificado'
-        ]);
+       //$expediente->update([
+        //    'id_tipo_tramite' => $request->id_tipo_tramite,
+       //     'id_area' => $request->id_area,
+        //    'prioridad' => $request->prioridad,
+        //    'estado' => 'clasificado'
+        //]);
+         $idClasificado = EstadoExpediente::where('slug', 'clasificado')->value('id_estado');
+
+         $expediente->update([
+         'id_tipo_tramite' => $request->id_tipo_tramite,
+         'id_area' => $request->id_area,
+         'prioridad' => $request->prioridad,
+         'id_estado' => $idClasificado,
+         ]);
         
         $tipoTramite = TipoTramite::find($request->id_tipo_tramite);
         $area = Area::find($request->id_area);
@@ -288,9 +304,16 @@ class MesaPartesController extends Controller
 
     public function archivar(Expediente $expediente)
     {
+        //$expediente->update([
+        //    'estado' => 'archivado',
+        //    'fecha_archivo' => now()
+        //]);
+        $idArchivado = EstadoExpediente::where('slug', 'archivado')
+        ->value('id_estado');
+
         $expediente->update([
-            'estado' => 'archivado',
-            'fecha_archivo' => now()
+        'id_estado' => $idArchivado,
+        'fecha_archivo' => now()
         ]);
         
         return redirect()->route('mesa-partes.index')
@@ -433,10 +456,10 @@ class MesaPartesController extends Controller
 
     public function numeracion()
     {
-        $numeracionActual = \App\Models\Numeracion::where('año', date('Y'))->first();
+        $numeracionActual = \App\Models\Numeracion::where('anio', date('Y'))->first();
         if (!$numeracionActual) {
             $numeracionActual = \App\Models\Numeracion::create([
-                'año' => date('Y'),
+                'anio' => date('Y'),
                 'ultimo_numero' => 0
             ]);
         }
@@ -448,8 +471,8 @@ class MesaPartesController extends Controller
             'hoy' => Expediente::whereDate('created_at', today())->count()
         ];
 
-        $historialNumeracion = \App\Models\Numeracion::orderBy('año', 'desc')->get()->map(function($registro) {
-            $registro->total_expedientes = \App\Models\Expediente::whereYear('created_at', $registro->año)->count();
+        $historialNumeracion = \App\Models\Numeracion::orderBy('anio', 'desc')->get()->map(function($registro) {
+            $registro->total_expedientes = \App\Models\Expediente::whereYear('created_at', $registro->anio)->count();
             return $registro;
         });
 
@@ -553,10 +576,17 @@ class MesaPartesController extends Controller
             // 1. Clasificar el expediente
             $area = Area::find($request->id_area);
 
+            //$expediente->update([
+            //    'id_area' => $request->id_area,
+            //    'prioridad' => $request->prioridad,
+            //    'estado' => 'derivado'
+           // ]);
+            $idDerivado = EstadoExpediente::where('slug', 'derivado')->value('id_estado');
+
             $expediente->update([
-                'id_area' => $request->id_area,
-                'prioridad' => $request->prioridad,
-                'estado' => 'derivado'
+            'id_area'   => $request->id_area,
+            'prioridad' => $request->prioridad,
+            'id_estado' => $idDerivado,
             ]);
 
             $descripcionClasificacion = "Expediente virtual clasificado - Área: {$area->nombre}, Prioridad: {$request->prioridad}";
