@@ -12,6 +12,7 @@
     <link href="{{ asset('css/adaptive-forms.css') }}" rel="stylesheet">
     <link href="{{ asset('css/logo-styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
+    @stack('styles')
 </head>
 <body>
     <!-- Top Header -->

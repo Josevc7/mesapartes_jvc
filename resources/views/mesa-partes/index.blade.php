@@ -4,28 +4,28 @@
 
 @section('styles')
 <style>
-/* Estadisticas inline */
+/* Estadisticas inline - compactas */
 .stat-mini {
-    padding: 1.8rem 3rem;
-    border-radius: 14px;
-    font-size: 1.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.15s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    min-width: 140px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    min-width: 90px;
     text-align: center;
 }
 .stat-mini:hover {
     opacity: 0.9;
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 .stat-mini strong {
-    font-weight: 800;
-    font-size: 3rem;
+    font-weight: 700;
+    font-size: 1.4rem;
     display: block;
     line-height: 1;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
 }
 
 /* Filtros */
@@ -192,26 +192,26 @@
 @section('content')
 <div class="container-fluid">
     <!-- Encabezado -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
         <div>
-            <h4 class="mb-0"><i class="fas fa-inbox text-primary"></i> Mesa de Partes - Gestion de Expedientes</h4>
-            <small class="text-muted">Administracion y seguimiento de documentos</small>
+            <h5 class="mb-0"><i class="fas fa-inbox text-primary me-1"></i>Mesa de Partes - Expedientes</h5>
+            <small class="text-muted" style="font-size: 0.75rem;">Administracion y seguimiento de documentos</small>
         </div>
-        <div class="btn-group">
+        <div class="btn-group btn-group-sm">
             <a href="{{ route('mesa-partes.registrar') }}" class="btn btn-success">
-                <i class="fas fa-plus-circle"></i> Registrar Documento
+                <i class="fas fa-plus-circle me-1"></i>Registrar
             </a>
             <a href="{{ route('mesa-partes.expedientes-virtuales') }}" class="btn btn-primary">
-                <i class="fas fa-globe"></i> Virtuales ({{ $estadisticas['virtuales'] }})
+                <i class="fas fa-globe me-1"></i>Virtuales ({{ $estadisticas['virtuales'] }})
             </a>
             <a href="{{ route('mesa-partes.monitoreo') }}" class="btn btn-warning">
-                <i class="fas fa-clock"></i> Monitoreo
+                <i class="fas fa-clock me-1"></i>Monitoreo
             </a>
         </div>
     </div>
 
-    <!-- Estadisticas rapidas (compactas) -->
-    <div class="d-flex flex-wrap gap-3 mb-3">
+    <!-- Estadisticas rapidas -->
+    <div class="d-flex flex-wrap gap-2 mb-2">
         <span class="stat-mini bg-primary text-white" onclick="filtrarPorEstado('todos')" role="button">
             <strong>{{ $estadisticas['total'] }}</strong> Total
         </span>

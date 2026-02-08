@@ -1,274 +1,321 @@
 /**
- * Estilos compactos para formulario Mesa de Partes
- * Diseñado para mostrar todo el formulario en una sola pantalla
+ * Estilos compactos y profesionales - Mesa de Partes DRTC
+ * Reduce espacios en blanco, organiza campos y mejora la UX
  */
 
-/* Reducir padding del contenedor principal */
+/* ========================================
+   Contenedor del formulario
+   ======================================== */
 .modern-form-container {
-    padding: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    max-width: 1100px;
 }
 
 .modern-form-card {
     margin-bottom: 0.5rem;
+    border-radius: 10px;
 }
 
-/* Encabezado más compacto */
+/* ========================================
+   Encabezado compacto
+   ======================================== */
 .modern-form-header {
-    padding: 1rem !important;
+    padding: 0.75rem 1.25rem !important;
 }
 
 .modern-form-header h1 {
-    font-size: 1.3rem !important;
-    margin-bottom: 0.25rem !important;
-}
-
-.modern-form-header p {
-    font-size: 0.8rem !important;
-}
-
-.modern-form-icon {
-    width: 40px !important;
-    height: 40px !important;
-}
-
-.modern-form-icon i {
-    font-size: 1.2rem !important;
-}
-
-/* Cuerpo del formulario más compacto */
-.modern-form-body {
-    padding: 1rem !important;
-}
-
-/* Reducir márgenes entre secciones */
-.mb-5 {
-    margin-bottom: 0.5rem !important;
-}
-
-.mb-4 {
-    margin-bottom: 0.35rem !important;
-}
-
-.mb-3 {
-    margin-bottom: 0.25rem !important;
-}
-
-.mb-2 {
+    font-size: 1.15rem !important;
     margin-bottom: 0.15rem !important;
 }
 
-/* Encabezados de sección más pequeños */
-.form-section-header h3,
-h5.fw-bold {
-    font-size: 1rem !important;
-    margin-bottom: 0.25rem !important;
-}
-
-.form-section-header p,
-p.text-muted.small {
-    font-size: 0.75rem !important;
+.modern-form-header p {
+    font-size: 0.78rem !important;
     margin-bottom: 0 !important;
 }
 
-/* Iconos de sección más pequeños */
-.bg-primary.bg-opacity-10,
-.bg-success.bg-opacity-10,
-.bg-info.bg-opacity-10,
-.bg-warning.bg-opacity-10,
-.form-section-icon {
-    padding: 0.5rem !important;
+.modern-form-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
 }
 
-.bg-primary.bg-opacity-10 i,
-.bg-success.bg-opacity-10 i,
-.bg-info.bg-opacity-10 i,
-.bg-warning.bg-opacity-10 i,
-.form-section-icon i {
+.modern-form-icon i {
     font-size: 1rem !important;
 }
 
-/* Labels más pequeños */
-.form-label {
-    font-size: 0.85rem !important;
-    margin-bottom: 0.25rem !important;
-}
-
-.form-label i {
-    font-size: 0.8rem !important;
-}
-
-/* Inputs y selects más compactos */
-.form-control,
-.form-select {
-    padding: 0.4rem 0.6rem !important;
-    font-size: 0.85rem !important;
-}
-
-.form-control-lg {
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.9rem !important;
-}
-
-.form-select-lg {
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.9rem !important;
-}
-
-/* Eliminado - movido al final del archivo */
-
-/* Alertas más compactas */
-.alert {
-    padding: 0.5rem 0.75rem !important;
-    margin-bottom: 0.75rem !important;
-    font-size: 0.85rem !important;
-}
-
-.alert h6 {
-    font-size: 0.9rem !important;
-    margin-bottom: 0.25rem !important;
-}
-
-.alert p {
-    font-size: 0.8rem !important;
-}
-
-/* Checkboxes más compactos */
-.form-check {
-    padding-left: 1.25rem !important;
-    margin-bottom: 0.3rem !important;
-}
-
-.form-check-label {
-    font-size: 0.85rem !important;
-}
-
-/* Texto de ayuda más pequeño */
-.form-text {
-    font-size: 0.75rem !important;
-    margin-top: 0.15rem !important;
-}
-
-/* Botones más compactos */
-.btn {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.9rem !important;
-}
-
-.btn-lg {
-    padding: 0.6rem 1.2rem !important;
-    font-size: 0.95rem !important;
-}
-
-/* Secciones del formulario más compactas */
-.form-section {
-    margin-bottom: 0.35rem !important;
-    padding-bottom: 0.25rem !important;
-}
-
-/* Reducir altura de textareas */
-textarea.form-control {
-    min-height: 35px !important;
-}
-
-/* Ajustar espaciado del grid personalizado */
-.form-row-3cols,
-.form-row-4cols {
-    gap: 0.5rem !important;
-    margin-bottom: 0.35rem !important;
-}
-
-/* Compactar el alert de información final */
-.alert.border-0.shadow-sm {
-    padding: 0.5rem !important;
-}
-
-/* Reducir padding de input groups */
-.input-group-lg > .form-control,
-.input-group-lg > .btn {
-    padding: 0.5rem 0.75rem !important;
-}
-
-/* Reducir espaciado en listas */
-ul {
-    margin-bottom: 0.5rem !important;
-}
-
-li {
-    margin-bottom: 0.25rem !important;
-}
-
-/* H6 más compactos */
-h6 {
-    font-size: 0.9rem !important;
-    margin-bottom: 0.5rem !important;
-}
-
-/* Reducir espaciado superior en divisiones */
-.d-flex.align-items-center.mb-4 {
-    margin-bottom: 0.35rem !important;
-}
-
-/* Reducir espaciado entre encabezados de sección y contenido */
-.form-section-header {
-    margin-bottom: 0.5rem !important;
-}
-
-/* Compactar espacios de los círculos de íconos */
-.bg-primary.bg-opacity-10.rounded-circle,
-.bg-success.bg-opacity-10.rounded-circle,
-.bg-info.bg-opacity-10.rounded-circle,
-.bg-warning.bg-opacity-10.rounded-circle {
-    padding: 0.5rem !important;
-}
-
-/* Compactar botones de acción final */
-.d-flex.flex-column.flex-sm-row.gap-3 {
+.modern-form-header-content {
     gap: 0.75rem !important;
-    padding-top: 0.75rem !important;
 }
 
-/* Reducir bordes y sombras para ganar espacio visual */
-.border-top {
+/* ========================================
+   Cuerpo del formulario
+   ======================================== */
+.modern-form-body {
+    padding: 1rem 1.25rem !important;
+}
+
+/* ========================================
+   Secciones - espaciado reducido
+   ======================================== */
+.modern-form-body .mb-5 {
+    margin-bottom: 0.75rem !important;
+}
+
+.modern-form-body .mb-4 {
+    margin-bottom: 0.5rem !important;
+}
+
+.modern-form-body .mb-3 {
+    margin-bottom: 0.35rem !important;
+}
+
+/* ========================================
+   Encabezados de sección compactos
+   ======================================== */
+.section-header-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 6px;
+    border-left: 3px solid;
+}
+
+.section-header-compact.section-primary { border-left-color: #4f46e5; }
+.section-header-compact.section-success { border-left-color: #10b981; }
+.section-header-compact.section-info { border-left-color: #3b82f6; }
+.section-header-compact.section-warning { border-left-color: #f59e0b; }
+
+.section-header-compact i {
+    font-size: 0.9rem;
+    width: 20px;
+    text-align: center;
+}
+
+.section-header-compact h5 {
+    font-size: 0.88rem !important;
+    margin: 0 !important;
+    font-weight: 600;
+}
+
+.section-header-compact p,
+.section-header-compact small {
+    font-size: 0.72rem !important;
+    margin: 0 !important;
+    color: #6b7280;
+}
+
+/* Ocultar los iconos circulares grandes de las secciones */
+.modern-form-body .bg-primary.bg-opacity-10.rounded-circle,
+.modern-form-body .bg-success.bg-opacity-10.rounded-circle,
+.modern-form-body .bg-info.bg-opacity-10.rounded-circle,
+.modern-form-body .bg-warning.bg-opacity-10.rounded-circle {
+    padding: 0.35rem !important;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modern-form-body .bg-primary.bg-opacity-10.rounded-circle i,
+.modern-form-body .bg-success.bg-opacity-10.rounded-circle i,
+.modern-form-body .bg-info.bg-opacity-10.rounded-circle i,
+.modern-form-body .bg-warning.bg-opacity-10.rounded-circle i {
+    font-size: 0.8rem !important;
+}
+
+.modern-form-body h5.fw-bold {
+    font-size: 0.88rem !important;
+    margin-bottom: 0 !important;
+}
+
+.modern-form-body p.text-muted.small {
+    font-size: 0.72rem !important;
+    margin-bottom: 0 !important;
+}
+
+.modern-form-body .d-flex.align-items-center.mb-4 {
+    margin-bottom: 0.4rem !important;
+    padding: 0.35rem 0.6rem;
+    background: linear-gradient(135deg, #f8f9fa, #eef0f2);
+    border-radius: 6px;
+    border-left: 3px solid #4f46e5;
+    gap: 0.5rem !important;
+}
+
+/* Colores dinámicos para bordes de sección */
+.modern-form-body .d-flex.align-items-center.mb-4:has(.text-primary) {
+    border-left-color: #4f46e5;
+}
+.modern-form-body .d-flex.align-items-center.mb-4:has(.text-success) {
+    border-left-color: #10b981;
+}
+.modern-form-body .d-flex.align-items-center.mb-4:has(.text-info) {
+    border-left-color: #3b82f6;
+}
+.modern-form-body .d-flex.align-items-center.mb-4:has(.text-warning) {
+    border-left-color: #f59e0b;
+}
+
+/* ========================================
+   Labels compactos
+   ======================================== */
+.modern-form-body .form-label {
+    font-size: 0.78rem !important;
+    margin-bottom: 0.2rem !important;
+    font-weight: 600;
+    color: #374151;
+}
+
+.modern-form-body .form-label i {
+    font-size: 0.72rem !important;
+    margin-right: 0.2rem !important;
+}
+
+/* ========================================
+   Inputs y selects compactos
+   ======================================== */
+.modern-form-body .form-control,
+.modern-form-body .form-select {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 5px;
+}
+
+.modern-form-body .form-control-lg,
+.modern-form-body .form-select-lg {
+    padding: 0.4rem 0.65rem !important;
+    font-size: 0.84rem !important;
+}
+
+.modern-form-body .input-group-lg > .form-control,
+.modern-form-body .input-group-lg > .btn {
+    padding: 0.4rem 0.65rem !important;
+    font-size: 0.84rem !important;
+}
+
+/* ========================================
+   Grid - gaps reducidos
+   ======================================== */
+.modern-form-body .row.g-4 {
+    --bs-gutter-y: 0.5rem !important;
+    --bs-gutter-x: 0.6rem !important;
+}
+
+.modern-form-body .row.g-3 {
+    --bs-gutter-y: 0.4rem !important;
+    --bs-gutter-x: 0.5rem !important;
+}
+
+/* ========================================
+   Textarea compacto
+   ======================================== */
+.modern-form-body textarea.form-control {
+    min-height: 32px !important;
+    resize: vertical;
+}
+
+/* ========================================
+   Textos de ayuda compactos
+   ======================================== */
+.modern-form-body .form-text {
+    font-size: 0.7rem !important;
+    margin-top: 0.1rem !important;
+    color: #9ca3af;
+}
+
+/* ========================================
+   Alertas compactas
+   ======================================== */
+.modern-form-body .alert {
+    padding: 0.4rem 0.65rem !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px;
+}
+
+.modern-form-body .alert h6 {
+    font-size: 0.82rem !important;
+    margin-bottom: 0.2rem !important;
+}
+
+.modern-form-body .alert p {
+    font-size: 0.76rem !important;
+    margin-bottom: 0 !important;
+}
+
+/* ========================================
+   Persona encontrada compacto
+   ======================================== */
+#persona-encontrada {
+    padding: 0.35rem 0.65rem !important;
+    margin-bottom: 0.35rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 6px;
+}
+
+/* ========================================
+   Botones compactos
+   ======================================== */
+.modern-form-body .btn {
+    padding: 0.4rem 0.85rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 5px;
+}
+
+.modern-form-body .btn-lg {
+    padding: 0.5rem 1.1rem !important;
+    font-size: 0.88rem !important;
+}
+
+/* Barra de acciones final */
+.modern-form-body .d-flex.flex-column.flex-sm-row.gap-3 {
+    gap: 0.6rem !important;
+    padding-top: 0.6rem !important;
+}
+
+.modern-form-body .border-top {
     border-top-width: 1px !important;
 }
 
-/* Optimizar espacio en persona encontrada */
-#persona-encontrada {
-    padding: 0.35rem !important;
-    margin-bottom: 0.35rem !important;
-    font-size: 0.85rem !important;
+/* ========================================
+   Campos adaptativos
+   ======================================== */
+.modern-form-body .adaptive-field,
+.modern-form-body .three-columns > div,
+.modern-form-body .two-columns > div {
+    margin-bottom: 0.3rem !important;
 }
 
-/* Ajustar campos adaptativos */
-.adaptive-field,
-.three-columns > div,
-.two-columns > div {
-    margin-bottom: 0.35rem !important;
+.modern-form-body .three-columns {
+    gap: 0.5rem;
 }
 
-/* Reducir gap en rows de Bootstrap */
-.row.g-3 {
-    --bs-gutter-y: 0.35rem !important;
-    --bs-gutter-x: 0.5rem !important;
-}
-
-.row.g-4 {
-    --bs-gutter-y: 0.5rem !important;
-    --bs-gutter-x: 0.5rem !important;
-}
-
-/* Responsive: mantener compacto en todas las pantallas */
+/* ========================================
+   Responsive
+   ======================================== */
 @media (max-width: 768px) {
+    .modern-form-container {
+        padding: 0.25rem;
+    }
+
     .modern-form-header h1 {
-        font-size: 1.1rem !important;
+        font-size: 1rem !important;
     }
 
-    .form-label {
-        font-size: 0.8rem !important;
+    .modern-form-body {
+        padding: 0.75rem !important;
     }
 
-    .form-control,
-    .form-select {
-        font-size: 0.8rem !important;
+    .modern-form-body .form-label {
+        font-size: 0.75rem !important;
+    }
+
+    .modern-form-body .form-control,
+    .modern-form-body .form-select {
+        font-size: 0.78rem !important;
     }
 }
