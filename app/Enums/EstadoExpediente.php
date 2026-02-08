@@ -9,6 +9,7 @@ namespace App\Enums;
 enum EstadoExpediente: string
 {
     // Estados del flujo principal
+    case PENDIENTE_RECEPCION = 'pendiente_recepcion';
     case RECEPCIONADO = 'recepcionado';
     case REGISTRADO = 'registrado';
     case CLASIFICADO = 'clasificado';
@@ -66,6 +67,7 @@ enum EstadoExpediente: string
     public static function estadosActivos(): array
     {
         return [
+            self::PENDIENTE_RECEPCION->value,
             self::RECEPCIONADO->value,
             self::REGISTRADO->value,
             self::CLASIFICADO->value,
@@ -84,6 +86,7 @@ enum EstadoExpediente: string
     public function label(): string
     {
         return match($this) {
+            self::PENDIENTE_RECEPCION => 'Pendiente de Recepción',
             self::RECEPCIONADO => 'Recepcionado',
             self::REGISTRADO => 'Registrado',
             self::CLASIFICADO => 'Clasificado',
@@ -107,6 +110,7 @@ enum EstadoExpediente: string
     public function color(): string
     {
         return match($this) {
+            self::PENDIENTE_RECEPCION => 'warning',
             self::RECEPCIONADO => 'secondary',
             self::REGISTRADO => 'info',
             self::CLASIFICADO => 'info',
@@ -130,6 +134,7 @@ enum EstadoExpediente: string
     public function icono(): string
     {
         return match($this) {
+            self::PENDIENTE_RECEPCION => 'hourglass-half',
             self::RECEPCIONADO => 'inbox',
             self::REGISTRADO => 'file-text',
             self::CLASIFICADO => 'folder',

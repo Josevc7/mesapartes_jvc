@@ -207,8 +207,15 @@
                     <hr>
                     <!-- Botón Derivar a otra área -->
                     @if(in_array($expediente->estado, ['derivado', 'recepcionado', 'asignado', 'en_proceso', 'devuelto_jefe']))
-                    <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#modalDerivar">
+                    <button type="button" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#modalDerivar">
                         <i class="fas fa-share me-1"></i> Derivar a otra Área
+                    </button>
+                    @endif
+
+                    {{-- Botón Devolver a Mesa de Partes (Opción B: no corresponde a esta área) --}}
+                    @if(in_array($expediente->estado, ['derivado', 'en_proceso', 'asignado']))
+                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#modalDevolverMesaPartes">
+                        <i class="fas fa-undo-alt me-1"></i> Devolver a Mesa de Partes
                     </button>
                     @endif
                 </div>
@@ -535,7 +542,14 @@
                         @foreach($expediente->derivaciones->sortByDesc('created_at') as $der)
                         <li class="list-group-item">
                             <div class="d-flex justify-content-between">
-                                <span class="badge bg-{{ $der->estado === 'pendiente' ? 'warning' : 'success' }}">
+                                @php
+                                    $derBadge = match($der->estado) {
+                                        'pendiente' => 'warning',
+                                        'anulado' => 'danger',
+                                        default => 'success'
+                                    };
+                                @endphp
+                                <span class="badge bg-{{ $derBadge }}">
                                     {{ ucfirst($der->estado) }}
                                 </span>
                                 <small>{{ $der->created_at->format('d/m/Y') }}</small>
@@ -554,6 +568,11 @@
                                 @if($der->fecha_limite->isPast() && $der->estado === 'pendiente')
                                     <span class="badge bg-danger">Vencido</span>
                                 @endif
+                            </small>
+                            @endif
+                            @if($der->estado === 'anulado' && $der->motivo_anulacion)
+                            <small class="text-danger d-block mt-1">
+                                <i class="fas fa-exclamation-circle"></i> {{ $der->motivo_anulacion }}
                             </small>
                             @endif
                         </li>
@@ -587,6 +606,51 @@
         </div>
     </div>
 </div>
+
+{{-- Modal Devolver a Mesa de Partes (Opción B) --}}
+@if(in_array($expediente->estado, ['derivado', 'en_proceso', 'asignado']))
+<div class="modal fade" id="modalDevolverMesaPartes" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-undo-alt me-2"></i>Devolver a Mesa de Partes</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('jefe-area.devolver-mesa-partes', $expediente) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No corresponde a esta área.</strong>
+                        Este expediente será devuelto a Mesa de Partes para ser derivado al área correcta.
+                        La derivación actual quedará registrada como <strong>ANULADA</strong> en el historial.
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Expediente:</strong> {{ $expediente->codigo_expediente }}<br>
+                        <strong>Asunto:</strong> {{ Str::limit($expediente->asunto, 100) }}<br>
+                        <strong>Área actual:</strong> {{ $expediente->area->nombre ?? 'N/A' }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="motivo_devolucion" class="form-label fw-bold">Motivo de devolución *</label>
+                        <textarea class="form-control" id="motivo_devolucion" name="motivo_devolucion"
+                                  rows="3" required minlength="10"
+                                  placeholder="Ej: Este trámite no corresponde a nuestra área. Debería derivarse a la Dirección de..."></textarea>
+                        <div class="form-text">Mínimo 10 caracteres. Indique a qué área debería derivarse correctamente.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-undo-alt me-1"></i> Confirmar Devolución
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 @push('scripts')
 <script>

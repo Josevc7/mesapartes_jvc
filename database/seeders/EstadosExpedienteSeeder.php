@@ -13,6 +13,17 @@ class EstadosExpedienteSeeder extends Seeder
         // Estados del expediente según el flujo definido
         $estados = [
             [
+                'nombre' => 'Pendiente de Recepción',
+                'slug' => 'pendiente_recepcion',
+                'descripcion' => 'Expediente enviado por ciudadano virtual, pendiente de recepción por Mesa de Partes',
+                'color' => '#f39c12',
+                'icono' => 'fas fa-hourglass-half',
+                'orden' => 0,
+                'es_inicial' => true,
+                'es_final' => false,
+                'requiere_accion' => true,
+            ],
+            [
                 'nombre' => 'Recepcionado',
                 'slug' => 'recepcionado',
                 'descripcion' => 'Documento recibido por Mesa de Partes',
@@ -182,6 +193,9 @@ class EstadosExpedienteSeeder extends Seeder
     private function crearTransiciones()
     {
         $transiciones = [
+            // Desde Pendiente de Recepción (virtual)
+            ['pendiente_recepcion', 'recepcionado', 'Recepcionar', [1, 2]], // Admin, Mesa de Partes
+
             // Desde Recepcionado
             ['recepcionado', 'registrado', 'Registrar', [1, 2]], // Admin, Mesa de Partes
 

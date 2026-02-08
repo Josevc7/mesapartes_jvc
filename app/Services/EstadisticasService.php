@@ -22,7 +22,7 @@ class EstadisticasService
             $hoy = today();
 
             // Una sola consulta optimizada para todas las estadísticas
-            $idsPendientes = \App\Models\EstadoExpediente::whereIn('slug', ['recepcionado', 'registrado'])->pluck('id_estado')->toArray();
+            $idsPendientes = \App\Models\EstadoExpediente::whereIn('slug', ['pendiente_recepcion', 'recepcionado', 'registrado'])->pluck('id_estado')->toArray();
             $idClasificado = \App\Models\EstadoExpediente::where('slug', 'clasificado')->value('id_estado');
             $stats = Expediente::selectRaw("
                 SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as registrados_hoy,

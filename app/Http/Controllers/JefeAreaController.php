@@ -1246,4 +1246,52 @@ class JefeAreaController extends Controller
             return back()->with('error', 'Error al derivar expediente: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Opción B: Devolver expediente a Mesa de Partes
+     * El Jefe de Área del área equivocada rechaza porque "No corresponde"
+     * El expediente regresa a Mesa de Partes para ser derivado correctamente
+     */
+    public function devolverMesaPartes(Request $request, Expediente $expediente)
+    {
+        $request->validate([
+            'motivo_devolucion' => 'required|string|min:10|max:500',
+        ], [
+            'motivo_devolucion.required' => 'Debe indicar el motivo de la devolución.',
+            'motivo_devolucion.min' => 'El motivo debe tener al menos 10 caracteres.',
+        ]);
+
+        // Buscar la derivación activa (pendiente o recepcionada) para este expediente en esta área
+        $areaId = auth()->user()->id_area;
+        $derivacion = $expediente->derivaciones()
+            ->where('id_area_destino', $areaId)
+            ->whereIn('estado', ['pendiente', 'recepcionado'])
+            ->latest()
+            ->first();
+
+        if (!$derivacion) {
+            return back()->with('error', 'No se encontró una derivación activa para devolver.');
+        }
+
+        // El expediente vuelve al área de donde vino (id_area_origen de la derivación)
+        $areaMesaPartesId = $derivacion->id_area_origen;
+
+        if (!$areaMesaPartesId) {
+            return back()->with('error', 'No se pudo determinar el área de origen para la devolución.');
+        }
+
+        try {
+            $this->derivacionService->devolverAMesaPartes(
+                $derivacion,
+                $request->motivo_devolucion,
+                $areaMesaPartesId
+            );
+
+            return redirect()->route('jefe-area.expedientes')
+                ->with('success', "Expediente {$expediente->codigo_expediente} devuelto a Mesa de Partes. Motivo: No corresponde a esta área.");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al devolver expediente: ' . $e->getMessage());
+        }
+    }
 }

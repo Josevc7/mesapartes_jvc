@@ -235,6 +235,97 @@ class DerivacionService
         });
     }
 
+    // ========== ANULACIÓN Y DEVOLUCIÓN DE DERIVACIONES ==========
+
+    /**
+     * Opción A: Anular una derivación (Mesa de Partes detecta error antes de que el área reciba)
+     * Solo si la derivación está en estado 'pendiente'
+     * El expediente regresa a estado 'clasificado' para ser derivado nuevamente
+     */
+    public function anularDerivacion(
+        Derivacion $derivacion,
+        string $motivo
+    ): void {
+        DB::transaction(function () use ($derivacion, $motivo) {
+            if ($derivacion->estado !== 'pendiente') {
+                throw new \Exception('Solo se pueden anular derivaciones en estado pendiente (no recepcionadas).');
+            }
+
+            $areaDestinoNombre = $derivacion->areaDestino->nombre ?? 'Área desconocida';
+
+            // Marcar derivación como anulada (NO se borra, queda historial)
+            $derivacion->update([
+                'estado' => 'anulado',
+                'motivo_anulacion' => $motivo,
+                'fecha_anulacion' => now(),
+                'id_usuario_anulacion' => auth()->id(),
+            ]);
+
+            $expediente = $derivacion->expediente;
+
+            // El expediente vuelve a estado 'clasificado' para ser derivado correctamente
+            $idClasificado = \App\Models\EstadoExpediente::where('slug', 'clasificado')->value('id_estado');
+            if ($idClasificado) {
+                $expediente->update(['id_estado' => $idClasificado]);
+            }
+            $expediente->estado = 'clasificado';
+            $expediente->save();
+
+            $expediente->agregarHistorial(
+                "DERIVACIÓN ANULADA - Área destino: {$areaDestinoNombre}. Motivo: {$motivo}. " .
+                "Responsable: " . auth()->user()->name . ". Expediente disponible para nueva derivación.",
+                auth()->id()
+            );
+        });
+    }
+
+    /**
+     * Opción B: Devolver a Mesa de Partes (Jefe de Área rechaza porque no corresponde)
+     * El área ya recepcionó pero el trámite no le corresponde
+     * El expediente regresa a Mesa de Partes para ser derivado al área correcta
+     */
+    public function devolverAMesaPartes(
+        Derivacion $derivacion,
+        string $motivo,
+        int $areaMesaPartesId
+    ): void {
+        DB::transaction(function () use ($derivacion, $motivo, $areaMesaPartesId) {
+            if (!in_array($derivacion->estado, ['pendiente', 'recepcionado'])) {
+                throw new \Exception('Solo se pueden devolver derivaciones pendientes o recepcionadas.');
+            }
+
+            $areaDestinoNombre = $derivacion->areaDestino->nombre ?? 'Área desconocida';
+
+            // Marcar derivación como anulada
+            $derivacion->update([
+                'estado' => 'anulado',
+                'motivo_anulacion' => "NO CORRESPONDE - Devuelto a Mesa de Partes. {$motivo}",
+                'fecha_anulacion' => now(),
+                'id_usuario_anulacion' => auth()->id(),
+            ]);
+
+            $expediente = $derivacion->expediente;
+
+            // El expediente vuelve a Mesa de Partes en estado 'recepcionado'
+            $idRecepcionado = \App\Models\EstadoExpediente::where('slug', 'recepcionado')->value('id_estado');
+            if ($idRecepcionado) {
+                $expediente->update([
+                    'id_estado' => $idRecepcionado,
+                    'id_area' => $areaMesaPartesId,
+                    'id_funcionario_asignado' => null,
+                ]);
+            }
+            $expediente->estado = 'recepcionado';
+            $expediente->save();
+
+            $expediente->agregarHistorial(
+                "DEVUELTO A MESA DE PARTES - Desde: {$areaDestinoNombre}. Motivo: No corresponde a esta área. {$motivo}. " .
+                "Responsable: " . auth()->user()->name . ". Pendiente nueva derivación.",
+                auth()->id()
+            );
+        });
+    }
+
     // ========== MÉTODOS DE DERIVACIÓN JERÁRQUICA ==========
 
     /**

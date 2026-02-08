@@ -22,17 +22,23 @@ class Derivacion extends Model
         'fecha_limite',
         'plazo_dias',
         'estado',
-        'observaciones'
+        'observaciones',
+        'motivo_anulacion',
+        'fecha_anulacion',
+        'id_usuario_anulacion'
     ];
 
     protected $casts = [
-        //'fecha_derivacion' => 'date',
-        //'fecha_recepcion' => 'date',
-        //'fecha_limite' => 'date'
-          'fecha_derivacion' => 'datetime',
-          'fecha_recepcion'  => 'datetime',
-          'fecha_limite'     => 'date', // o datetime si también quieres hora
+        'fecha_derivacion' => 'datetime',
+        'fecha_recepcion'  => 'datetime',
+        'fecha_limite'     => 'date',
+        'fecha_anulacion'  => 'datetime',
     ];
+
+    public function usuarioAnulacion()
+    {
+        return $this->belongsTo(User::class, 'id_usuario_anulacion', 'id');
+    }
 
     public function expediente()
     {

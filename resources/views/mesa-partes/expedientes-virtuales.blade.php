@@ -12,7 +12,7 @@
                         <i class="fas fa-globe text-primary me-2"></i>
                         Expedientes Virtuales Pendientes
                     </h2>
-                    <p class="text-muted mb-0">Expedientes ingresados por ciudadanos que requieren clasificación y derivación</p>
+                    <p class="text-muted mb-0">Expedientes ingresados por ciudadanos. Primero debe <strong>recepcionar</strong>, luego podrá <strong>clasificar y derivar</strong>.</p>
                 </div>
                 <div>
                     <a href="{{ route('mesa-partes.dashboard') }}" class="btn btn-secondary">
@@ -42,7 +42,7 @@
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
                         <i class="fas fa-list me-2"></i>
-                        {{ $expedientes->count() }} Expediente(s) Pendiente(s) de Clasificación
+                        {{ $expedientes->total() }} Expediente(s) Virtual(es) Pendiente(s)
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -56,7 +56,8 @@
                                     <th>Tipo Trámite</th>
                                     <th>Asunto</th>
                                     <th>Documentos</th>
-                                    <th width="250">Acciones</th>
+                                    <th>Estado</th>
+                                    <th width="280">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -101,17 +102,42 @@
                                         </span>
                                     </td>
                                     <td>
+                                        @if($expediente->estadoExpediente?->slug === 'pendiente_recepcion')
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-hourglass-half"></i> Pendiente de Recepción
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-inbox"></i> Recepcionado
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td>
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{{ route('mesa-partes.show', $expediente) }}"
                                                class="btn btn-outline-info"
                                                title="Ver Detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <a href="{{ route('mesa-partes.clasificar-virtual', $expediente) }}"
-                                               class="btn btn-success"
-                                               title="Clasificar y Derivar">
-                                                <i class="fas fa-share"></i> Clasificar
-                                            </a>
+
+                                            @if($expediente->estadoExpediente?->slug === 'pendiente_recepcion')
+                                                {{-- PASO 1: Recepcionar (obligatorio antes de clasificar) --}}
+                                                <form action="{{ route('mesa-partes.recepcionar-virtual', $expediente) }}"
+                                                      method="POST" class="d-inline"
+                                                      onsubmit="return confirm('¿Confirma la recepción de este expediente virtual?\n\nAl recepcionar, usted valida que:\n- Los documentos adjuntos son legibles\n- El formato es correcto\n- Los datos están completos\n- Se cumplen los requisitos mínimos')">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-warning" title="Recepcionar expediente">
+                                                        <i class="fas fa-check-circle"></i> Recepcionar
+                                                    </button>
+                                                </form>
+                                            @else
+                                                {{-- PASO 2: Clasificar y Derivar (solo después de recepcionar) --}}
+                                                <a href="{{ route('mesa-partes.clasificar-virtual', $expediente) }}"
+                                                   class="btn btn-success"
+                                                   title="Clasificar y Derivar">
+                                                    <i class="fas fa-share"></i> Clasificar y Derivar
+                                                </a>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

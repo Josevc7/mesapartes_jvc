@@ -159,11 +159,19 @@ Route::prefix('mesa-partes')->middleware(['auth', 'role:Mesa de Partes,Administr
     // Archivar expedientes
     Route::put('/expedientes/{expediente}/archivar', [MesaPartesController::class, 'archivar'])->name('mesa-partes.archivar');
 
+    // Rectificación de datos del expediente (corregir errores sin cambiar estado)
+    Route::get('/expedientes/{expediente}/rectificar-datos', [MesaPartesController::class, 'rectificarDatos'])->name('mesa-partes.rectificar-datos');
+    Route::post('/expedientes/{expediente}/rectificar-datos', [MesaPartesController::class, 'storeRectificacion'])->name('mesa-partes.store-rectificacion');
+
+    // Anular derivación (Opción A: Mesa de Partes detecta error antes de que el área reciba)
+    Route::post('/expedientes/{expediente}/anular-derivacion', [MesaPartesController::class, 'anularDerivacion'])->name('mesa-partes.anular-derivacion');
+
     // Búsqueda de personas
     Route::get('/buscar-persona', [MesaPartesController::class, 'buscarPersona'])->name('mesa-partes.buscar-persona');
 
     // Gestión de expedientes virtuales
     Route::get('/expedientes-virtuales', [MesaPartesController::class, 'expedientesVirtuales'])->name('mesa-partes.expedientes-virtuales');
+    Route::post('/expedientes/{expediente}/recepcionar-virtual', [MesaPartesController::class, 'recepcionarVirtual'])->name('mesa-partes.recepcionar-virtual');
     Route::get('/expedientes/{expediente}/clasificar-virtual', [MesaPartesController::class, 'clasificarVirtual'])->name('mesa-partes.clasificar-virtual');
     Route::post('/expedientes/{expediente}/clasificar-virtual', [MesaPartesController::class, 'storeClasificarVirtual'])->name('mesa-partes.store-clasificar-virtual');
 });
@@ -234,6 +242,9 @@ Route::prefix('jefe-area')->middleware(['auth', 'role:Jefe de Área,Administrado
     // Derivación de expedientes
     Route::get('/expedientes/{expediente}/derivar', [JefeAreaController::class, 'derivarForm'])->name('jefe-area.derivar-form');
     Route::post('/expedientes/{expediente}/derivar', [JefeAreaController::class, 'derivar'])->name('jefe-area.derivar');
+
+    // Devolver a Mesa de Partes (Opción B: el área recibió pero no corresponde)
+    Route::post('/expedientes/{expediente}/devolver-mesa-partes', [JefeAreaController::class, 'devolverMesaPartes'])->name('jefe-area.devolver-mesa-partes');
 
     // AJAX para derivación
     Route::get('/areas-para-derivacion', [JefeAreaController::class, 'areasParaDerivacion'])->name('jefe-area.areas-para-derivacion');

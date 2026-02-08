@@ -44,7 +44,7 @@ class MesaPartesController extends Controller
             ]);
 
         // Filtro por estados (por defecto los activos)
-        $estadosDefault = ['recepcionado', 'registrado', 'clasificado', 'derivado', 'asignado', 'en_proceso'];
+        $estadosDefault = ['pendiente_recepcion', 'recepcionado', 'registrado', 'clasificado', 'derivado', 'asignado', 'en_proceso'];
         if ($request->filled('estado')) {
             if ($request->estado === 'todos') {
                 // No filtrar por estado
@@ -117,7 +117,7 @@ class MesaPartesController extends Controller
                 'clasificados' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'clasificado'))->count(),
                 'derivados' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'derivado'))->count(),
                 'en_proceso' => Expediente::whereHas('estadoExpediente', fn($q) => $q->where('slug', 'en_proceso'))->count(),
-                'virtuales' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))->count(),
+                'virtuales' => Expediente::where('canal', 'virtual')->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['pendiente_recepcion', 'recepcionado']))->count(),
             ];
         });
 
@@ -378,7 +378,7 @@ class MesaPartesController extends Controller
         $estadisticas = $this->estadisticasService->obtenerEstadisticasMesaPartes();
 
         $expedientesRecientes = Expediente::with(['ciudadano', 'tipoTramite', 'persona'])
-            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['recepcionado', 'registrado', 'derivado']))
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['pendiente_recepcion', 'recepcionado', 'registrado', 'derivado']))
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -488,18 +488,25 @@ class MesaPartesController extends Controller
     public function buscarPersona(Request $request)
     {
         try {
-            $dni = $request->get('q');
-            
-            if (empty($dni)) {
+            $documento = $request->get('q');
+
+            if (empty($documento)) {
                 return response()->json(['success' => false, 'data' => []]);
             }
-            
-            $persona = Persona::where('numero_documento', $dni)->first();
-            
+
+            $query = Persona::where('numero_documento', $documento);
+
+            // Filtrar por tipo de documento si se proporciona
+            if ($request->filled('tipo_documento')) {
+                $query->where('tipo_documento', $request->tipo_documento);
+            }
+
+            $persona = $query->first();
+
             if ($persona) {
                 return response()->json(['success' => true, 'data' => [$persona]]);
             }
-            
+
             return response()->json(['success' => true, 'data' => []]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Error al buscar persona']);
@@ -522,13 +529,249 @@ class MesaPartesController extends Controller
      */
     public function expedientesVirtuales()
     {
+        // Mostrar expedientes virtuales pendientes de recepción Y recepcionados (pendientes de clasificar)
         $expedientes = Expediente::where('canal', 'virtual')
-            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'recepcionado'))
-            ->with(['persona', 'tipoTramite', 'documentos'])
+            ->whereHas('estadoExpediente', fn($q) => $q->whereIn('slug', ['pendiente_recepcion', 'recepcionado']))
+            ->with(['persona', 'tipoTramite', 'documentos', 'estadoExpediente'])
+            ->orderByRaw("FIELD((SELECT slug FROM estados_expediente WHERE estados_expediente.id_estado = expedientes.id_estado), 'pendiente_recepcion', 'recepcionado')")
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
         return view('mesa-partes.expedientes-virtuales', compact('expedientes'));
+    }
+
+    /**
+     * Recepciona un expediente virtual (paso obligatorio antes de clasificar/derivar)
+     * Cambia estado de pendiente_recepcion a recepcionado
+     */
+    public function recepcionarVirtual(Expediente $expediente)
+    {
+        // Verificar que sea un expediente virtual
+        if ($expediente->canal !== 'virtual') {
+            return redirect()->route('mesa-partes.expedientes-virtuales')
+                ->with('error', 'Este expediente no es virtual.');
+        }
+
+        // Verificar que esté en estado pendiente_recepcion
+        if ($expediente->estadoExpediente?->slug !== 'pendiente_recepcion') {
+            return redirect()->route('mesa-partes.expedientes-virtuales')
+                ->with('error', 'Este expediente ya fue recepcionado.');
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Cambiar estado a recepcionado
+            $idRecepcionado = EstadoExpediente::where('slug', 'recepcionado')->value('id_estado');
+
+            if (!$idRecepcionado) {
+                throw new \Exception('No existe el estado RECEPCIONADO en estados_expediente.');
+            }
+
+            $expediente->update([
+                'id_estado' => $idRecepcionado,
+            ]);
+
+            // Registrar en historial
+            $expediente->agregarHistorial(
+                'Expediente virtual recepcionado por Mesa de Partes. Documentos revisados y validados.',
+                auth()->id()
+            );
+
+            \DB::commit();
+
+            // Limpiar caché de estadísticas
+            \Cache::forget('mesa_partes_estadisticas');
+
+            return redirect()->route('mesa-partes.expedientes-virtuales')
+                ->with('success', "Expediente {$expediente->codigo_expediente} recepcionado correctamente. Ahora puede clasificar y derivar.");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->route('mesa-partes.expedientes-virtuales')
+                ->with('error', 'Error al recepcionar: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Muestra formulario de rectificación de datos del expediente
+     * Para corregir errores (DNI, nombre, asunto, tipo trámite, folios) sin cambiar el estado
+     */
+    public function rectificarDatos(Expediente $expediente)
+    {
+        $expediente->load(['persona', 'tipoTramite', 'area']);
+
+        $tipoTramites = TipoTramite::where('activo', true)->orderBy('nombre')->get();
+
+        return view('mesa-partes.rectificar-datos', compact('expediente', 'tipoTramites'));
+    }
+
+    /**
+     * Procesa la rectificación de datos del expediente
+     * Registra cada campo modificado en el historial con valor anterior y nuevo
+     */
+    public function storeRectificacion(Request $request, Expediente $expediente)
+    {
+        $request->validate([
+            'motivo_rectificacion' => 'required|string|min:10|max:500',
+            'asunto' => 'required|string|max:500',
+            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
+            'folios' => 'nullable|integer|min:1|max:999',
+            'prioridad' => 'required|in:baja,normal,alta,urgente',
+            // Datos de persona
+            'numero_documento' => 'nullable|string|max:20',
+            'nombres' => 'nullable|string|max:100',
+            'apellido_paterno' => 'nullable|string|max:100',
+            'apellido_materno' => 'nullable|string|max:100',
+            'razon_social' => 'nullable|string|max:200',
+            'telefono' => 'nullable|string|max:20',
+            'email_persona' => 'nullable|email|max:100',
+            'direccion' => 'nullable|string|max:300',
+        ], [
+            'motivo_rectificacion.required' => 'Debe indicar el motivo de la rectificación.',
+            'motivo_rectificacion.min' => 'El motivo debe tener al menos 10 caracteres.',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            $cambios = [];
+
+            // === Rectificar datos del expediente ===
+            if ($expediente->asunto !== $request->asunto) {
+                $cambios[] = "Asunto: \"{$expediente->asunto}\" → \"{$request->asunto}\"";
+            }
+
+            $tipoTramiteAnterior = $expediente->tipoTramite->nombre ?? 'N/A';
+            if ($expediente->id_tipo_tramite != $request->id_tipo_tramite) {
+                $nuevoTipo = TipoTramite::find($request->id_tipo_tramite);
+                $cambios[] = "Tipo trámite: \"{$tipoTramiteAnterior}\" → \"{$nuevoTipo->nombre}\"";
+            }
+
+            if ($expediente->folios != $request->folios) {
+                $cambios[] = "Folios: \"{$expediente->folios}\" → \"{$request->folios}\"";
+            }
+
+            if ($expediente->prioridad !== $request->prioridad) {
+                $cambios[] = "Prioridad: \"{$expediente->prioridad}\" → \"{$request->prioridad}\"";
+            }
+
+            $expediente->update([
+                'asunto' => $request->asunto,
+                'id_tipo_tramite' => $request->id_tipo_tramite,
+                'folios' => $request->folios,
+                'prioridad' => $request->prioridad,
+            ]);
+
+            // === Rectificar datos de la persona ===
+            $persona = $expediente->persona;
+            if ($persona) {
+                if ($persona->numero_documento !== $request->numero_documento && $request->numero_documento) {
+                    $cambios[] = "N° Documento: \"{$persona->numero_documento}\" → \"{$request->numero_documento}\"";
+                }
+                if ($persona->tipo_persona === 'NATURAL') {
+                    if ($persona->nombres !== $request->nombres && $request->nombres) {
+                        $cambios[] = "Nombres: \"{$persona->nombres}\" → \"{$request->nombres}\"";
+                    }
+                    if ($persona->apellido_paterno !== $request->apellido_paterno && $request->apellido_paterno) {
+                        $cambios[] = "Apellido paterno: \"{$persona->apellido_paterno}\" → \"{$request->apellido_paterno}\"";
+                    }
+                    if ($persona->apellido_materno !== $request->apellido_materno && $request->apellido_materno) {
+                        $cambios[] = "Apellido materno: \"{$persona->apellido_materno}\" → \"{$request->apellido_materno}\"";
+                    }
+                } else {
+                    if ($persona->razon_social !== $request->razon_social && $request->razon_social) {
+                        $cambios[] = "Razón social: \"{$persona->razon_social}\" → \"{$request->razon_social}\"";
+                    }
+                }
+                if ($persona->telefono !== $request->telefono) {
+                    $cambios[] = "Teléfono: \"{$persona->telefono}\" → \"{$request->telefono}\"";
+                }
+                if ($persona->email !== $request->email_persona) {
+                    $cambios[] = "Email: \"{$persona->email}\" → \"{$request->email_persona}\"";
+                }
+                if ($persona->direccion !== $request->direccion) {
+                    $cambios[] = "Dirección: \"{$persona->direccion}\" → \"{$request->direccion}\"";
+                }
+
+                $datosPersona = [];
+                if ($request->numero_documento) $datosPersona['numero_documento'] = $request->numero_documento;
+                if ($persona->tipo_persona === 'NATURAL') {
+                    if ($request->nombres) $datosPersona['nombres'] = $request->nombres;
+                    if ($request->apellido_paterno) $datosPersona['apellido_paterno'] = $request->apellido_paterno;
+                    if ($request->apellido_materno) $datosPersona['apellido_materno'] = $request->apellido_materno;
+                } else {
+                    if ($request->razon_social) $datosPersona['razon_social'] = $request->razon_social;
+                }
+                $datosPersona['telefono'] = $request->telefono;
+                $datosPersona['email'] = $request->email_persona;
+                $datosPersona['direccion'] = $request->direccion;
+
+                $persona->update($datosPersona);
+            }
+
+            // Registrar en historial
+            if (count($cambios) > 0) {
+                $descripcionCambios = implode(' | ', $cambios);
+                $expediente->agregarHistorial(
+                    "RECTIFICACIÓN DE DATOS - Motivo: {$request->motivo_rectificacion}. " .
+                    "Campos corregidos: {$descripcionCambios}. " .
+                    "Responsable: " . auth()->user()->name,
+                    auth()->id()
+                );
+            } else {
+                \DB::rollBack();
+                return redirect()->route('mesa-partes.show', $expediente)
+                    ->with('info', 'No se detectaron cambios en los datos.');
+            }
+
+            \DB::commit();
+
+            \Cache::forget('mesa_partes_estadisticas');
+
+            return redirect()->route('mesa-partes.show', $expediente)
+                ->with('success', 'Datos rectificados correctamente. Se registraron ' . count($cambios) . ' corrección(es) en el historial.');
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return back()->withInput()->with('error', 'Error al rectificar datos: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Opción A: Anular derivación incorrecta (si el área destino aún no recepcionó)
+     * Mesa de Partes marca la derivación como ANULADA y el expediente queda listo para re-derivar
+     */
+    public function anularDerivacion(Request $request, Expediente $expediente)
+    {
+        $request->validate([
+            'motivo_anulacion' => 'required|string|min:10|max:500',
+        ], [
+            'motivo_anulacion.required' => 'Debe indicar el motivo de la anulación.',
+            'motivo_anulacion.min' => 'El motivo debe tener al menos 10 caracteres.',
+        ]);
+
+        // Buscar la derivación pendiente (no recepcionada aún)
+        $derivacion = $expediente->derivaciones()
+            ->where('estado', 'pendiente')
+            ->latest()
+            ->first();
+
+        if (!$derivacion) {
+            return back()->with('error', 'No se encontró una derivación pendiente para anular. Si el área ya recepcionó, el Jefe de Área debe devolver el expediente.');
+        }
+
+        try {
+            $this->derivacionService->anularDerivacion($derivacion, $request->motivo_anulacion);
+
+            \Cache::forget('mesa_partes_estadisticas');
+
+            return redirect()->route('mesa-partes.show', $expediente)
+                ->with('success', "Derivación anulada correctamente. El expediente está listo para ser derivado al área correcta.");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al anular derivación: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -20,13 +20,10 @@ class CiudadanoController extends Controller
      */
     public function dashboard()
     {
-        // Obtener el ID del usuario autenticado (ciudadano logueado)
-        //$ciudadanoId = auth()->user()->id;
         $ciudadanoId = auth()->id();
-       
 
         // OPTIMIZACIÓN: Una sola consulta para todas las estadísticas
-        $idEnProceso = EstadoExpedienteModel::whereIn('slug', ['registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado'])->pluck('id_estado')->toArray();
+        $idEnProceso = EstadoExpedienteModel::whereIn('slug', ['pendiente_recepcion', 'registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado'])->pluck('id_estado')->toArray();
         $idResuelto = EstadoExpedienteModel::where('slug', 'resuelto')->value('id_estado');
         $idObservado = EstadoExpedienteModel::where('slug', 'observado')->value('id_estado');
 
@@ -217,25 +214,22 @@ class CiudadanoController extends Controller
             'acepta_terminos' => 'required|accepted'                      // Debe aceptar términos
         ]);
 
-         // Normalizar número de documento (convertir a mayúsculas si es CE o PASAPORTE)
-         $numeroDocumento = in_array($request->tipo_documento, ['CE', 'PASAPORTE'])
-         ? strtoupper($request->numero_documento)
-         : $request->numero_documento;
+        // Normalizar número de documento (convertir a mayúsculas si es CE o PASAPORTE)
+        $numeroDocumento = in_array($request->tipo_documento, ['CE', 'PASAPORTE'])
+            ? strtoupper($request->numero_documento)
+            : $request->numero_documento;
 
-         // 🔹 OBTENER ESTADO INICIAL (ANTES DE LA TRANSACCIÓN)
-         $idEstadoInicial = EstadoExpedienteModel::where(
-         'slug',
-          EstadoExpedienteEnum::RECEPCIONADO->value
-         )->value('id_estado');
+        // Obtener estado inicial antes de la transacción
+        // Los expedientes virtuales inician como PENDIENTE_RECEPCION
+        // Mesa de Partes debe recepcionar primero antes de clasificar/derivar
+        $idEstadoInicial = EstadoExpedienteModel::where('slug', EstadoExpedienteEnum::PENDIENTE_RECEPCION->value)->value('id_estado');
 
-        
-         if (!$idEstadoInicial) {
-         return back()
-         ->withInput()
-         ->with('error', 'No existe el estado inicial RECEPCIONADO en estados_expediente.');
-         }
-         // 🔹 ahora recién inicia la transacción
-         $archivosGuardados = [];
+        if (!$idEstadoInicial) {
+            return back()->withInput()
+                ->with('error', 'No existe el estado inicial PENDIENTE_RECEPCION en estados_expediente.');
+        }
+
+        $archivosGuardados = [];
 
         try {
              
@@ -462,7 +456,7 @@ class CiudadanoController extends Controller
 
         // Obtener expedientes con observaciones pendientes del ciudadano
         $expedientes = Expediente::where('id_ciudadano', $ciudadanoId)
-            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', EstadoExpediente::OBSERVADO->value))
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', EstadoExpedienteEnum::OBSERVADO->value))
             ->with(['observaciones' => function($query) {
                 $query->where('estado', 'pendiente')
                       ->orderBy('created_at', 'desc');
@@ -536,16 +530,12 @@ class CiudadanoController extends Controller
             }
 
             // Cambiar estado del expediente a "en_proceso" para que el funcionario lo revise
-            //$expediente->estado = EstadoExpediente::EN_PROCESO->value;
-            //$expediente->save();
-            
             $idEnProceso = EstadoExpedienteModel::where('slug', EstadoExpedienteEnum::EN_PROCESO->value)->value('id_estado');
             if (!$idEnProceso) {
-            throw new \Exception('No existe el estado EN_PROCESO en estados_expediente.');
+                throw new \Exception('No existe el estado EN_PROCESO en estados_expediente.');
             }
             $expediente->id_estado = $idEnProceso;
             $expediente->save();
-
 
             // Registrar en historial
             $expediente->agregarHistorial(
