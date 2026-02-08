@@ -378,21 +378,7 @@ h4 { font-size: 1.25rem; }
     }
 }
 
-/* Sidebar responsive */
-@media (max-width: 991px) {
-    .sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
-    
-    .sidebar.show {
-        transform: translateX(0);
-    }
-    
-    .main-content {
-        margin-left: 0 !important;
-    }
-}
+/* Sidebar responsive - manejado por responsive.css */
 
 /* Ajustes específicos para diferentes resoluciones */
 @media (min-width: 1920px) {

@@ -12,24 +12,33 @@
     <link href="{{ asset('css/adaptive-forms.css') }}" rel="stylesheet">
     <link href="{{ asset('css/logo-styles.css') }}" rel="stylesheet">
     <link href="{{ asset('css/custom.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/responsive.css') }}" rel="stylesheet">
     @stack('styles')
 </head>
 <body>
     <!-- Top Header -->
-    <nav class="navbar navbar-dark fixed-top" style="background-color: #cc5500; height: 60px;">
+    <nav class="navbar navbar-dark fixed-top top-navbar">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
-                <img src="{{ asset('images/logo1.jpg') }}" alt="Logo DRTC">
-                <span class="fw-bold">Mesa de Partes DRTC</span>
-            </a>
-            
+            <div class="d-flex align-items-center">
+                @auth
+                <button class="btn btn-link text-white d-lg-none me-2 sidebar-toggle" type="button" id="sidebarToggle" aria-label="Abrir menú">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+                @endauth
+                <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
+                    <img src="{{ asset('images/logo1.jpg') }}" alt="Logo DRTC">
+                    <span class="fw-bold navbar-title">Mesa de Partes DRTC</span>
+                </a>
+            </div>
+
             <div class="d-flex align-items-center">
                 @guest
                     <a class="nav-link text-white me-3" href="{{ route('seguimiento.form') }}">Consultar Expediente</a>
                 @else
                     <div class="dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            {{ auth()->user()->name }}
+                            <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
+                            <i class="fas fa-user-circle d-sm-none"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ route('perfil.show') }}"><i class="fas fa-user"></i> Mi Perfil</a></li>
@@ -44,10 +53,15 @@
         </div>
     </nav>
 
-    <div class="d-flex" style="margin-top: 60px;">
+    <!-- Overlay para cerrar sidebar en móvil -->
+    @auth
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    @endauth
+
+    <div class="d-flex app-wrapper">
         <!-- Sidebar -->
         @auth
-        <nav class="sidebar" style="width: 280px; height: calc(100vh - 60px); background-color: #f8f9fa; border-right: 1px solid #dee2e6; position: fixed; overflow-y: auto; overflow-x: hidden;">
+        <nav class="sidebar" id="sidebar">
             <div class="p-3">
                 @if(auth()->user()->role->nombre == 'Ciudadano')
                     <h6 class="text-muted mb-3">MESA DE PARTES VIRTUAL</h6>
@@ -392,7 +406,7 @@
         @endauth
 
         <!-- Main Content -->
-        <main class="flex-grow-1" style="@auth margin-left: 280px; @endauth padding: 20px;">
+        <main class="flex-grow-1 main-content">
             <!-- Breadcrumbs -->
             @hasSection('breadcrumbs')
             <nav aria-label="breadcrumb" class="mb-3">
@@ -488,6 +502,40 @@
         }
     </script>
     
+    <!-- Sidebar Toggle Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebarToggle && sidebar && overlay) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('sidebar-open');
+                overlay.classList.toggle('active');
+                document.body.classList.toggle('sidebar-mobile-open');
+            });
+
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('sidebar-open');
+                overlay.classList.remove('active');
+                document.body.classList.remove('sidebar-mobile-open');
+            });
+
+            // Cerrar sidebar al hacer click en un link (móvil)
+            sidebar.querySelectorAll('.nav-link').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 992) {
+                        sidebar.classList.remove('sidebar-open');
+                        overlay.classList.remove('active');
+                        document.body.classList.remove('sidebar-mobile-open');
+                    }
+                });
+            });
+        }
+    });
+    </script>
+
     @yield('scripts')
 </body>
 </html>

@@ -1,0 +1,423 @@
+/* =====================================================
+   RESPONSIVE LAYOUT - Mesa de Partes DRTC
+   Sidebar colapsable + contenido adaptativo
+   ===================================================== */
+
+:root {
+    --sidebar-width: 280px;
+    --navbar-height: 60px;
+}
+
+/* ===== NAVBAR ===== */
+.top-navbar {
+    background-color: #cc5500;
+    height: var(--navbar-height);
+    z-index: 1050;
+}
+
+.navbar-title {
+    font-size: 1.1rem;
+}
+
+/* ===== SIDEBAR BASE ===== */
+.sidebar {
+    width: var(--sidebar-width);
+    height: calc(100vh - var(--navbar-height));
+    background-color: #f8f9fa !important;
+    border-right: 1px solid #dee2e6;
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 1040;
+    transition: transform 0.3s ease;
+}
+
+/* ===== APP WRAPPER ===== */
+.app-wrapper {
+    margin-top: var(--navbar-height);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    padding: 20px;
+    min-width: 0;
+    transition: margin-left 0.3s ease;
+}
+
+/* ===== SIDEBAR OVERLAY (móvil) ===== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1035;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ===== BOTÓN HAMBURGUESA ===== */
+.sidebar-toggle {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    background: transparent;
+    text-decoration: none;
+}
+
+.sidebar-toggle:hover,
+.sidebar-toggle:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 0.375rem;
+    text-decoration: none;
+    box-shadow: none;
+}
+
+/* =====================================================
+   ESCRITORIO (992px y más)
+   ===================================================== */
+@media (min-width: 992px) {
+    .sidebar {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: var(--sidebar-width);
+    }
+}
+
+/* =====================================================
+   TABLET Y MÓVIL (menos de 992px)
+   ===================================================== */
+@media (max-width: 991.98px) {
+    /* Sidebar oculto por defecto en móvil */
+    .sidebar {
+        transform: translateX(-100%);
+        box-shadow: none;
+    }
+
+    /* Sidebar visible cuando se abre */
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Contenido ocupa todo el ancho */
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Prevenir scroll del body cuando sidebar está abierto */
+    body.sidebar-mobile-open {
+        overflow: hidden;
+    }
+}
+
+/* =====================================================
+   TABLET (768px - 991px)
+   ===================================================== */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .main-content {
+        padding: 15px;
+    }
+
+    .navbar-title {
+        font-size: 1rem;
+    }
+}
+
+/* =====================================================
+   MÓVIL (576px - 767px)
+   ===================================================== */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .main-content {
+        padding: 12px;
+    }
+
+    .navbar-title {
+        font-size: 0.95rem;
+    }
+
+    /* Cards en una columna */
+    .row > [class*="col-md-"],
+    .row > [class*="col-lg-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* =====================================================
+   MÓVIL PEQUEÑO (menos de 576px)
+   ===================================================== */
+@media (max-width: 575.98px) {
+    :root {
+        --sidebar-width: 260px;
+    }
+
+    .top-navbar {
+        height: 56px;
+    }
+
+    .app-wrapper {
+        margin-top: 56px;
+    }
+
+    .sidebar {
+        top: 56px;
+        height: calc(100vh - 56px);
+        width: var(--sidebar-width);
+    }
+
+    .main-content {
+        padding: 10px;
+    }
+
+    .navbar-title {
+        font-size: 0.85rem;
+    }
+
+    /* Navbar brand imagen más pequeña */
+    .navbar-brand img {
+        height: 30px !important;
+        width: auto;
+    }
+
+    /* Contenedor de página */
+    .page-header h1,
+    .h3 {
+        font-size: 1.1rem;
+    }
+
+    /* Badges más compactos */
+    .badge {
+        font-size: 0.65rem;
+        padding: 0.3em 0.5em;
+    }
+
+    /* Botones de acción en columna */
+    .d-flex.gap-2:not(.align-items-center) {
+        flex-direction: column;
+    }
+
+    .d-flex.gap-2:not(.align-items-center) .btn {
+        width: 100%;
+    }
+
+    /* Alertas más compactas */
+    .alert {
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    /* Cards compactas */
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    .card-header {
+        padding: 0.75rem;
+    }
+}
+
+/* =====================================================
+   TABLAS RESPONSIVE EN MÓVIL
+   ===================================================== */
+@media (max-width: 767.98px) {
+    .table-responsive {
+        border: 0;
+    }
+
+    /* Scroll horizontal suave */
+    .table-responsive::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 2px;
+    }
+
+    /* Texto más pequeño en tablas */
+    .table {
+        font-size: 0.8rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem 0.4rem;
+        white-space: nowrap;
+    }
+
+    /* Ocultar columnas menos importantes */
+    .table .d-mobile-none {
+        display: none;
+    }
+}
+
+/* =====================================================
+   FORMULARIOS RESPONSIVE
+   ===================================================== */
+@media (max-width: 767.98px) {
+    /* Formularios en una columna */
+    .three-columns,
+    .two-columns {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Campos que ocupan span 2 vuelven a 1 columna */
+    .adaptive-field[style*="grid-column: span 2"] {
+        grid-column: span 1 !important;
+    }
+
+    /* Botones del formulario apilados */
+    .d-flex.flex-column.flex-sm-row {
+        flex-direction: column !important;
+    }
+
+    .d-flex.flex-column.flex-sm-row .btn {
+        width: 100%;
+    }
+
+    /* Select y inputs más touch-friendly */
+    .form-control,
+    .form-select {
+        min-height: 44px;
+        font-size: 16px !important; /* Evitar zoom en iOS */
+    }
+
+    /* File input */
+    input[type="file"].form-control {
+        font-size: 0.85rem !important;
+        padding: 0.5rem;
+    }
+}
+
+/* =====================================================
+   DASHBOARD CARDS RESPONSIVE
+   ===================================================== */
+@media (max-width: 767.98px) {
+    /* Stats cards en 2 columnas en móvil */
+    .row > .col-md-3,
+    .row > .col-lg-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .row > .col-md-3 .card-body,
+    .row > .col-lg-3 .card-body {
+        padding: 0.75rem;
+        text-align: center;
+    }
+
+    .row > .col-md-3 .card-body h2,
+    .row > .col-lg-3 .card-body h2 {
+        font-size: 1.5rem;
+    }
+
+    .row > .col-md-3 .card-body .small,
+    .row > .col-lg-3 .card-body .small {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 400px) {
+    /* Stats cards en 1 columna en móvil muy pequeño */
+    .row > .col-md-3,
+    .row > .col-lg-3 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* =====================================================
+   MODAL RESPONSIVE
+   ===================================================== */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* =====================================================
+   BREADCRUMBS RESPONSIVE
+   ===================================================== */
+@media (max-width: 575.98px) {
+    .breadcrumb {
+        font-size: 0.8rem;
+    }
+
+    .breadcrumb-item + .breadcrumb-item {
+        padding-left: 0.3rem;
+    }
+
+    .breadcrumb-item + .breadcrumb-item::before {
+        padding-right: 0.3rem;
+    }
+}
+
+/* =====================================================
+   UTILIDADES RESPONSIVE
+   ===================================================== */
+
+/* Ocultar en móvil */
+@media (max-width: 767.98px) {
+    .hide-mobile {
+        display: none !important;
+    }
+}
+
+/* Ocultar en escritorio */
+@media (min-width: 768px) {
+    .hide-desktop {
+        display: none !important;
+    }
+}
+
+/* Texto truncado para evitar desbordamiento */
+.text-truncate-mobile {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+    .text-truncate-mobile {
+        max-width: 150px;
+    }
+}
+
+/* =====================================================
+   IMPRESIÓN
+   ===================================================== */
+@media print {
+    .sidebar,
+    .top-navbar,
+    .sidebar-overlay,
+    .sidebar-toggle {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+}
