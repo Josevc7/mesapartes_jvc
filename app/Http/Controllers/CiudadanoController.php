@@ -6,10 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\TipoTramite;
 use App\Models\Documento;
-use App\Models\Observacion;
 use App\Services\NumeracionService;
-use App\Enums\EstadoExpediente;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use App\Models\EstadoExpediente as EstadoExpedienteModel;
+use App\Enums\EstadoExpediente as EstadoExpedienteEnum;
 
 class CiudadanoController extends Controller
 {
@@ -20,16 +21,22 @@ class CiudadanoController extends Controller
     public function dashboard()
     {
         // Obtener el ID del usuario autenticado (ciudadano logueado)
-        $ciudadanoId = auth()->user()->id;
+        //$ciudadanoId = auth()->user()->id;
+        $ciudadanoId = auth()->id();
+       
 
-        // OPTIMIZACIÓN: Una sola consulta para todas las estadísticas (antes eran 4 consultas)
-        $idEnProceso = \App\Models\EstadoExpediente::whereIn('slug', ['registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado'])->pluck('id_estado')->toArray();
-        $idResuelto = \App\Models\EstadoExpediente::where('slug', 'resuelto')->value('id_estado');
-        $idObservado = \App\Models\EstadoExpediente::where('slug', 'observado')->value('id_estado');
+        // OPTIMIZACIÓN: Una sola consulta para todas las estadísticas
+        $idEnProceso = EstadoExpedienteModel::whereIn('slug', ['registrado', 'clasificado', 'derivado', 'en_proceso', 'recepcionado'])->pluck('id_estado')->toArray();
+        $idResuelto = EstadoExpedienteModel::where('slug', 'resuelto')->value('id_estado');
+        $idObservado = EstadoExpedienteModel::where('slug', 'observado')->value('id_estado');
+
+        // Proteger contra IN() vacío: si no hay estados, usar 0 (nunca coincide)
+        $inClause = !empty($idEnProceso) ? implode(',', $idEnProceso) : '0';
+
         $estadisticas = Expediente::where('id_ciudadano', $ciudadanoId)
             ->selectRaw("
                 COUNT(*) as total_expedientes,
-                SUM(CASE WHEN id_estado IN (" . implode(',', $idEnProceso) . ") THEN 1 ELSE 0 END) as en_proceso,
+                SUM(CASE WHEN id_estado IN ({$inClause}) THEN 1 ELSE 0 END) as en_proceso,
                 SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as resueltos,
                 SUM(CASE WHEN id_estado = ? THEN 1 ELSE 0 END) as observados
             ", [$idResuelto, $idObservado])
@@ -55,7 +62,7 @@ class CiudadanoController extends Controller
 
     public function misExpedientes()
     {
-        $expedientes = Expediente::where('id_ciudadano', auth()->user()->id)
+        $expedientes = Expediente::where('id_ciudadano', auth()->id())
             ->with(['tipoTramite', 'area', 'documentos'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -66,7 +73,7 @@ class CiudadanoController extends Controller
     public function seguimiento($codigo)
     {
         $expediente = Expediente::where('codigo_expediente', $codigo)
-            ->where('id_ciudadano', auth()->user()->id)
+            ->where('id_ciudadano', auth()->id())
             ->with(['tipoTramite', 'area', 'documentos', 'historial.usuario', 'derivaciones'])
             ->firstOrFail();
             
@@ -98,7 +105,9 @@ class CiudadanoController extends Controller
             abort(404, 'Archivo no encontrado');
         }
         
-        return Storage::disk('public')->download($documento->ruta_pdf, $documento->nombre . '.pdf');
+        $extension = pathinfo($documento->ruta_pdf, PATHINFO_EXTENSION);
+        $nombreDescarga = $documento->nombre . '.' . $extension;
+        return Storage::disk('public')->download($documento->ruta_pdf, $nombreDescarga);
     }
 
     public function notificaciones()
@@ -208,104 +217,145 @@ class CiudadanoController extends Controller
             'acepta_terminos' => 'required|accepted'                      // Debe aceptar términos
         ]);
 
-        // Normalizar número de documento (convertir a mayúsculas si es CE o PASAPORTE)
-        $numeroDocumento = in_array($request->tipo_documento, ['CE', 'PASAPORTE'])
-            ? strtoupper($request->numero_documento)
-            : $request->numero_documento;
+         // Normalizar número de documento (convertir a mayúsculas si es CE o PASAPORTE)
+         $numeroDocumento = in_array($request->tipo_documento, ['CE', 'PASAPORTE'])
+         ? strtoupper($request->numero_documento)
+         : $request->numero_documento;
 
-        // === CREAR O BUSCAR PERSONA EN LA BASE DE DATOS ===
-        // firstOrCreate: busca por tipo y número de documento, si no existe lo crea
-        $persona = \App\Models\Persona::firstOrCreate(
-            [
-                // Criterios de búsqueda: tipo y número de documento (deben ser únicos)
-                'tipo_documento' => $request->tipo_documento,
-                'numero_documento' => $numeroDocumento
-            ],
-            [
-                // Datos para crear si no existe la persona
-                'tipo_persona' => $request->tipo_persona,           // NATURAL o JURIDICA
-                'nombres' => $request->nombres,                     // Solo para personas naturales
-                'apellido_paterno' => $request->apellido_paterno,   // Solo para personas naturales
-                'apellido_materno' => $request->apellido_materno,   // Opcional
-                'razon_social' => $request->razon_social,           // Solo para personas jurídicas
-                'representante_legal' => $request->representante_legal, // Opcional
-                'telefono' => $request->telefono,                   // Datos de contacto
-                'email' => $request->email,
-                'direccion' => $request->direccion
-            ]
-        );
+         // 🔹 OBTENER ESTADO INICIAL (ANTES DE LA TRANSACCIÓN)
+         $idEstadoInicial = EstadoExpedienteModel::where(
+         'slug',
+          EstadoExpedienteEnum::RECEPCIONADO->value
+         )->value('id_estado');
 
-        // === GENERAR CÓDIGO ÚNCO DEL EXPEDIENTE ===
-        // Usar servicio de numeración para generar código secuencial (ej: EXP-2024-00001)
-        $codigo = app(NumeracionService::class)->generarCodigo();
         
-        // === CREAR EL EXPEDIENTE EN LA BASE DE DATOS ===
-        $expediente = Expediente::create([
-            'codigo_expediente' => $codigo,                              // Código único generado
-            'asunto' => $request->asunto,                               // Motivo del trámite
-            'descripcion' => $request->descripcion,                     // Descripción detallada (opcional)
-            'id_tipo_tramite' => $request->id_tipo_tramite,             // Tipo de trámite seleccionado
-            'tipo_documento_entrante' => $request->tipo_documento_entrante, // Tipo de documento (Solicitud, FUT, etc.)
-            'folios' => $request->folios,                               // Número de folios del documento
-            'id_ciudadano' => auth()->user()->id,                     // Usuario autenticado que crea el expediente
-            'id_persona' => $persona->id_persona,                               // Referencia a la persona (solicitante)
-            'remitente' => $persona->nombre_completo,                   // Nombre completo para búsquedas rápidas
-            'dni_remitente' => $persona->numero_documento,              // Documento para búsquedas rápidas
-            'fecha_registro' => now(),                                  // Fecha y hora actual de registro
-            'estado' => EstadoExpediente::RECEPCIONADO->value,              // Estado inicial (via mutator → id_estado)
-            'prioridad' => $request->prioridad ?? 'normal',              // Prioridad por defecto
-            'canal' => 'virtual'                                        // Canal de ingreso (virtual/presencial)
-        ]);
+         if (!$idEstadoInicial) {
+         return back()
+         ->withInput()
+         ->with('error', 'No existe el estado inicial RECEPCIONADO en estados_expediente.');
+         }
+         // 🔹 ahora recién inicia la transacción
+         $archivosGuardados = [];
 
-        // === GUARDAR DOCUMENTO PRINCIPAL ===
-        // Estructura: expedientes/{año}/{codigo_expediente}/archivo.pdf
-        $año = now()->year;
-        $carpetaExpediente = "expedientes/{$año}/{$codigo}";
+        try {
+             
+            DB::beginTransaction();
 
-        // Verificar si se subió el archivo obligatorio
-        if ($request->hasFile('documento_principal')) {
-            $archivo = $request->file('documento_principal');
-            $nombreOriginal = $archivo->getClientOriginalName();
-            // Limpiar nombre de archivo (quitar caracteres especiales)
-            $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+            // === CREAR O ACTUALIZAR PERSONA EN LA BASE DE DATOS ===
+            $persona = \App\Models\Persona::firstOrCreate(
+                [
+                    'tipo_documento' => $request->tipo_documento,
+                    'numero_documento' => $numeroDocumento
+                ],
+                [
+                    'tipo_persona' => $request->tipo_persona,
+                    'nombres' => $request->nombres,
+                    'apellido_paterno' => $request->apellido_paterno,
+                    'apellido_materno' => $request->apellido_materno,
+                    'razon_social' => $request->razon_social,
+                    'representante_legal' => $request->representante_legal,
+                    'telefono' => $request->telefono,
+                    'email' => $request->email,
+                    'direccion' => $request->direccion
+                ]
+            );
 
-            // Almacenar archivo en storage/app/public/expedientes/{año}/{codigo}/
-            $path = $archivo->storeAs($carpetaExpediente, $nombreLimpio, 'public');
+            // Si la persona ya existía, actualizar sus datos de contacto
+            if (!$persona->wasRecentlyCreated) {
+                $persona->update(array_filter([
+                    'nombres' => $request->nombres,
+                    'apellido_paterno' => $request->apellido_paterno,
+                    'apellido_materno' => $request->apellido_materno,
+                    'razon_social' => $request->razon_social,
+                    'representante_legal' => $request->representante_legal,
+                    'telefono' => $request->telefono,
+                    'email' => $request->email,
+                    'direccion' => $request->direccion
+                ], fn($v) => $v !== null));
+            }
 
-            // Crear registro en tabla documentos
-            Documento::create([
-                'id_expediente' => $expediente->id_expediente,
-                'nombre' => pathinfo($nombreOriginal, PATHINFO_FILENAME), // Nombre sin extensión
-                'ruta_pdf' => $path,
-                'tipo' => 'entrada'
+            // === GENERAR CÓDIGO ÚNICO DEL EXPEDIENTE ===
+            $codigo = app(NumeracionService::class)->generarCodigo();
+
+            // === CREAR EL EXPEDIENTE EN LA BASE DE DATOS ===
+            $expediente = Expediente::create([
+                'codigo_expediente' => $codigo,
+                'asunto' => $request->asunto,
+                'descripcion' => $request->descripcion,
+                'id_tipo_tramite' => $request->id_tipo_tramite,
+                'tipo_documento_entrante' => $request->tipo_documento_entrante,
+                'folios' => $request->folios,
+                'id_ciudadano' => auth()->id(),
+                'id_persona' => $persona->id_persona,
+                'remitente' => $persona->nombre_completo,
+                'dni_remitente' => $persona->numero_documento,
+                'fecha_registro' => now(),
+                'id_estado' => $idEstadoInicial,
+                'prioridad' => $request->prioridad ?? 'normal',
+                'canal' => 'virtual'
             ]);
-        }
 
-        // === GUARDAR DOCUMENTOS ADICIONALES (OPCIONALES) ===
-        // Verificar si se subieron archivos adicionales
-        if ($request->hasFile('documentos_adicionales')) {
-            foreach ($request->file('documentos_adicionales') as $index => $file) {
-                $nombreOriginal = $file->getClientOriginalName();
-                $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreOriginal);
+            // === GUARDAR DOCUMENTO PRINCIPAL ===
+            $anio = now()->year;
+            $carpetaExpediente = "expedientes/{$anio}/{$codigo}";
 
-                // Almacenar en la misma carpeta del expediente
-                $path = $file->storeAs($carpetaExpediente, $nombreLimpio, 'public');
+            if ($request->hasFile('documento_principal')) {
+                $archivo = $request->file('documento_principal');
+                $nombreOriginal = $archivo->getClientOriginalName();
+                $extension = $archivo->getClientOriginalExtension();
+                $nombreBase = pathinfo($nombreOriginal, PATHINFO_FILENAME);
+                $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreBase);
+                // uniqid evita colisión si dos archivos tienen el mismo nombre
+                $nombreFinal = $nombreLimpio . '_' . uniqid() . '.' . $extension;
+
+                $path = $archivo->storeAs($carpetaExpediente, $nombreFinal, 'public');
+                $archivosGuardados[] = $path;
 
                 Documento::create([
                     'id_expediente' => $expediente->id_expediente,
-                    'nombre' => pathinfo($nombreOriginal, PATHINFO_FILENAME),
+                    'nombre' => $nombreBase,
                     'ruta_pdf' => $path,
                     'tipo' => 'entrada'
                 ]);
             }
-        }
 
-        // === RESPUESTA EXITOSA AL USUARIO ===
-        // Redirigir de vuelta al formulario con mensaje de éxito
-        // back(): vuelve a la página anterior
-        // with(): pasa datos de sesión flash (se muestran una sola vez)
-        return back()->with('success', 'SE ENVIÓ CORRECTAMENTE')      // Mensaje de éxito
-                    ->with('codigo_expediente', $codigo);              // Código para mostrar al usuario
+            // === GUARDAR DOCUMENTOS ADICIONALES (OPCIONALES) ===
+            if ($request->hasFile('documentos_adicionales')) {
+                foreach ($request->file('documentos_adicionales') as $file) {
+                    $nombreOriginal = $file->getClientOriginalName();
+                    $extension = $file->getClientOriginalExtension();
+                    $nombreBase = pathinfo($nombreOriginal, PATHINFO_FILENAME);
+                    $nombreLimpio = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreBase);
+                    $nombreFinal = $nombreLimpio . '_' . uniqid() . '.' . $extension;
+
+                    $path = $file->storeAs($carpetaExpediente, $nombreFinal, 'public');
+                    $archivosGuardados[] = $path;
+
+                    Documento::create([
+                        'id_expediente' => $expediente->id_expediente,
+                        'nombre' => $nombreBase,
+                        'ruta_pdf' => $path,
+                        'tipo' => 'entrada'
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'SE ENVIÓ CORRECTAMENTE')
+                        ->with('codigo_expediente', $codigo);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Limpiar archivos ya guardados en disco
+            foreach ($archivosGuardados as $archivoPath) {
+                Storage::disk('public')->delete($archivoPath);
+            }
+
+            return back()->withInput()
+                        ->with('error', 'Error al registrar el expediente. Intente nuevamente.');
+        }
     }
 
     public function acuseRecibo($codigo)
@@ -364,18 +414,18 @@ class CiudadanoController extends Controller
     {
         $request->validate([
             'codigo_expediente' => 'required|string',
-            'dni' => 'required|string|size:8'
+            'numero_documento' => 'required|string|min:3|max:20'
         ]);
 
         $expediente = Expediente::where('codigo_expediente', $request->codigo_expediente)
             ->whereHas('persona', function($query) use ($request) {
-                $query->where('numero_documento', $request->dni);
+                $query->where('numero_documento', $request->numero_documento);
             })
             ->with(['tipoTramite', 'area', 'documentos', 'historial.usuario', 'derivaciones', 'persona'])
             ->first();
 
         if (!$expediente) {
-            return back()->with('error', 'No se encontró el expediente o el DNI no coincide.');
+            return back()->with('error', 'No se encontró el expediente o el número de documento no coincide.');
         }
 
         return view('ciudadano.seguimiento', compact('expediente'));
@@ -408,7 +458,7 @@ class CiudadanoController extends Controller
      */
     public function observaciones()
     {
-        $ciudadanoId = auth()->user()->id;
+        $ciudadanoId = auth()->id();
 
         // Obtener expedientes con observaciones pendientes del ciudadano
         $expedientes = Expediente::where('id_ciudadano', $ciudadanoId)
@@ -429,7 +479,7 @@ class CiudadanoController extends Controller
     public function verObservacion(Expediente $expediente)
     {
         // Verificar que el expediente pertenece al ciudadano
-        if ($expediente->id_ciudadano != auth()->user()->id) {
+        if ($expediente->id_ciudadano != auth()->id()) {
             abort(403, 'No tiene permisos para ver esta observación');
         }
 
@@ -448,7 +498,7 @@ class CiudadanoController extends Controller
     public function responderObservacion(Request $request, Expediente $expediente)
     {
         // Verificar que el expediente pertenece al ciudadano
-        if ($expediente->id_ciudadano != auth()->user()->id) {
+        if ($expediente->id_ciudadano != auth()->id()) {
             return redirect()->back()->with('error', 'No tiene permisos para responder esta observación');
         }
 
@@ -459,7 +509,7 @@ class CiudadanoController extends Controller
         ]);
 
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
 
             // Actualizar todas las observaciones pendientes con la respuesta
             foreach ($expediente->observaciones()->where('estado', 'pendiente')->get() as $observacion) {
@@ -486,8 +536,16 @@ class CiudadanoController extends Controller
             }
 
             // Cambiar estado del expediente a "en_proceso" para que el funcionario lo revise
-            $expediente->estado = EstadoExpediente::EN_PROCESO->value;
+            //$expediente->estado = EstadoExpediente::EN_PROCESO->value;
+            //$expediente->save();
+            
+            $idEnProceso = EstadoExpedienteModel::where('slug', EstadoExpedienteEnum::EN_PROCESO->value)->value('id_estado');
+            if (!$idEnProceso) {
+            throw new \Exception('No existe el estado EN_PROCESO en estados_expediente.');
+            }
+            $expediente->id_estado = $idEnProceso;
             $expediente->save();
+
 
             // Registrar en historial
             $expediente->agregarHistorial(
@@ -495,13 +553,13 @@ class CiudadanoController extends Controller
                 auth()->id()
             );
 
-            \DB::commit();
+            DB::commit();
 
             return redirect()->route('ciudadano.observaciones')
                 ->with('success', 'Respuesta enviada correctamente. El funcionario revisará su subsanación.');
 
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return redirect()->back()->with('error', 'Error al enviar respuesta: ' . $e->getMessage());
         }
     }

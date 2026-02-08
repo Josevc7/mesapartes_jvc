@@ -537,17 +537,16 @@ class MesaPartesController extends Controller
     public function clasificarVirtual(Expediente $expediente)
     {
         // Verificar que sea un expediente virtual
-        if ($expediente->canal != 'virtual') {
+        if ($expediente->canal !== 'virtual') {
             return redirect()
                 ->route('mesa-partes.index')
                 ->with('error', 'Este expediente no es virtual. Use el flujo normal de clasificación.');
         }
 
         // Verificar que esté en estado recepcionado
-        if ($expediente->estado != 'recepcionado') {
-            return redirect()
-                ->route('mesa-partes.index')
-                ->with('error', 'Este expediente ya ha sido clasificado.');
+        if ($expediente->estadoExpediente?->slug !== 'recepcionado') {
+           return redirect()->route('mesa-partes.index')
+                            ->with('error', 'Este expediente ya ha sido clasificado.');
         }
 
         $expediente->load(['persona', 'tipoTramite', 'documentos']);

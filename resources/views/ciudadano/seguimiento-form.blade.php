@@ -32,12 +32,12 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="dni" class="form-label">DNI del Solicitante *</label>
-                            <input type="text" class="form-control @error('dni') is-invalid @enderror" 
-                                   id="dni" name="dni" 
-                                   value="{{ old('dni') }}"
-                                   placeholder="Ingrese su DNI" maxlength="8" required>
-                            @error('dni')
+                            <label for="numero_documento" class="form-label">N° Documento del Solicitante *</label>
+                            <input type="text" class="form-control @error('numero_documento') is-invalid @enderror"
+                                   id="numero_documento" name="numero_documento"
+                                   value="{{ old('numero_documento') }}"
+                                   placeholder="DNI, RUC, CE o Pasaporte" maxlength="20" required>
+                            @error('numero_documento')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
