@@ -8,7 +8,8 @@
         'RESIDENCIA' => 'nivel-residencia',
         default => ''
     };
-    $tieneSubAreas = $area->subAreas->count() > 0;
+    $subAreasCollection = $area->relationLoaded('subAreasRecursivas') ? $area->subAreasRecursivas : $area->subAreas;
+    $tieneSubAreas = $subAreasCollection->count() > 0;
 @endphp
 
 <li>
@@ -45,7 +46,7 @@
 
                             @if($tieneSubAreas)
                                 <span class="ms-3">
-                                    <i class="fas fa-sitemap me-1"></i>{{ $area->subAreas->count() }} sub-área(s)
+                                    <i class="fas fa-sitemap me-1"></i>{{ $subAreasCollection->count() }} sub-área(s)
                                 </span>
                             @endif
                         </small>
@@ -80,7 +81,7 @@
 
     @if($tieneSubAreas)
         <ul class="area-tree" id="subareas-{{ $area->id_area }}">
-            @foreach($area->subAreas as $subArea)
+            @foreach($subAreasCollection as $subArea)
                 @include('admin.areas._area-item', ['area' => $subArea, 'nivel' => $nivel + 1])
             @endforeach
         </ul>

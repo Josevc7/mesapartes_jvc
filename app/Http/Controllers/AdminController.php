@@ -22,10 +22,36 @@ use Illuminate\Support\Facades\DB;
 class AdminController extends Controller
 {
     // Gestión de Usuarios
-    public function usuarios()
+    public function usuarios(Request $request)
     {
-        $usuarios = User::paginate(10);
-        return view('admin.usuarios.index', compact('usuarios'));
+        $query = User::with(['role', 'area']);
+
+        if ($request->filled('id_rol')) {
+            $query->where('id_rol', $request->id_rol);
+        }
+
+        if ($request->filled('id_area')) {
+            $query->where('id_area', $request->id_area);
+        }
+
+        if ($request->filled('estado')) {
+            $query->where('activo', $request->estado === 'activo');
+        }
+
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->where(function ($q) use ($buscar) {
+                $q->where('name', 'like', "%{$buscar}%")
+                  ->orWhere('dni', 'like', "%{$buscar}%")
+                  ->orWhere('email', 'like', "%{$buscar}%");
+            });
+        }
+
+        $usuarios = $query->orderBy('name')->paginate(15)->withQueryString();
+        $roles = Role::all();
+        $areas = Area::where('activo', true)->orderBy('nombre')->get();
+
+        return view('admin.usuarios.index', compact('usuarios', 'roles', 'areas'));
     }
 
     public function crearUsuario()
@@ -126,8 +152,8 @@ class AdminController extends Controller
     // Gestión de Áreas (con jerarquía)
     public function areas()
     {
-        // Obtener áreas organizadas jerárquicamente
-        $areasRaiz = Area::with(['jefe', 'subAreas.jefe', 'subAreas.subAreas.jefe'])
+        // Obtener áreas organizadas jerárquicamente con carga recursiva
+        $areasRaiz = Area::with(['jefe', 'funcionarios', 'subAreasRecursivas'])
             ->whereNull('id_area_padre')
             ->orderBy('nivel')
             ->orderBy('nombre')
@@ -266,36 +292,54 @@ class AdminController extends Controller
     {
         $area = Area::findOrFail($id_area);
 
-        // Verificar si tiene expedientes asociados
-        if ($area->expedientes()->count() > 0) {
-            return redirect()->route('admin.areas')
-                ->with('error', 'No se puede eliminar. El área tiene expedientes asociados.');
-        }
+        // Verificar dependencias del área y todas sus sub-áreas recursivamente
+        $areasAVerificar = collect([$area])->merge($area->getDescendientes());
 
-        // Verificar si tiene funcionarios asignados
-        if ($area->funcionarios()->count() > 0) {
-            return redirect()->route('admin.areas')
-                ->with('error', 'No se puede eliminar. El área tiene funcionarios asignados.');
-        }
+        foreach ($areasAVerificar as $areaCheck) {
+            if ($areaCheck->expedientes()->count() > 0) {
+                $msg = $areaCheck->id_area == $id_area
+                    ? 'No se puede eliminar. El área tiene expedientes asociados.'
+                    : "No se puede eliminar. La sub-área '{$areaCheck->nombre}' tiene expedientes asociados.";
+                return redirect()->route('admin.areas')->with('error', $msg);
+            }
 
-        // Verificar si tiene tipos de trámite
-        if ($area->tipoTramites()->count() > 0) {
-            return redirect()->route('admin.areas')
-                ->with('error', 'No se puede eliminar. El área tiene tipos de trámite asociados.');
+            if ($areaCheck->funcionarios()->count() > 0) {
+                $msg = $areaCheck->id_area == $id_area
+                    ? 'No se puede eliminar. El área tiene funcionarios asignados.'
+                    : "No se puede eliminar. La sub-área '{$areaCheck->nombre}' tiene funcionarios asignados.";
+                return redirect()->route('admin.areas')->with('error', $msg);
+            }
+
+            if ($areaCheck->tipoTramites()->count() > 0) {
+                $msg = $areaCheck->id_area == $id_area
+                    ? 'No se puede eliminar. El área tiene tipos de trámite asociados.'
+                    : "No se puede eliminar. La sub-área '{$areaCheck->nombre}' tiene tipos de trámite asociados.";
+                return redirect()->route('admin.areas')->with('error', $msg);
+            }
         }
 
         $nombreArea = $area->nombre;
         $area->delete();
 
         return redirect()->route('admin.areas')
-            ->with('success', "Área '{$nombreArea}' eliminada correctamente");
+            ->with('success', "Área '{$nombreArea}' y sus sub-áreas eliminadas correctamente");
     }
 
     // Gestión de Tipos de Trámite
-    public function tipoTramites()
+    public function tipoTramites(Request $request)
     {
-        $tipoTramites = TipoTramite::with('area')->paginate(10);
-        $areas = Area::where('activo', true)->get();
+        $query = TipoTramite::with('area');
+
+        if ($request->filled('id_area')) {
+            $query->where('id_area', $request->id_area);
+        }
+
+        if ($request->filled('buscar')) {
+            $query->where('nombre', 'like', '%' . $request->buscar . '%');
+        }
+
+        $tipoTramites = $query->orderBy('id_area')->orderBy('nombre')->paginate(15)->withQueryString();
+        $areas = Area::where('activo', true)->orderBy('nombre')->get();
         return view('admin.tipo-tramites.index', compact('tipoTramites', 'areas'));
     }
 
@@ -354,9 +398,25 @@ class AdminController extends Controller
     {
         $tipoTramite = TipoTramite::findOrFail($id_tipo_tramite);
         $tipoTramite->update(['activo' => !$tipoTramite->activo]);
-        
+
         $estado = $tipoTramite->activo ? 'activado' : 'desactivado';
         return redirect()->route('admin.tipo-tramites')->with('success', "Tipo de trámite {$estado} correctamente");
+    }
+
+    public function destroyTipoTramite($id_tipo_tramite)
+    {
+        $tipoTramite = TipoTramite::findOrFail($id_tipo_tramite);
+
+        if ($tipoTramite->expedientes()->count() > 0) {
+            return redirect()->route('admin.tipo-tramites')
+                ->with('error', 'No se puede eliminar este tipo de trámite porque tiene expedientes asociados. Puede desactivarlo en su lugar.');
+        }
+
+        $nombreTipo = $tipoTramite->nombre;
+        $tipoTramite->delete();
+
+        return redirect()->route('admin.tipo-tramites')
+            ->with('success', "Tipo de trámite '{$nombreTipo}' eliminado correctamente");
     }
 
     // Configuraciones del Sistema

@@ -68,6 +68,14 @@ class Area extends Model
     }
 
     /**
+     * Sub-áreas con carga recursiva (para eager loading profundo)
+     */
+    public function subAreasRecursivas()
+    {
+        return $this->subAreas()->with(['jefe', 'funcionarios', 'subAreasRecursivas']);
+    }
+
+    /**
      * Obtener todas las sub-áreas recursivamente (descendientes)
      */
     public function getDescendientes()

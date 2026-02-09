@@ -317,6 +317,7 @@ Route::prefix('admin')->middleware(['auth', 'role:Administrador'])->group(functi
     Route::get('/tipo-tramites/{id_tipo_tramite}/edit', [AdminController::class, 'editTipoTramite'])->name('admin.tipo-tramites.edit');
     Route::put('/tipo-tramites/{id_tipo_tramite}', [AdminController::class, 'updateTipoTramite'])->name('admin.tipo-tramites.update');
     Route::put('/tipo-tramites/{id_tipo_tramite}/toggle', [AdminController::class, 'toggleTipoTramite'])->name('admin.tipo-tramites.toggle');
+    Route::delete('/tipo-tramites/{id_tipo_tramite}', [AdminController::class, 'destroyTipoTramite'])->name('admin.tipo-tramites.destroy');
     
     // Configuraciones
     Route::get('/configuraciones', [AdminController::class, 'configuraciones'])->name('admin.configuraciones');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Expediente;
 use App\Models\TipoTramite;
+use App\Models\Area;
 use App\Models\Documento;
 use App\Services\NumeracionService;
 use Illuminate\Support\Facades\Storage;
@@ -118,11 +119,20 @@ class CiudadanoController extends Controller
 
     public function registrarExpediente()
     {
-        $tipoTramites = TipoTramite::where('activo', true)
+        $tipoTramites = TipoTramite::with('area')
+            ->where('activo', true)
+            ->orderBy('id_area')
             ->orderBy('nombre')
             ->get();
-            
-        return view('ciudadano.registrar-expediente', compact('tipoTramites'));
+
+        $areas = Area::whereHas('tipoTramites', function ($q) {
+                $q->where('activo', true);
+            })
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('ciudadano.registrar-expediente', compact('tipoTramites', 'areas'));
     }
 
     /**
@@ -199,7 +209,7 @@ class CiudadanoController extends Controller
             'direccion' => 'nullable|string',
             
             // === VALIDACIONES DE DATOS DEL TRÁMITE ===
-            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',       // Debe existir en la tabla
+            'id_tipo_tramite' => 'nullable|exists:tipo_tramites,id_tipo_tramite',       // Opcional - Mesa de Partes clasificará
             'tipo_documento_entrante' => 'required|in:SOLICITUD,FUT,OFICIO,INFORME,MEMORANDUM,CARTA,RESOLUCION,OTROS', // Tipo de documento
             'folios' => 'required|integer|min:1|max:999',                 // Número de folios
             'asunto' => 'required|string|max:500',                        // Asunto obligatorio
@@ -276,7 +286,7 @@ class CiudadanoController extends Controller
                 'codigo_expediente' => $codigo,
                 'asunto' => $request->asunto,
                 'descripcion' => $request->descripcion,
-                'id_tipo_tramite' => $request->id_tipo_tramite,
+                'id_tipo_tramite' => $request->id_tipo_tramite ?: null,
                 'tipo_documento_entrante' => $request->tipo_documento_entrante,
                 'folios' => $request->folios,
                 'id_ciudadano' => auth()->id(),

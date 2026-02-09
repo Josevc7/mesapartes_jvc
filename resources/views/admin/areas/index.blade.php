@@ -113,6 +113,16 @@
 
                     <!-- Árbol de Áreas -->
                     @if($areasRaiz->count() > 0)
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Total de áreas: <strong>{{ \App\Models\Area::count() }}</strong>
+                                | Use los botones <i class="fas fa-plus"></i> para agregar sub-áreas,
+                                <i class="fas fa-edit"></i> para editar,
+                                <i class="fas fa-ban"></i> para desactivar y
+                                <i class="fas fa-trash"></i> para eliminar.
+                            </small>
+                        </div>
                         <ul class="area-tree">
                             @foreach($areasRaiz as $area)
                                 @include('admin.areas._area-item', ['area' => $area, 'nivel' => 0])

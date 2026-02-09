@@ -304,27 +304,7 @@
                                     @enderror
                                 </div>
 
-                                <!-- 4. Tipo de Trámite -->
-                                <div class="adaptive-field">
-                                    <label for="id_tipo_tramite" class="form-label">Tipo de Trámite *</label>
-                                    <select class="form-select @error('id_tipo_tramite') is-invalid @enderror"
-                                            id="id_tipo_tramite" name="id_tipo_tramite" required>
-                                        <option value="">Seleccionar tipo de trámite</option>
-                                        @foreach($tipoTramites as $tipo)
-                                            <option value="{{ $tipo->id_tipo_tramite }}"
-                                                    data-plazo="{{ $tipo->plazo_dias ?? '' }}"
-                                                    data-requisitos="{{ $tipo->requisitos ?? '' }}"
-                                                    {{ old('id_tipo_tramite') == $tipo->id_tipo_tramite ? 'selected' : '' }}>
-                                                {{ $tipo->nombre }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('id_tipo_tramite')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-
-                                <!-- 5. Prioridad -->
+                                <!-- 4. Prioridad -->
                                 <div class="adaptive-field">
                                     <label for="prioridad" class="form-label">Prioridad</label>
                                     <select class="form-select" id="prioridad" name="prioridad">
@@ -333,6 +313,106 @@
                                         <option value="alta" {{ old('prioridad') == 'alta' ? 'selected' : '' }}>Alta</option>
                                         <option value="urgente" {{ old('prioridad') == 'urgente' ? 'selected' : '' }}>Urgente</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <!-- Tipo de Trámite (OPCIONAL) - Sección colapsable -->
+                            <div class="mt-4 p-3 border rounded bg-light">
+                                <div class="d-flex align-items-start mb-2">
+                                    <i class="fas fa-info-circle text-info me-2 mt-1"></i>
+                                    <div>
+                                        <p class="mb-1 small">
+                                            <strong>Si conoce el tipo de trámite</strong>, puede seleccionarlo a continuación para agilizar la atención.
+                                            <strong>Si no lo conoce, no se preocupe</strong> - Mesa de Partes se encargará de clasificar y derivar su expediente al área correspondiente.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <a class="text-decoration-none" data-bs-toggle="collapse" href="#seccionTipoTramite" role="button"
+                                   aria-expanded="false" aria-controls="seccionTipoTramite">
+                                    <i class="fas fa-chevron-down me-1"></i>
+                                    <small class="fw-semibold">Seleccionar tipo de trámite (opcional)</small>
+                                </a>
+
+                                <div class="collapse {{ old('id_tipo_tramite') ? 'show' : '' }}" id="seccionTipoTramite">
+                                    <div class="mt-3">
+                                        <!-- Filtro por área -->
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-md-6">
+                                                <label for="filtro_area" class="form-label small">
+                                                    <i class="fas fa-building text-primary me-1"></i>Filtrar por área
+                                                </label>
+                                                <select class="form-select form-select-sm" id="filtro_area">
+                                                    <option value="">-- Todas las áreas --</option>
+                                                    @foreach($areas as $area)
+                                                        <option value="{{ $area->id_area }}">{{ $area->nombre }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="buscar_tramite" class="form-label small">
+                                                    <i class="fas fa-search text-primary me-1"></i>Buscar trámite
+                                                </label>
+                                                <input type="text" class="form-control form-control-sm" id="buscar_tramite"
+                                                       placeholder="Ej: brevete, licencia, autorización...">
+                                            </div>
+                                        </div>
+
+                                        <select class="form-select @error('id_tipo_tramite') is-invalid @enderror"
+                                                id="id_tipo_tramite" name="id_tipo_tramite" size="5"
+                                                style="min-height: 150px;">
+                                            <option value="">-- No seleccionar (Mesa de Partes clasificará) --</option>
+                                            @php $currentArea = null; @endphp
+                                            @foreach($tipoTramites as $tipo)
+                                                @if($currentArea !== $tipo->id_area)
+                                                    @if($currentArea !== null)
+                                                        </optgroup>
+                                                    @endif
+                                                    @php $currentArea = $tipo->id_area; @endphp
+                                                    <optgroup label="{{ $tipo->area->nombre ?? 'Sin área' }}">
+                                                @endif
+                                                <option value="{{ $tipo->id_tipo_tramite }}"
+                                                        data-area="{{ $tipo->id_area }}"
+                                                        data-plazo="{{ $tipo->plazo_dias ?? '' }}"
+                                                        data-requisitos="{{ $tipo->requisitos ?? '' }}"
+                                                        data-descripcion="{{ $tipo->descripcion ?? '' }}"
+                                                        data-area-nombre="{{ $tipo->area->nombre ?? '' }}"
+                                                        {{ old('id_tipo_tramite') == $tipo->id_tipo_tramite ? 'selected' : '' }}>
+                                                    {{ $tipo->nombre }}
+                                                </option>
+                                            @endforeach
+                                            @if($currentArea !== null)
+                                                </optgroup>
+                                            @endif
+                                        </select>
+                                        @error('id_tipo_tramite')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text" id="tramite-count">
+                                            {{ $tipoTramites->count() }} trámites disponibles
+                                        </div>
+
+                                        <!-- Info del trámite seleccionado -->
+                                        <div id="tramite-detalle" class="mt-2 p-2 bg-white border rounded" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted d-block">Trámite:</small>
+                                                    <strong id="detalle-nombre" class="text-primary small"></strong>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Área:</small>
+                                                    <span id="detalle-area" class="badge bg-info text-dark"></span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <small class="text-muted d-block">Plazo:</small>
+                                                    <span id="detalle-plazo" class="badge bg-warning text-dark"></span>
+                                                </div>
+                                            </div>
+                                            <div id="detalle-descripcion-wrap" class="mt-1" style="display: none;">
+                                                <p id="detalle-descripcion" class="mb-0 small text-muted"></p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -532,16 +612,114 @@ document.addEventListener('DOMContentLoaded', function() {
         tipoDocumento.value = 'RUC';
     });
 
-    // Manejar cambio de tipo de trámite
-    document.getElementById('id_tipo_tramite').addEventListener('change', function() {
+    // ===== SISTEMA DE BÚSQUEDA Y FILTRO DE TRÁMITES =====
+    const selectTramite = document.getElementById('id_tipo_tramite');
+    const filtroArea = document.getElementById('filtro_area');
+    const buscarTramite = document.getElementById('buscar_tramite');
+    const tramiteDetalle = document.getElementById('tramite-detalle');
+    const tramiteCount = document.getElementById('tramite-count');
+
+    // Guardar todas las opciones originales
+    const todasLasOpciones = [];
+    const todosLosOptgroups = [];
+    for (let i = 0; i < selectTramite.children.length; i++) {
+        const child = selectTramite.children[i];
+        if (child.tagName === 'OPTGROUP') {
+            const opciones = [];
+            for (let j = 0; j < child.children.length; j++) {
+                opciones.push({
+                    value: child.children[j].value,
+                    text: child.children[j].text,
+                    area: child.children[j].dataset.area,
+                    plazo: child.children[j].dataset.plazo,
+                    requisitos: child.children[j].dataset.requisitos,
+                    descripcion: child.children[j].dataset.descripcion,
+                    areaNombre: child.children[j].dataset.areaNombre,
+                    element: child.children[j].cloneNode(true)
+                });
+            }
+            todosLosOptgroups.push({ label: child.label, opciones: opciones });
+        }
+    }
+
+    function filtrarTramites() {
+        const areaSeleccionada = filtroArea.value;
+        const textoBusqueda = buscarTramite.value.toLowerCase().trim();
+
+        // Limpiar select manteniendo solo la primera opción
+        while (selectTramite.children.length > 1) {
+            selectTramite.removeChild(selectTramite.lastChild);
+        }
+        selectTramite.selectedIndex = 0;
+
+        let totalVisible = 0;
+
+        todosLosOptgroups.forEach(function(grupo) {
+            const opcionesFiltradas = grupo.opciones.filter(function(op) {
+                const coincideArea = !areaSeleccionada || op.area === areaSeleccionada;
+                const coincideBusqueda = !textoBusqueda ||
+                    op.text.toLowerCase().includes(textoBusqueda) ||
+                    (op.descripcion && op.descripcion.toLowerCase().includes(textoBusqueda)) ||
+                    grupo.label.toLowerCase().includes(textoBusqueda);
+                return coincideArea && coincideBusqueda;
+            });
+
+            if (opcionesFiltradas.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = grupo.label;
+                opcionesFiltradas.forEach(function(op) {
+                    optgroup.appendChild(op.element.cloneNode(true));
+                    totalVisible++;
+                });
+                selectTramite.appendChild(optgroup);
+            }
+        });
+
+        tramiteCount.textContent = totalVisible + ' trámite(s) encontrado(s)';
+        tramiteDetalle.style.display = 'none';
+        document.getElementById('requisitos-info').style.display = 'none';
+    }
+
+    filtroArea.addEventListener('change', filtrarTramites);
+
+    let buscarTimeout;
+    buscarTramite.addEventListener('input', function() {
+        clearTimeout(buscarTimeout);
+        buscarTimeout = setTimeout(filtrarTramites, 300);
+    });
+
+    // Manejar selección de tipo de trámite - mostrar detalle
+    selectTramite.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        const requisitos = selectedOption.dataset.requisitos;
-        const plazo = selectedOption.dataset.plazo;
-        
-        if (requisitos && requisitos.trim() !== '') {
+        if (!selectedOption || !selectedOption.value) {
+            tramiteDetalle.style.display = 'none';
+            document.getElementById('requisitos-info').style.display = 'none';
+            return;
+        }
+
+        const nombre = selectedOption.text.trim();
+        const areaNombre = selectedOption.dataset.areaNombre || '';
+        const plazo = selectedOption.dataset.plazo || '';
+        const requisitos = selectedOption.dataset.requisitos || '';
+        const descripcion = selectedOption.dataset.descripcion || '';
+
+        // Mostrar detalle
+        document.getElementById('detalle-nombre').textContent = nombre;
+        document.getElementById('detalle-area').textContent = areaNombre;
+        document.getElementById('detalle-plazo').textContent = plazo + ' días hábiles';
+        tramiteDetalle.style.display = 'block';
+
+        if (descripcion.trim()) {
+            document.getElementById('detalle-descripcion').textContent = descripcion;
+            document.getElementById('detalle-descripcion-wrap').style.display = 'block';
+        } else {
+            document.getElementById('detalle-descripcion-wrap').style.display = 'none';
+        }
+
+        // Mostrar requisitos
+        if (requisitos.trim()) {
             document.getElementById('requisitos-info').style.display = 'block';
-            document.getElementById('lista-requisitos').innerHTML = 
-                '<p><strong>Plazo de atención:</strong> ' + plazo + ' días hábiles</p>' +
+            document.getElementById('lista-requisitos').innerHTML =
                 '<div>' + requisitos.replace(/\n/g, '<br>') + '</div>';
         } else {
             document.getElementById('requisitos-info').style.display = 'none';
