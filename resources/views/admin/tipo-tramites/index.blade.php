@@ -186,7 +186,7 @@
 
 <script>
 function editarTipo(id) {
-    fetch(`/admin/tipo-tramites/${id}/edit`)
+    fetch(`${window.APP_URL}/admin/tipo-tramites/${id}/edit`)
         .then(response => response.json())
         .then(data => {
             const form = document.querySelector('#formTramite');
@@ -196,7 +196,7 @@ function editarTipo(id) {
             form.querySelector('input[name="plazo_dias"]').value = data.tipoTramite.plazo_dias;
             form.querySelector('textarea[name="requisitos"]').value = data.tipoTramite.requisitos || '';
 
-            form.action = `/admin/tipo-tramites/${id}`;
+            form.action = `${window.APP_URL}/admin/tipo-tramites/${id}`;
             if (!form.querySelector('input[name="_method"]')) {
                 form.insertAdjacentHTML('beforeend', '<input type="hidden" name="_method" value="PUT">');
             }
@@ -210,7 +210,7 @@ function toggleTipo(id) {
     if (confirm('¿Está seguro de cambiar el estado de este tipo de trámite?')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `/admin/tipo-tramites/${id}/toggle`;
+        form.action = `${window.APP_URL}/admin/tipo-tramites/${id}/toggle`;
         form.innerHTML = `
             @csrf
             <input type="hidden" name="_method" value="PUT">
@@ -223,7 +223,7 @@ function toggleTipo(id) {
 function eliminarTipo(id, nombre) {
     if (confirm(`¿Está seguro de eliminar el tipo de trámite "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
         const form = document.getElementById('formEliminar');
-        form.action = `/admin/tipo-tramites/${id}`;
+        form.action = `${window.APP_URL}/admin/tipo-tramites/${id}`;
         form.submit();
     }
 }

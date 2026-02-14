@@ -189,7 +189,7 @@
 <script>
 function toggleUsuario(id) {
     if (confirm('¿Está seguro de cambiar el estado de este usuario?')) {
-        fetch(`/admin/usuarios/${id}/toggle-estado`, {
+        fetch(`${window.APP_URL}/admin/usuarios/${id}/toggle-estado`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -212,7 +212,7 @@ function toggleUsuario(id) {
 function eliminarUsuario(id, nombre) {
     if (confirm(`¿Está seguro de eliminar al usuario "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
         const form = document.getElementById('formEliminar');
-        form.action = `/admin/usuarios/${id}`;
+        form.action = `${window.APP_URL}/admin/usuarios/${id}`;
         form.submit();
     }
 }

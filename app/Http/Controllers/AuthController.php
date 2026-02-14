@@ -132,8 +132,7 @@ class AuthController extends Controller
                 'string',
                 'size:8',
                 'regex:/^[0-9]{8}$/',
-                'unique:personas,numero_documento',
-                'unique:users,dni'
+                'unique:personas,numero_documento'
             ],
             'email' => [
                 'required',
@@ -211,8 +210,6 @@ class AuthController extends Controller
             'name' => $nombreCompleto,
             'email' => $email,
             'password' => Hash::make($validated['password']),
-            'dni' => $validated['dni'],
-            'telefono' => $telefono,
             'id_rol' => 6, // Rol Ciudadano
             'id_persona' => $persona->id_persona,
             'activo' => true

@@ -288,7 +288,7 @@
 <script>
 function editarEstado(estado) {
     document.getElementById('modalEstadoTitle').textContent = 'Editar Estado';
-    document.getElementById('formEstado').action = '/admin/estados/' + estado.id_estado;
+    document.getElementById('formEstado').action = window.APP_URL + '/admin/estados/' + estado.id_estado;
     document.getElementById('methodField').innerHTML = '<input type="hidden" name="_method" value="PUT">';
 
     document.getElementById('estadoNombre').value = estado.nombre;

@@ -160,7 +160,7 @@
 <script>
 function eliminarExpediente(id, codigo) {
     if (confirm(`¿Está seguro de eliminar el expediente ${codigo}? Esta acción no se puede deshacer.`)) {
-        fetch(`/ciudadano/expedientes/${id}/eliminar`, {
+        fetch(`${window.APP_URL}/ciudadano/expedientes/${id}/eliminar`, {
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),

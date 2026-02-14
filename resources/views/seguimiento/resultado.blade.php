@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const response = await fetch(`/seguimiento/expedientes/${id}`, {
+                const response = await fetch(`${window.APP_URL}/seguimiento/expedientes/${id}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',

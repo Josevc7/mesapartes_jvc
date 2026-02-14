@@ -199,7 +199,7 @@ function validarExpediente(expedienteId, accion) {
     const modalTitle = document.getElementById('modalValidarTitle');
     const alerta = document.getElementById('alertaValidar');
 
-    form.action = `/admin/mesa-virtual/${expedienteId}/validar`;
+    form.action = `${window.APP_URL}/admin/mesa-virtual/${expedienteId}/validar`;
     accionInput.value = accion;
     observacionInput.value = '';
     alerta.classList.add('d-none');

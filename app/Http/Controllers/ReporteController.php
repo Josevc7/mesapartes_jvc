@@ -20,32 +20,32 @@ class ReporteController extends Controller
         $query = $query ?? Expediente::query();
 
         // Administrador ve todo
-        if ($user->rol->nombre === 'Administrador') {
+        if ($user->role->nombre === 'Administrador') {
             return $query;
         }
 
         // Mesa de Partes ve todos los expedientes (registra y deriva)
-        if ($user->rol->nombre === 'Mesa de Partes') {
+        if ($user->role->nombre === 'Mesa de Partes') {
             return $query;
         }
 
         // Jefe de Área ve solo expedientes de su área
-        if ($user->rol->nombre === 'Jefe de Área') {
+        if ($user->role->nombre === 'Jefe de Área') {
             return $query->where('id_area', $user->id_area);
         }
 
         // Funcionario ve solo sus expedientes asignados
-        if ($user->rol->nombre === 'Funcionario') {
+        if ($user->role->nombre === 'Funcionario') {
             return $query->where('id_funcionario_asignado', $user->id);
         }
 
         // Ciudadano ve solo sus propios expedientes
-        if ($user->rol->nombre === 'Ciudadano') {
+        if ($user->role->nombre === 'Ciudadano') {
             return $query->where('id_persona', $user->id_persona);
         }
 
         // Soporte ve todo (para diagnóstico)
-        if ($user->rol->nombre === 'Soporte') {
+        if ($user->role->nombre === 'Soporte') {
             return $query;
         }
 
@@ -58,7 +58,7 @@ class ReporteController extends Controller
     private function getTituloReporte()
     {
         $user = auth()->user();
-        $rol = $user->rol->nombre;
+        $rol = $user->role->nombre;
 
         $titulos = [
             'Administrador' => 'Reportes del Sistema - Vista Global',
@@ -75,7 +75,7 @@ class ReporteController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $rolNombre = $user->rol->nombre;
+        $rolNombre = $user->role->nombre;
 
         // Query base filtrada por rol
         $baseQuery = $this->getQueryPorRol();
@@ -150,18 +150,21 @@ class ReporteController extends Controller
 
         $estadisticas = [
             'total' => (clone $statsQuery)->count(),
-            'por_estado' => $this->getQueryPorRol(Expediente::selectRaw('estado, COUNT(*) as total'))
-                ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
-                ->when($tipoTramite, fn($q) => $q->where('id_tipo_tramite', $tipoTramite))
-                ->when($area, fn($q) => $q->where('id_area', $area))
-                ->groupBy('estado')
+            'por_estado' => $this->getQueryPorRol(
+                    Expediente::join('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
+                        ->selectRaw('estados_expediente.slug as estado, COUNT(*) as total')
+                )
+                ->whereBetween('expedientes.created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
+                ->when($tipoTramite, fn($q) => $q->where('expedientes.id_tipo_tramite', $tipoTramite))
+                ->when($area, fn($q) => $q->where('expedientes.id_area', $area))
+                ->groupBy('estados_expediente.slug')
                 ->get()
                 ->pluck('total', 'estado'),
             'por_tipo_tramite' => $this->getQueryPorRol(Expediente::selectRaw('id_tipo_tramite, COUNT(*) as total'))
                 ->with('tipoTramite:id_tipo_tramite,nombre')
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($area, fn($q) => $q->where('id_area', $area))
-                ->when($estado, fn($q) => $q->where('estado', $estado))
+                ->when($estado, fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->where('slug', $estado)))
                 ->groupBy('id_tipo_tramite')
                 ->orderByDesc('total')
                 ->limit(10)
@@ -170,7 +173,7 @@ class ReporteController extends Controller
                 ->with('area:id_area,nombre')
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($tipoTramite, fn($q) => $q->where('id_tipo_tramite', $tipoTramite))
-                ->when($estado, fn($q) => $q->where('estado', $estado))
+                ->when($estado, fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->where('slug', $estado)))
                 ->whereNotNull('id_area')
                 ->groupBy('id_area')
                 ->orderByDesc('total')
@@ -179,7 +182,7 @@ class ReporteController extends Controller
                 ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                 ->when($tipoTramite, fn($q) => $q->where('id_tipo_tramite', $tipoTramite))
                 ->when($area, fn($q) => $q->where('id_area', $area))
-                ->when($estado, fn($q) => $q->where('estado', $estado))
+                ->when($estado, fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->where('slug', $estado)))
                 ->groupBy(DB::raw('DATE(created_at)'))
                 ->orderBy('fecha')
                 ->get()
@@ -222,7 +225,7 @@ class ReporteController extends Controller
 
         if ($tipoTramite) $query->where('id_tipo_tramite', $tipoTramite);
         if ($area) $query->where('id_area', $area);
-        if ($estado) $query->where('estado', $estado);
+        if ($estado) $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $estado));
 
         $expedientes = $query->orderBy('created_at', 'desc')->get();
 
@@ -286,7 +289,7 @@ class ReporteController extends Controller
     public function tiemposAtencion()
     {
         $tiempos = $this->getQueryPorRol(Expediente::query())
-            ->where('estado', 'resuelto')
+            ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
             ->selectRaw('AVG(DATEDIFF(updated_at, created_at)) as promedio_dias')
             ->first();
 
@@ -305,8 +308,8 @@ class ReporteController extends Controller
         // Estadísticas generales por tipo de trámite
         $estadisticasPorTipo = TipoTramite::withCount([
             'expedientes',
-            'expedientes as resueltos_count' => fn($q) => $q->where('estado', 'resuelto'),
-            'expedientes as pendientes_count' => fn($q) => $q->whereIn('estado', ['recepcionado', 'registrado', 'derivado', 'en_proceso']),
+            'expedientes as resueltos_count' => fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->where('slug', 'resuelto')),
+            'expedientes as pendientes_count' => fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->whereIn('slug', ['recepcionado', 'registrado', 'derivado', 'en_proceso'])),
         ])
             ->where('activo', true)
             ->orderByDesc('expedientes_count')
@@ -330,10 +333,11 @@ class ReporteController extends Controller
                 'total' => Expediente::where('id_tipo_tramite', $tipoTramiteId)
                     ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                     ->count(),
-                'por_estado' => Expediente::selectRaw('estado, COUNT(*) as total')
-                    ->where('id_tipo_tramite', $tipoTramiteId)
-                    ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
-                    ->groupBy('estado')
+                'por_estado' => Expediente::join('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
+                    ->selectRaw('estados_expediente.slug as estado, COUNT(*) as total')
+                    ->where('expedientes.id_tipo_tramite', $tipoTramiteId)
+                    ->whereBetween('expedientes.created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
+                    ->groupBy('estados_expediente.slug')
                     ->get()
                     ->pluck('total', 'estado'),
                 'por_area' => Expediente::selectRaw('id_area, COUNT(*) as total')
@@ -379,8 +383,8 @@ class ReporteController extends Controller
         // Estadísticas generales por área
         $estadisticasPorArea = Area::withCount([
             'expedientes',
-            'expedientes as resueltos_count' => fn($q) => $q->where('estado', 'resuelto'),
-            'expedientes as pendientes_count' => fn($q) => $q->whereIn('estado', ['derivado', 'en_proceso']),
+            'expedientes as resueltos_count' => fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->where('slug', 'resuelto')),
+            'expedientes as pendientes_count' => fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->whereIn('slug', ['derivado', 'en_proceso'])),
             'expedientes as vencidos_count' => fn($q) => $q->whereHas('derivaciones', function($d) {
                 $d->where('fecha_limite', '<', now())->where('estado', 'Pendiente');
             }),
@@ -408,10 +412,11 @@ class ReporteController extends Controller
                 'total' => Expediente::where('id_area', $areaId)
                     ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
                     ->count(),
-                'por_estado' => Expediente::selectRaw('estado, COUNT(*) as total')
-                    ->where('id_area', $areaId)
-                    ->whereBetween('created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
-                    ->groupBy('estado')
+                'por_estado' => Expediente::join('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
+                    ->selectRaw('estados_expediente.slug as estado, COUNT(*) as total')
+                    ->where('expedientes.id_area', $areaId)
+                    ->whereBetween('expedientes.created_at', [$fechaInicio . ' 00:00:00', $fechaFin . ' 23:59:59'])
+                    ->groupBy('estados_expediente.slug')
                     ->get()
                     ->pluck('total', 'estado'),
                 'por_tipo' => Expediente::selectRaw('id_tipo_tramite, COUNT(*) as total')
@@ -422,7 +427,7 @@ class ReporteController extends Controller
                     ->orderByDesc('total')
                     ->get(),
                 'promedio_atencion' => Expediente::where('id_area', $areaId)
-                    ->where('estado', 'resuelto')
+                    ->whereHas('estadoExpediente', fn($q) => $q->where('slug', 'resuelto'))
                     ->selectRaw('AVG(DATEDIFF(updated_at, created_at)) as promedio')
                     ->value('promedio') ?? 0
             ];
@@ -431,10 +436,11 @@ class ReporteController extends Controller
             $funcionariosArea = DB::table('users')
                 ->select('users.id', 'users.name',
                     DB::raw('COUNT(expedientes.id_expediente) as total_asignados'),
-                    DB::raw('SUM(CASE WHEN expedientes.estado = "resuelto" THEN 1 ELSE 0 END) as resueltos'),
-                    DB::raw('SUM(CASE WHEN expedientes.estado IN ("derivado", "en_proceso") THEN 1 ELSE 0 END) as pendientes')
+                    DB::raw('SUM(CASE WHEN estados_expediente.slug = "resuelto" THEN 1 ELSE 0 END) as resueltos'),
+                    DB::raw('SUM(CASE WHEN estados_expediente.slug IN ("derivado", "en_proceso") THEN 1 ELSE 0 END) as pendientes')
                 )
                 ->leftJoin('expedientes', 'users.id', '=', 'expedientes.id_funcionario_asignado')
+                ->leftJoin('estados_expediente', 'expedientes.id_estado', '=', 'estados_expediente.id_estado')
                 ->where('users.id_area', $areaId)
                 ->where('users.id_rol', 4)
                 ->groupBy('users.id', 'users.name')
@@ -502,8 +508,8 @@ class ReporteController extends Controller
         if ($personaId) {
             $personaSeleccionada = \App\Models\Persona::withCount([
                 'expedientes',
-                'expedientes as resueltos_count' => fn($q) => $q->where('estado', 'resuelto'),
-                'expedientes as pendientes_count' => fn($q) => $q->whereIn('estado', ['recepcionado', 'registrado', 'derivado', 'en_proceso']),
+                'expedientes as resueltos_count' => fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->where('slug', 'resuelto')),
+                'expedientes as pendientes_count' => fn($q) => $q->whereHas('estadoExpediente', fn($sq) => $sq->whereIn('slug', ['recepcionado', 'registrado', 'derivado', 'en_proceso'])),
             ])->find($personaId);
 
             $expedientesPersona = Expediente::with(['tipoTramite', 'area', 'funcionarioAsignado'])
@@ -550,7 +556,7 @@ class ReporteController extends Controller
 
         if ($tipoTramite) $query->where('id_tipo_tramite', $tipoTramite);
         if ($area) $query->where('id_area', $area);
-        if ($estado) $query->where('estado', $estado);
+        if ($estado) $query->whereHas('estadoExpediente', fn($q) => $q->where('slug', $estado));
 
         $expedientes = $query->orderBy('created_at', 'desc')->limit(500)->get();
 

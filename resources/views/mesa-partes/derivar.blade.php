@@ -138,7 +138,7 @@ document.getElementById('id_area_destino').addEventListener('change', function()
     funcionarioSelect.innerHTML = '<option value="">Cargando...</option>';
 
     if (areaId) {
-        fetch(`/api/funcionarios/${areaId}`)
+        fetch(`${window.APP_URL}/api/funcionarios/${areaId}`)
             .then(response => response.json())
             .then(data => {
                 funcionarioSelect.innerHTML = '<option value="">Seleccione (opcional)</option>';

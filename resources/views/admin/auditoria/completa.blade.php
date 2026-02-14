@@ -217,7 +217,7 @@ function verDetalles(id) {
     content.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
     modal.show();
 
-    fetch(`/admin/auditoria/${id}/detalles`)
+    fetch(`${window.APP_URL}/admin/auditoria/${id}/detalles`)
         .then(response => response.json())
         .then(data => {
             let html = `

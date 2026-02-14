@@ -244,7 +244,7 @@ function aplicarFiltros() {
 
 function cambiarEstado(usuarioId) {
     if (confirm('¿Está seguro de cambiar el estado del usuario?')) {
-        fetch(`/admin/usuarios/${usuarioId}/toggle-estado`, {
+        fetch(`${window.APP_URL}/admin/usuarios/${usuarioId}/toggle-estado`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),

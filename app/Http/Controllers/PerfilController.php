@@ -50,21 +50,41 @@ class PerfilController extends Controller
         }
         
         if ($canEditAll) {
+            $personaId = $user->id_persona;
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
-                'dni' => ['nullable', 'string', 'size:8', Rule::unique('users')->ignore($user->id)],
+                'dni' => ['nullable', 'string', 'size:8', Rule::unique('personas', 'numero_documento')->ignore($personaId, 'id_persona')],
                 'telefono' => 'nullable|string|max:15',
                 'direccion' => 'nullable|string|max:255',
                 'password' => 'nullable|min:6|confirmed'
             ]);
 
+            // Actualizar datos personales en la tabla personas
+            if ($user->persona) {
+                $user->persona->update([
+                    'numero_documento' => $request->dni,
+                    'telefono' => $request->telefono,
+                    'direccion' => $request->direccion,
+                ]);
+            } elseif ($request->dni) {
+                $persona = \App\Models\Persona::firstOrCreate(
+                    ['numero_documento' => $request->dni],
+                    [
+                        'tipo_documento' => 'DNI',
+                        'tipo_persona' => 'NATURAL',
+                        'nombres' => $request->name,
+                        'telefono' => $request->telefono,
+                        'direccion' => $request->direccion,
+                    ]
+                );
+                $user->id_persona = $persona->id_persona;
+            }
+
             $data = [
                 'name' => $request->name,
                 'email' => $request->email,
-                'dni' => $request->dni,
-                'telefono' => $request->telefono,
-                'direccion' => $request->direccion
+                'id_persona' => $user->id_persona,
             ];
         } else {
             // Solo campos básicos para otros roles
@@ -74,17 +94,24 @@ class PerfilController extends Controller
                 'password' => 'nullable|min:6|confirmed'
             ]);
 
-            $data = [
-                'telefono' => $request->telefono,
-                'direccion' => $request->direccion
-            ];
+            // Actualizar en persona si existe
+            if ($user->persona) {
+                $user->persona->update([
+                    'telefono' => $request->telefono,
+                    'direccion' => $request->direccion,
+                ]);
+            }
+
+            $data = [];
         }
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
 
-        $user->update($data);
+        if (!empty($data)) {
+            $user->update($data);
+        }
 
         return redirect()->route('perfil.show')
             ->with('success', 'Perfil actualizado correctamente');

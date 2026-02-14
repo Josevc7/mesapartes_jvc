@@ -293,7 +293,7 @@ function toggleSubAreas(id) {
 
 // Editar área
 function editarArea(id) {
-    fetch(`/admin/areas/${id}/edit`)
+    fetch(`${window.APP_URL}/admin/areas/${id}/edit`)
         .then(response => response.json())
         .then(data => {
             document.getElementById('inputNombre').value = data.area.nombre;
@@ -303,7 +303,7 @@ function editarArea(id) {
             document.getElementById('inputNivel').value = data.area.nivel || 'SUBDIRECCION';
             document.getElementById('inputAreaPadre').value = data.area.id_area_padre || '';
 
-            document.getElementById('formArea').action = `/admin/areas/${id}`;
+            document.getElementById('formArea').action = `${window.APP_URL}/admin/areas/${id}`;
             document.getElementById('formMethod').value = 'PUT';
             document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Área';
             document.getElementById('btnGuardar').innerHTML = '<i class="fas fa-save me-1"></i>Actualizar';
@@ -334,7 +334,7 @@ function agregarSubArea(idPadre, nombrePadre) {
 function toggleArea(id) {
     if (confirm('¿Está seguro de cambiar el estado de esta área?')) {
         const form = document.getElementById('formToggle');
-        form.action = `/admin/areas/${id}/toggle`;
+        form.action = `${window.APP_URL}/admin/areas/${id}/toggle`;
         form.submit();
     }
 }
@@ -343,7 +343,7 @@ function toggleArea(id) {
 function eliminarArea(id, nombre) {
     if (confirm(`¿Está seguro de eliminar el área "${nombre}"?\n\nEsta acción también eliminará todas sus sub-áreas.`)) {
         const form = document.getElementById('formEliminar');
-        form.action = `/admin/areas/${id}`;
+        form.action = `${window.APP_URL}/admin/areas/${id}`;
         form.submit();
     }
 }

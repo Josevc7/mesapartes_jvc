@@ -180,11 +180,11 @@ function togglePersonaFields() {
 document.getElementById('tipo_persona').addEventListener('change', togglePersonaFields);
 
 function editarPersona(id) {
-    fetch(`/admin/personas/${id}`)
+    fetch(`${window.APP_URL}/admin/personas/${id}`)
         .then(response => response.json())
         .then(data => {
             const form = document.getElementById('formPersona');
-            form.action = `/admin/personas/${id}`;
+            form.action = `${window.APP_URL}/admin/personas/${id}`;
             form.innerHTML += '<input type="hidden" name="_method" value="PUT">';
             
             // Llenar campos
@@ -210,7 +210,7 @@ function eliminarPersona(id) {
     if (confirm('¿Está seguro de eliminar esta persona?')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `/admin/personas/${id}`;
+        form.action = `${window.APP_URL}/admin/personas/${id}`;
         form.innerHTML = `
             @csrf
             <input type="hidden" name="_method" value="DELETE">

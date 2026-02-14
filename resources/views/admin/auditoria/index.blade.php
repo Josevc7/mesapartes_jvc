@@ -82,7 +82,7 @@
 
 <script>
 function verDetalles(id) {
-    fetch(`/admin/auditoria/${id}/detalles`)
+    fetch(`${window.APP_URL}/admin/auditoria/${id}/detalles`)
         .then(response => response.json())
         .then(data => {
             let content = `

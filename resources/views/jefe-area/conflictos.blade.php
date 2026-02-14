@@ -191,7 +191,7 @@
 
 <script>
 function verDetalleConflicto(expedienteId) {
-    fetch(`/jefe-area/conflictos/${expedienteId}/detalle`)
+    fetch(`${window.APP_URL}/jefe-area/conflictos/${expedienteId}/detalle`)
         .then(response => response.json())
         .then(data => {
             document.getElementById('contenidoConflicto').innerHTML = `
@@ -257,7 +257,7 @@ function extenderPlazo(expedienteId) {
     const motivo = prompt('Motivo de la extensión:');
     if (!motivo) return;
     
-    fetch(`/jefe-area/conflictos/${expedienteId}/extender-plazo`, {
+    fetch(`${window.APP_URL}/jefe-area/conflictos/${expedienteId}/extender-plazo`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -288,7 +288,7 @@ function autorizarEspecial(expedienteId) {
     const observaciones = prompt('Observaciones de la autorización especial:');
     if (!observaciones) return;
     
-    fetch(`/jefe-area/conflictos/${expedienteId}/autorizar`, {
+    fetch(`${window.APP_URL}/jefe-area/conflictos/${expedienteId}/autorizar`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

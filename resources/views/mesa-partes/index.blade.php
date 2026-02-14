@@ -604,7 +604,7 @@ function archivarExpediente(expedienteId) {
     if (confirm('Esta seguro de archivar este expediente?')) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `/mesa-partes/expedientes/${expedienteId}/archivar`;
+        form.action = `${window.APP_URL}/mesa-partes/expedientes/${expedienteId}/archivar`;
 
         const csrfToken = document.createElement('input');
         csrfToken.type = 'hidden';

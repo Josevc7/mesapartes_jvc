@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            fetch(`/api/areas/${areaId}/funcionarios`)
+            fetch(`${window.APP_URL}/api/areas/${areaId}/funcionarios`)
                 .then(response => response.json())
                 .then(data => {
                     funcionarioSelect.innerHTML = '<option value="">Sin asignar (el jefe asignará después)</option>';

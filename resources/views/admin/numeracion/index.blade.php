@@ -157,7 +157,7 @@
 <script>
 function editarNumeracion(numeracion) {
     document.getElementById('modalNumeracionTitle').textContent = 'Editar Numeración';
-    document.getElementById('formNumeracion').action = '/admin/numeracion/' + numeracion.id_numeracion;
+    document.getElementById('formNumeracion').action = window.APP_URL + '/admin/numeracion/' + numeracion.id_numeracion;
     document.getElementById('methodFieldNum').innerHTML = '<input type="hidden" name="_method" value="PUT">';
 
     document.getElementById('numAnio').value = numeracion.anio;

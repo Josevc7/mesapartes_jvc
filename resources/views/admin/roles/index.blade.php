@@ -128,11 +128,11 @@
 @section('scripts')
 <script>
 function editarRol(id) {
-    fetch(`/admin/roles/${id}`)
+    fetch(`${window.APP_URL}/admin/roles/${id}`)
         .then(response => response.json())
         .then(data => {
             document.getElementById('modalRolTitle').textContent = 'Editar Rol';
-            document.getElementById('formRol').action = `/admin/roles/${id}`;
+            document.getElementById('formRol').action = `${window.APP_URL}/admin/roles/${id}`;
             document.getElementById('formRol').innerHTML += '<input type="hidden" name="_method" value="PUT">';
             
             document.getElementById('nombre').value = data.nombre;

@@ -106,7 +106,7 @@ async function cargarFuncionarios() {
     
     if (areaId) {
         try {
-            const response = await fetch(`/api/funcionarios/${areaId}`);
+            const response = await fetch(`${window.APP_URL}/api/funcionarios/${areaId}`);
             const funcionarios = await response.json();
             
             funcionarios.forEach(funcionario => {

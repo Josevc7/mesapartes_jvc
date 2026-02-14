@@ -273,7 +273,7 @@ document.getElementById('selectArea').addEventListener('change', function() {
 
     // Cargar funcionarios del área seleccionada via AJAX
     if (areaId) {
-        fetch(`/admin/api/funcionarios/${areaId}`)
+        fetch(`${window.APP_URL}/admin/api/funcionarios/${areaId}`)
             .then(response => response.json())
             .then(data => {
                 selectFunc.innerHTML = '<option value="">Seleccione funcionario...</option>';

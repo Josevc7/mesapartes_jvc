@@ -24,7 +24,7 @@ class AdminController extends Controller
     // Gestión de Usuarios
     public function usuarios(Request $request)
     {
-        $query = User::with(['role', 'area']);
+        $query = User::with(['role', 'area', 'persona']);
 
         if ($request->filled('id_rol')) {
             $query->where('id_rol', $request->id_rol);
@@ -42,8 +42,10 @@ class AdminController extends Controller
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
                 $q->where('name', 'like', "%{$buscar}%")
-                  ->orWhere('dni', 'like', "%{$buscar}%")
-                  ->orWhere('email', 'like', "%{$buscar}%");
+                  ->orWhere('email', 'like', "%{$buscar}%")
+                  ->orWhereHas('persona', function ($qp) use ($buscar) {
+                      $qp->where('numero_documento', 'like', "%{$buscar}%");
+                  });
             });
         }
 
@@ -65,7 +67,7 @@ class AdminController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'dni' => 'required|string|max:20|unique:users',
+            'dni' => 'required|string|max:20|unique:personas,numero_documento',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
             'id_rol' => 'required|exists:roles,id_rol',
@@ -73,14 +75,23 @@ class AdminController extends Controller
             'telefono' => 'nullable|string|max:20'
         ]);
 
+        $persona = Persona::firstOrCreate(
+            ['numero_documento' => $request->dni],
+            [
+                'tipo_documento' => 'DNI',
+                'tipo_persona' => 'NATURAL',
+                'nombres' => $request->name,
+                'telefono' => $request->telefono,
+            ]
+        );
+
         User::create([
             'name' => $request->name,
-            'dni' => $request->dni,
             'email' => $request->email,
-            'telefono' => $request->telefono,
             'password' => Hash::make($request->password),
             'id_rol' => $request->id_rol,
             'id_area' => $request->id_area,
+            'id_persona' => $persona->id_persona,
             'activo' => $request->has('activo')
         ]);
 
@@ -107,7 +118,7 @@ class AdminController extends Controller
         
         $request->validate([
             'name' => 'required|string|max:255',
-            'dni' => 'required|string|max:20|unique:users,dni,' . $id_user . ',id',
+            'dni' => 'required|string|max:20',
             'email' => 'required|email|unique:users,email,' . $id_user . ',id',
             'password' => 'nullable|min:6|confirmed',
             'id_rol' => 'required|exists:roles,id_rol',
@@ -115,13 +126,48 @@ class AdminController extends Controller
             'telefono' => 'nullable|string|max:20'
         ]);
 
+        // Buscar si ya existe una persona con este DNI
+        $personaExistente = Persona::where('numero_documento', $request->dni)->first();
+
+        if ($personaExistente && $personaExistente->id_persona != $usuario->id_persona) {
+            // Verificar que no esté vinculada a otro usuario
+            $otroUsuario = User::where('id_persona', $personaExistente->id_persona)
+                ->where('id', '!=', $id_user)
+                ->first();
+
+            if ($otroUsuario) {
+                return redirect()->back()->withErrors([
+                    'dni' => 'Este DNI ya está asignado al usuario: ' . $otroUsuario->name
+                ])->withInput();
+            }
+
+            // Actualizar datos en la persona existente
+            $personaExistente->update(['telefono' => $request->telefono]);
+            $usuario->id_persona = $personaExistente->id_persona;
+        } elseif ($usuario->persona) {
+            // Actualizar la persona vinculada actual
+            $usuario->persona->update([
+                'numero_documento' => $request->dni,
+                'telefono' => $request->telefono,
+            ]);
+        } else {
+            // Crear nueva persona
+            $persona = Persona::create([
+                'tipo_documento' => 'DNI',
+                'tipo_persona' => 'NATURAL',
+                'numero_documento' => $request->dni,
+                'nombres' => $request->name,
+                'telefono' => $request->telefono,
+            ]);
+            $usuario->id_persona = $persona->id_persona;
+        }
+
         $data = [
             'name' => $request->name,
-            'dni' => $request->dni,
             'email' => $request->email,
-            'telefono' => $request->telefono,
             'id_rol' => $request->id_rol,
             'id_area' => $request->id_area,
+            'id_persona' => $usuario->id_persona,
             'activo' => $request->has('activo')
         ];
 

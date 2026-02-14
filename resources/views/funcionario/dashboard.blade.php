@@ -250,7 +250,7 @@ function recibirExpediente(id) {
                 }
             });
             
-            fetch(`/funcionario/expedientes/${id}/recibir`, {
+            fetch(`${window.APP_URL}/funcionario/expedientes/${id}/recibir`, {
                 method: 'PUT',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

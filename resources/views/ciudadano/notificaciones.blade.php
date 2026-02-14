@@ -69,7 +69,7 @@
 
 <script>
 function marcarLeida(id) {
-    fetch(`/ciudadano/notificaciones/${id}/marcar-leida`, {
+    fetch(`${window.APP_URL}/ciudadano/notificaciones/${id}/marcar-leida`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

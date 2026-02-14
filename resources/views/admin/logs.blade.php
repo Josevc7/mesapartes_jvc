@@ -159,7 +159,7 @@ function limpiarFiltros() {
 }
 
 function verDetalles(logId) {
-    fetch(`/admin/logs/${logId}/detalles`)
+    fetch(`${window.APP_URL}/admin/logs/${logId}/detalles`)
         .then(response => response.json())
         .then(data => {
             let contenido = '<div class="row">';

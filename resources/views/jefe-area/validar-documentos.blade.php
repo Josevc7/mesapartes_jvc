@@ -184,7 +184,7 @@ function verDetalleValidacion(expedienteId) {
             </div>
         </div>`;
 
-    fetch(`/jefe-area/expedientes/${expedienteId}/detalle-validacion`)
+    fetch(`${window.APP_URL}/jefe-area/expedientes/${expedienteId}/detalle-validacion`)
         .then(response => {
             if (!response.ok) throw new Error('Error al cargar los datos');
             return response.json();
@@ -241,7 +241,7 @@ function validarExpediente(expedienteId, accion) {
         if (!observaciones) return;
     }
     
-    fetch(`/jefe-area/expedientes/${expedienteId}/validar`, {
+    fetch(`${window.APP_URL}/jefe-area/expedientes/${expedienteId}/validar`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

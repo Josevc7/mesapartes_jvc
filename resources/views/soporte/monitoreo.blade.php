@@ -208,7 +208,7 @@ function filtrarLogs(nivel) {
 
 // Cerrar alerta
 function cerrarAlerta(id) {
-    fetch(`/soporte/alertas/${id}/cerrar`, {
+    fetch(`${window.APP_URL}/soporte/alertas/${id}/cerrar`, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
