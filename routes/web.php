@@ -125,6 +125,9 @@ Route::prefix('panel/seguimiento')->middleware('auth')->group(function () {
 Route::prefix('mesa-partes')->middleware(['auth', 'role:Mesa de Partes,Administrador'])->group(function () {
     // Gestión de expedientes
     Route::get('/expedientes', [MesaPartesController::class, 'index'])->name('mesa-partes.index');
+    Route::get('/expedientes/{expediente}/editar', [MesaPartesController::class, 'edit'])->name('mesa-partes.edit');
+    Route::put('/expedientes/{expediente}', [MesaPartesController::class, 'update'])->name('mesa-partes.update');
+    Route::delete('/expedientes/{expediente}', [MesaPartesController::class, 'destroy'])->name('mesa-partes.destroy');
     Route::get('/expedientes/{expediente}', [MesaPartesController::class, 'show'])->name('mesa-partes.show');
     
     // Registro de documentos

@@ -463,6 +463,22 @@
                                         <i class="fas fa-eye"></i>
                                     </a>
 
+                                    <!-- Editar -->
+                                    <button type="button" class="btn btn-warning btn-accion"
+                                            title="Editar expediente"
+                                            onclick="abrirModalEditar({{ $expediente->id_expediente }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    <!-- Eliminar (solo estados iniciales) -->
+                                    @if(in_array($expediente->estadoExpediente?->slug, ['pendiente_recepcion', 'recepcionado', 'registrado', 'clasificado']))
+                                    <button type="button" class="btn btn-danger btn-accion"
+                                            title="Eliminar expediente"
+                                            onclick="eliminarExpediente({{ $expediente->id_expediente }}, '{{ $expediente->codigo_expediente }}')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    @endif
+
                                     <!-- Imprimir Cargo -->
                                     <button type="button" class="btn btn-success btn-accion"
                                             title="Imprimir Cargo" onclick="abrirCargo('{{ route('mesa-partes.cargo', $expediente) }}')">
@@ -557,6 +573,245 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Editar Expediente -->
+<div class="modal fade" id="modalEditarExpediente" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="modalEditarLabel">
+                    <i class="fas fa-edit me-2"></i>Editar Expediente: <span id="edit-codigo-titulo"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="formEditarExpediente" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <!-- Loading -->
+                    <div id="edit-loading" class="text-center py-5">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">Cargando datos del expediente...</p>
+                    </div>
+
+                    <!-- Contenido del formulario -->
+                    <div id="edit-contenido" style="display: none;">
+                        <!-- Info bloqueada -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">
+                                    <i class="fas fa-barcode me-1"></i>Codigo de Expediente
+                                </label>
+                                <input type="text" class="form-control form-control-sm fw-bold" id="edit-codigo" readonly disabled style="background-color: #e9ecef; font-family: 'Consolas', monospace;">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">
+                                    <i class="fas fa-info-circle me-1"></i>Estado Actual
+                                </label>
+                                <input type="text" class="form-control form-control-sm" id="edit-estado" readonly disabled style="background-color: #e9ecef;">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">
+                                    <i class="fas fa-calendar me-1"></i>Fecha Registro
+                                </label>
+                                <input type="text" class="form-control form-control-sm" id="edit-fecha" readonly disabled style="background-color: #e9ecef;">
+                            </div>
+                        </div>
+
+                        <hr class="my-2">
+
+                        <!-- Seccion 1: Datos del Solicitante -->
+                        <h6 class="text-primary fw-bold mb-3"><i class="fas fa-user me-1"></i>1. Datos del Solicitante</h6>
+
+                        <!-- Persona Natural -->
+                        <div id="edit-persona-natural" style="display: none;">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">Tipo Documento</label>
+                                    <select class="form-select form-select-sm" name="tipo_documento_persona" id="edit-tipo-doc-persona">
+                                        <option value="DNI">DNI</option>
+                                        <option value="CE">CE</option>
+                                        <option value="RUC">RUC</option>
+                                        <option value="PASAPORTE">PASAPORTE</option>
+                                        <option value="OTROS">OTROS</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">N° Documento</label>
+                                    <input type="text" class="form-control form-control-sm" name="numero_documento_persona" id="edit-num-doc-persona">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Nombres</label>
+                                    <input type="text" class="form-control form-control-sm" name="nombres" id="edit-nombres">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Apellido Paterno</label>
+                                    <input type="text" class="form-control form-control-sm" name="apellido_paterno" id="edit-ap-paterno">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Apellido Materno</label>
+                                    <input type="text" class="form-control form-control-sm" name="apellido_materno" id="edit-ap-materno">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Telefono</label>
+                                    <input type="text" class="form-control form-control-sm" name="telefono_persona" id="edit-telefono-persona">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="email_persona" id="edit-email-persona">
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label small fw-semibold">Direccion</label>
+                                    <input type="text" class="form-control form-control-sm" name="direccion_persona" id="edit-direccion-persona">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Persona Juridica -->
+                        <div id="edit-persona-juridica" style="display: none;">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">RUC</label>
+                                    <input type="text" class="form-control form-control-sm" name="numero_documento_persona" id="edit-ruc-juridica">
+                                    <input type="hidden" name="tipo_documento_persona" value="RUC" id="edit-tipo-doc-juridica">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-semibold">Razon Social</label>
+                                    <input type="text" class="form-control form-control-sm" name="razon_social" id="edit-razon-social">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Representante Legal</label>
+                                    <input type="text" class="form-control form-control-sm" name="representante_legal" id="edit-representante">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">Telefono</label>
+                                    <input type="text" class="form-control form-control-sm" name="telefono_persona" id="edit-telefono-juridica">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="email_persona" id="edit-email-juridica">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-semibold">Direccion</label>
+                                    <input type="text" class="form-control form-control-sm" name="direccion_persona" id="edit-direccion-juridica">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sin persona (remitente directo) -->
+                        <div id="edit-sin-persona" style="display: none;">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">DNI Remitente</label>
+                                    <input type="text" class="form-control form-control-sm" name="dni_remitente" id="edit-dni-remitente">
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label small fw-semibold">Nombre del Remitente</label>
+                                    <input type="text" class="form-control form-control-sm" name="remitente" id="edit-remitente">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-2">
+
+                        <!-- Seccion 2: Datos del Documento -->
+                        <h6 class="text-warning fw-bold mb-3"><i class="fas fa-file-alt me-1"></i>2. Datos del Documento</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Tipo Documento *</label>
+                                <select class="form-select form-select-sm" name="tipo_documento_entrante" id="edit-tipo-doc-entrante" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="SOLICITUD">SOLICITUD</option>
+                                    <option value="FUT">FUT</option>
+                                    <option value="OFICIO">OFICIO</option>
+                                    <option value="INFORME">INFORME</option>
+                                    <option value="MEMORANDUM">MEMORANDUM</option>
+                                    <option value="CARTA">CARTA</option>
+                                    <option value="RESOLUCION">RESOLUCION</option>
+                                    <option value="OTROS">OTROS</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">N° Documento</label>
+                                <input type="text" class="form-control form-control-sm" name="numero_documento_entrante" id="edit-num-doc-entrante">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Asunto *</label>
+                                <input type="text" class="form-control form-control-sm" name="asunto" id="edit-asunto" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-semibold">Folios</label>
+                                <input type="number" class="form-control form-control-sm" name="folios" id="edit-folios" min="1" max="9999">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-semibold">Asunto del Documento</label>
+                                <input type="text" class="form-control form-control-sm" name="asunto_documento" id="edit-asunto-documento">
+                            </div>
+                        </div>
+
+                        <hr class="my-2">
+
+                        <!-- Seccion 3: Clasificacion -->
+                        <h6 class="text-success fw-bold mb-3"><i class="fas fa-tags me-1"></i>3. Clasificacion y Derivacion</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Area *</label>
+                                <select class="form-select form-select-sm" name="id_area" id="edit-area" required>
+                                    <option value="">Seleccione...</option>
+                                    @foreach($areas as $area)
+                                        <option value="{{ $area->id_area }}">{{ $area->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Tipo de Tramite *</label>
+                                <select class="form-select form-select-sm" name="id_tipo_tramite" id="edit-tipo-tramite" required>
+                                    <option value="">Seleccione...</option>
+                                    @foreach($tipoTramites as $tipo)
+                                        <option value="{{ $tipo->id_tipo_tramite }}">{{ $tipo->nombre }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Prioridad *</label>
+                                <select class="form-select form-select-sm" name="prioridad" id="edit-prioridad" required>
+                                    <option value="baja">Baja</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="urgente">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-semibold">Observaciones</label>
+                                <textarea class="form-control form-control-sm" name="observaciones" id="edit-observaciones" rows="2" placeholder="Observaciones adicionales..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-guardar-edicion">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -597,6 +852,126 @@ function abrirCargo(url) {
         'CargoPrint',
         `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
     );
+}
+
+// Funcion para abrir modal de edicion
+function abrirModalEditar(expedienteId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalEditarExpediente'));
+    const loading = document.getElementById('edit-loading');
+    const contenido = document.getElementById('edit-contenido');
+
+    // Mostrar loading, ocultar contenido
+    loading.style.display = 'block';
+    contenido.style.display = 'none';
+
+    // Configurar action del formulario
+    const form = document.getElementById('formEditarExpediente');
+    form.action = `${window.APP_URL}/mesa-partes/expedientes/${expedienteId}`;
+
+    modal.show();
+
+    // Cargar datos via AJAX
+    fetch(`${window.APP_URL}/mesa-partes/expedientes/${expedienteId}/editar`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            llenarModalEditar(data.expediente);
+            loading.style.display = 'none';
+            contenido.style.display = 'block';
+        } else {
+            alert('Error al cargar los datos del expediente');
+            modal.hide();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexion al cargar el expediente');
+        modal.hide();
+    });
+}
+
+function llenarModalEditar(exp) {
+    // Info bloqueada
+    document.getElementById('edit-codigo').value = exp.codigo_expediente;
+    document.getElementById('edit-codigo-titulo').textContent = exp.codigo_expediente;
+    document.getElementById('edit-estado').value = exp.estado_formateado;
+    document.getElementById('edit-fecha').value = exp.fecha_registro;
+
+    // Datos del documento
+    document.getElementById('edit-tipo-doc-entrante').value = exp.tipo_documento_entrante || '';
+    document.getElementById('edit-num-doc-entrante').value = exp.numero_documento_entrante || '';
+    document.getElementById('edit-asunto').value = exp.asunto || '';
+    document.getElementById('edit-asunto-documento').value = exp.asunto_documento || '';
+    document.getElementById('edit-folios').value = exp.folios || '';
+
+    // Clasificacion
+    document.getElementById('edit-area').value = exp.id_area || '';
+    document.getElementById('edit-tipo-tramite').value = exp.id_tipo_tramite || '';
+    document.getElementById('edit-prioridad').value = exp.prioridad || 'normal';
+
+    // Observaciones
+    document.getElementById('edit-observaciones').value = exp.observaciones || '';
+
+    // Ocultar todas las secciones de persona
+    document.getElementById('edit-persona-natural').style.display = 'none';
+    document.getElementById('edit-persona-juridica').style.display = 'none';
+    document.getElementById('edit-sin-persona').style.display = 'none';
+
+    // Datos del solicitante
+    if (exp.persona) {
+        if (exp.persona.tipo_persona === 'NATURAL') {
+            document.getElementById('edit-persona-natural').style.display = 'block';
+            document.getElementById('edit-tipo-doc-persona').value = exp.persona.tipo_documento || 'DNI';
+            document.getElementById('edit-num-doc-persona').value = exp.persona.numero_documento || '';
+            document.getElementById('edit-nombres').value = exp.persona.nombres || '';
+            document.getElementById('edit-ap-paterno').value = exp.persona.apellido_paterno || '';
+            document.getElementById('edit-ap-materno').value = exp.persona.apellido_materno || '';
+            document.getElementById('edit-telefono-persona').value = exp.persona.telefono || '';
+            document.getElementById('edit-email-persona').value = exp.persona.email || '';
+            document.getElementById('edit-direccion-persona').value = exp.persona.direccion || '';
+        } else {
+            document.getElementById('edit-persona-juridica').style.display = 'block';
+            document.getElementById('edit-ruc-juridica').value = exp.persona.numero_documento || '';
+            document.getElementById('edit-razon-social').value = exp.persona.razon_social || '';
+            document.getElementById('edit-representante').value = exp.persona.representante_legal || '';
+            document.getElementById('edit-telefono-juridica').value = exp.persona.telefono || '';
+            document.getElementById('edit-email-juridica').value = exp.persona.email || '';
+            document.getElementById('edit-direccion-juridica').value = exp.persona.direccion || '';
+        }
+    } else {
+        document.getElementById('edit-sin-persona').style.display = 'block';
+        document.getElementById('edit-dni-remitente').value = exp.dni_remitente || '';
+        document.getElementById('edit-remitente').value = exp.remitente || '';
+    }
+}
+
+// Funcion para eliminar expediente
+function eliminarExpediente(expedienteId, codigoExpediente) {
+    if (confirm(`¿Esta seguro de eliminar el expediente ${codigoExpediente}?\n\nEsta accion no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `${window.APP_URL}/mesa-partes/expedientes/${expedienteId}`;
+
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = document.querySelector('meta[name="csrf-token"]').content;
+
+        const methodField = document.createElement('input');
+        methodField.type = 'hidden';
+        methodField.name = '_method';
+        methodField.value = 'DELETE';
+
+        form.appendChild(csrfToken);
+        form.appendChild(methodField);
+        document.body.appendChild(form);
+        form.submit();
+    }
 }
 
 // Funcion para archivar expediente

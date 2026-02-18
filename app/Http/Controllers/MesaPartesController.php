@@ -525,6 +525,243 @@ class MesaPartesController extends Controller
     // }
 
     /**
+     * Devuelve los datos del expediente en JSON para el modal de edición
+     */
+    public function edit(Expediente $expediente)
+    {
+        $expediente->load(['persona', 'tipoTramite', 'area', 'documentos', 'estadoExpediente']);
+
+        return response()->json([
+            'success' => true,
+            'expediente' => [
+                'id_expediente' => $expediente->id_expediente,
+                'codigo_expediente' => $expediente->codigo_expediente,
+                'asunto' => $expediente->asunto,
+                'asunto_documento' => $expediente->asunto_documento,
+                'tipo_documento_entrante' => $expediente->tipo_documento_entrante,
+                'numero_documento_entrante' => $expediente->numero_documento_entrante,
+                'folios' => $expediente->folios,
+                'id_tipo_tramite' => $expediente->id_tipo_tramite,
+                'id_area' => $expediente->id_area,
+                'prioridad' => $expediente->prioridad,
+                'observaciones' => $expediente->observaciones,
+                'canal' => $expediente->canal,
+                'remitente' => $expediente->remitente,
+                'dni_remitente' => $expediente->dni_remitente,
+                'estado' => $expediente->estadoExpediente?->slug,
+                'estado_formateado' => $expediente->getEstadoFormateadoInteligente(),
+                'fecha_registro' => $expediente->created_at->format('d/m/Y H:i'),
+                'persona' => $expediente->persona ? [
+                    'id_persona' => $expediente->persona->id_persona,
+                    'tipo_persona' => $expediente->persona->tipo_persona,
+                    'tipo_documento' => $expediente->persona->tipo_documento,
+                    'numero_documento' => $expediente->persona->numero_documento,
+                    'nombres' => $expediente->persona->nombres,
+                    'apellido_paterno' => $expediente->persona->apellido_paterno,
+                    'apellido_materno' => $expediente->persona->apellido_materno,
+                    'razon_social' => $expediente->persona->razon_social,
+                    'representante_legal' => $expediente->persona->representante_legal,
+                    'telefono' => $expediente->persona->telefono,
+                    'email' => $expediente->persona->email,
+                    'direccion' => $expediente->persona->direccion,
+                ] : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Actualiza los datos de un expediente
+     */
+    public function update(Request $request, Expediente $expediente)
+    {
+        $request->validate([
+            'asunto' => 'required|string|min:5|max:500',
+            'asunto_documento' => 'nullable|string|max:500',
+            'tipo_documento_entrante' => 'required|string',
+            'numero_documento_entrante' => 'nullable|string|max:50',
+            'folios' => 'nullable|integer|min:1|max:9999',
+            'id_tipo_tramite' => 'required|exists:tipo_tramites,id_tipo_tramite',
+            'id_area' => 'required|exists:areas,id_area',
+            'prioridad' => 'required|in:baja,normal,alta,urgente',
+            'observaciones' => 'nullable|string|max:1000',
+            // Datos de persona
+            'tipo_documento_persona' => 'nullable|string|max:20',
+            'numero_documento_persona' => 'nullable|string|max:20',
+            'nombres' => 'nullable|string|max:100',
+            'apellido_paterno' => 'nullable|string|max:100',
+            'apellido_materno' => 'nullable|string|max:100',
+            'razon_social' => 'nullable|string|max:200',
+            'representante_legal' => 'nullable|string|max:200',
+            'telefono_persona' => 'nullable|string|max:20',
+            'email_persona' => 'nullable|email|max:100',
+            'direccion_persona' => 'nullable|string|max:300',
+            // Remitente directo (sin persona)
+            'dni_remitente' => 'nullable|string|max:20',
+            'remitente' => 'nullable|string|max:200',
+        ], [
+            'asunto.required' => 'El asunto es obligatorio.',
+            'asunto.min' => 'El asunto debe tener al menos 5 caracteres.',
+            'id_tipo_tramite.required' => 'Debe seleccionar un tipo de trámite.',
+            'id_area.required' => 'Debe seleccionar un área.',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            $cambios = [];
+
+            // Detectar cambios del expediente para el historial
+            if ($expediente->asunto !== $request->asunto) {
+                $cambios[] = "Asunto: \"{$expediente->asunto}\" → \"{$request->asunto}\"";
+            }
+            if ($expediente->id_tipo_tramite != $request->id_tipo_tramite) {
+                $tipoAnterior = $expediente->tipoTramite->nombre ?? 'N/A';
+                $tipoNuevo = TipoTramite::find($request->id_tipo_tramite)->nombre ?? 'N/A';
+                $cambios[] = "Tipo trámite: \"{$tipoAnterior}\" → \"{$tipoNuevo}\"";
+            }
+            if ($expediente->id_area != $request->id_area) {
+                $areaAnterior = $expediente->area->nombre ?? 'N/A';
+                $areaNueva = Area::find($request->id_area)->nombre ?? 'N/A';
+                $cambios[] = "Área: \"{$areaAnterior}\" → \"{$areaNueva}\"";
+            }
+            if ($expediente->prioridad !== $request->prioridad) {
+                $cambios[] = "Prioridad: \"{$expediente->prioridad}\" → \"{$request->prioridad}\"";
+            }
+            if ($expediente->folios != $request->folios) {
+                $cambios[] = "Folios: \"{$expediente->folios}\" → \"{$request->folios}\"";
+            }
+            if ($expediente->tipo_documento_entrante !== $request->tipo_documento_entrante) {
+                $cambios[] = "Tipo doc. entrante: \"{$expediente->tipo_documento_entrante}\" → \"{$request->tipo_documento_entrante}\"";
+            }
+
+            // Actualizar datos del expediente
+            $expediente->update([
+                'asunto' => $request->asunto,
+                'asunto_documento' => $request->asunto_documento,
+                'tipo_documento_entrante' => $request->tipo_documento_entrante,
+                'numero_documento_entrante' => $request->numero_documento_entrante,
+                'folios' => $request->folios,
+                'id_tipo_tramite' => $request->id_tipo_tramite,
+                'id_area' => $request->id_area,
+                'prioridad' => $request->prioridad,
+                'observaciones' => $request->observaciones,
+            ]);
+
+            // Actualizar datos de la persona si existe
+            $persona = $expediente->persona;
+            if ($persona) {
+                if ($persona->numero_documento !== $request->numero_documento_persona && $request->numero_documento_persona) {
+                    $cambios[] = "N° Documento: \"{$persona->numero_documento}\" → \"{$request->numero_documento_persona}\"";
+                }
+                if ($persona->tipo_persona === 'NATURAL') {
+                    if ($persona->nombres !== $request->nombres && $request->nombres) {
+                        $cambios[] = "Nombres: \"{$persona->nombres}\" → \"{$request->nombres}\"";
+                    }
+                    if ($persona->apellido_paterno !== $request->apellido_paterno && $request->apellido_paterno) {
+                        $cambios[] = "Ap. Paterno: \"{$persona->apellido_paterno}\" → \"{$request->apellido_paterno}\"";
+                    }
+                    if ($persona->apellido_materno !== $request->apellido_materno && $request->apellido_materno) {
+                        $cambios[] = "Ap. Materno: \"{$persona->apellido_materno}\" → \"{$request->apellido_materno}\"";
+                    }
+
+                    $datosPersona = array_filter([
+                        'tipo_documento' => $request->tipo_documento_persona,
+                        'numero_documento' => $request->numero_documento_persona,
+                        'nombres' => $request->nombres,
+                        'apellido_paterno' => $request->apellido_paterno,
+                        'apellido_materno' => $request->apellido_materno,
+                    ]);
+                } else {
+                    if ($persona->razon_social !== $request->razon_social && $request->razon_social) {
+                        $cambios[] = "Razón social: \"{$persona->razon_social}\" → \"{$request->razon_social}\"";
+                    }
+
+                    $datosPersona = array_filter([
+                        'numero_documento' => $request->numero_documento_persona,
+                        'razon_social' => $request->razon_social,
+                        'representante_legal' => $request->representante_legal,
+                    ]);
+                }
+
+                // Datos comunes de contacto
+                $datosPersona['telefono'] = $request->telefono_persona;
+                $datosPersona['email'] = $request->email_persona;
+                $datosPersona['direccion'] = $request->direccion_persona;
+
+                $persona->update($datosPersona);
+            } else {
+                // Actualizar remitente directo
+                if ($expediente->remitente !== $request->remitente && $request->remitente) {
+                    $cambios[] = "Remitente: \"{$expediente->remitente}\" → \"{$request->remitente}\"";
+                }
+                if ($expediente->dni_remitente !== $request->dni_remitente && $request->dni_remitente) {
+                    $cambios[] = "DNI Remitente: \"{$expediente->dni_remitente}\" → \"{$request->dni_remitente}\"";
+                }
+
+                $expediente->update([
+                    'remitente' => $request->remitente,
+                    'dni_remitente' => $request->dni_remitente,
+                ]);
+            }
+
+            if (count($cambios) > 0) {
+                $expediente->agregarHistorial(
+                    "EDICIÓN DE EXPEDIENTE - Campos modificados: " . implode(' | ', $cambios) . ". Responsable: " . auth()->user()->name,
+                    auth()->id()
+                );
+            }
+
+            \DB::commit();
+            \Cache::forget('mesa_partes_estadisticas');
+
+            return redirect()->route('mesa-partes.index')
+                ->with('success', "Expediente {$expediente->codigo_expediente} actualizado correctamente.");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return back()->withInput()->with('error', 'Error al actualizar el expediente: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Elimina un expediente (solo si está en estados iniciales)
+     */
+    public function destroy(Expediente $expediente)
+    {
+        // Solo permitir eliminar en estados iniciales
+        $estadosPermitidos = ['pendiente_recepcion', 'recepcionado', 'registrado', 'clasificado'];
+        $estadoActual = $expediente->estadoExpediente?->slug;
+
+        if (!in_array($estadoActual, $estadosPermitidos)) {
+            return redirect()->route('mesa-partes.index')
+                ->with('error', "No se puede eliminar el expediente {$expediente->codigo_expediente}. Solo se pueden eliminar expedientes en estados iniciales (recepcionado, clasificado).");
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Eliminar registros relacionados
+            $expediente->documentos()->delete();
+            $expediente->derivaciones()->delete();
+            $expediente->historial()->delete();
+            $expediente->observaciones()->delete();
+
+            $expediente->delete();
+
+            \DB::commit();
+            \Cache::forget('mesa_partes_estadisticas');
+
+            return redirect()->route('mesa-partes.index')
+                ->with('success', "Expediente {$expediente->codigo_expediente} eliminado correctamente.");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->route('mesa-partes.index')
+                ->with('error', 'Error al eliminar el expediente: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Lista los expedientes virtuales pendientes de clasificación
      */
     public function expedientesVirtuales()
